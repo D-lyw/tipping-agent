@@ -1,221 +1,188 @@
-import { TwitterApi, TwitterApiReadWrite } from 'twitter-api-v2';
+import { TwitterApi } from 'twitter-api-v2';
 
 /**
- * Twitter/X API 客户端封装
- * 提供搜索、评论、发布推文等功能
- */
-export class XClient {
-  private client: TwitterApiReadWrite;
-
-  /**
-   * 构造函数
-   * @param apiKey API 密钥
-   * @param apiSecret API 密钥秘密
-   * @param accessToken 访问令牌
-   * @param accessSecret 访问令牌秘密
-   */
-  constructor(
-    apiKey: string,
-    apiSecret: string,
-    accessToken: string,
-    accessSecret: string
-  ) {
-    this.client = new TwitterApi({
-      appKey: apiKey,
-      appSecret: apiSecret,
-      accessToken: accessToken,
-      accessSecret: accessSecret,
-    }).readWrite;
-  }
-
-  /**
-   * 搜索推文
-   * @param query 搜索关键词
-   * @param maxResults 最大结果数量
-   * @returns 搜索结果
-   */
-  async searchTweets(query: string, maxResults: number = 10) {
-    try {
-      const result = await this.client.v2.search({
-        query,
-        max_results: maxResults,
-        'tweet.fields': ['created_at', 'public_metrics', 'author_id'],
-        expansions: ['author_id'],
-        'user.fields': ['name', 'username', 'profile_image_url'],
-      });
-
-      return {
-        success: true,
-        data: result.data,
-        includes: result.includes,
-        meta: result.meta,
-      };
-    } catch (error) {
-      console.error('搜索推文失败:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }
-
-  /**
-   * 发布推文
-   * @param text 推文内容
-   * @returns 发布结果
-   */
-  async postTweet(text: string) {
-    try {
-      const result = await this.client.v2.tweet(text);
-      return {
-        success: true,
-        data: result.data,
-      };
-    } catch (error) {
-      console.error('发布推文失败:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }
-
-  /**
-   * 回复推文
-   * @param tweetId 要回复的推文ID
-   * @param text 回复内容
-   * @returns 回复结果
-   */
-  async replyToTweet(tweetId: string, text: string) {
-    try {
-      const result = await this.client.v2.reply(text, tweetId);
-      return {
-        success: true,
-        data: result.data,
-      };
-    } catch (error) {
-      console.error('回复推文失败:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }
-
-  /**
-   * 获取用户时间线
-   * @param userId 用户ID
-   * @param maxResults 最大结果数量
-   * @returns 用户时间线
-   */
-  async getUserTimeline(userId: string, maxResults: number = 10) {
-    try {
-      const result = await this.client.v2.userTimeline(userId, {
-        max_results: maxResults,
-        'tweet.fields': ['created_at', 'public_metrics'],
-      });
-      
-      return {
-        success: true,
-        data: result.data,
-        meta: result.meta,
-      };
-    } catch (error) {
-      console.error('获取用户时间线失败:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }
-
-  /**
-   * 点赞推文
-   * @param tweetId 推文ID
-   * @returns 点赞结果
-   */
-  async likeTweet(tweetId: string) {
-    try {
-      const userId = await this.getUserId();
-      const result = await this.client.v2.like(userId, tweetId);
-      return {
-        success: true,
-        data: result.data,
-      };
-    } catch (error) {
-      console.error('点赞推文失败:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }
-
-  /**
-   * 获取推文的回复
-   * @param tweetId 推文ID
-   * @param maxResults 最大结果数量
-   * @returns 回复列表
-   */
-  async getTweetReplies(tweetId: string, maxResults: number = 20) {
-    try {
-      // 使用搜索 API 查找对特定推文的回复
-      // 格式: conversation_id:tweetId
-      const query = `conversation_id:${tweetId}`;
-      
-      const result = await this.client.v2.search({
-        query,
-        max_results: maxResults,
-        'tweet.fields': ['created_at', 'public_metrics', 'author_id', 'in_reply_to_user_id', 'referenced_tweets'],
-        expansions: ['author_id', 'referenced_tweets.id', 'in_reply_to_user_id'],
-        'user.fields': ['name', 'username', 'profile_image_url'],
-      });
-
-      // 过滤出直接回复给指定推文的内容
-      const directReplies = result.data.data?.filter(tweet => 
-        tweet.referenced_tweets?.some(ref => 
-          ref.type === 'replied_to' && ref.id === tweetId
-        )
-      ) || [];
-
-      return {
-        success: true,
-        data: directReplies,
-        includes: result.includes,
-        meta: result.meta,
-      };
-    } catch (error) {
-      console.error('获取推文回复失败:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }
-
-  /**
-   * 获取当前用户ID
-   * @returns 用户ID
-   */
-  private async getUserId(): Promise<string> {
-    const me = await this.client.v2.me();
-    return me.data.id;
-  }
-}
-
-/**
- * 创建 X 客户端实例
- * @param apiKey API 密钥
- * @param apiSecret API 密钥秘密
- * @param accessToken 访问令牌
- * @param accessSecret 访问令牌秘密
- * @returns XClient 实例
+ * 创建 X 客户端
+ * @param apiKey Twitter API Key
+ * @param apiSecret Twitter API Secret
+ * @param accessToken Twitter Access Token
+ * @param accessSecret Twitter Access Secret
+ * @returns X 客户端实例
  */
 export function createXClient(
   apiKey: string,
   apiSecret: string,
   accessToken: string,
   accessSecret: string
-): XClient {
-  return new XClient(apiKey, apiSecret, accessToken, accessSecret);
+) {
+  // 创建 Twitter API 客户端
+  const twitterClient = new TwitterApi({
+    appKey: apiKey,
+    appSecret: apiSecret,
+    accessToken: accessToken,
+    accessSecret: accessSecret,
+  });
+  
+  // 获取只读客户端
+  const readOnlyClient = twitterClient.readOnly;
+  
+  // 获取读写客户端
+  const readWriteClient = twitterClient.readWrite;
+  
+  return {
+    /**
+     * 搜索最近的推文
+     * @param query 搜索查询
+     * @param options 搜索选项
+     * @returns 搜索结果
+     */
+    searchRecentTweets: async (query: string, options: any = {}) => {
+      try {
+        const result = await readOnlyClient.v2.search(query, options);
+        return {
+          success: true,
+          data: result.data.data,
+          includes: result.data.includes,
+          meta: result.data.meta
+        };
+      } catch (error) {
+        console.error('搜索推文失败:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error)
+        };
+      }
+    },
+    
+    /**
+     * 获取推文回复
+     * @param tweetId 推文 ID
+     * @param options 选项
+     * @returns 回复列表
+     */
+    getTweetReplies: async (tweetId: string, options: any = {}) => {
+      try {
+        // 使用搜索 API 查找回复
+        const result = await readOnlyClient.v2.search(
+          `conversation_id:${tweetId}`, 
+          {
+            'tweet.fields': ['author_id', 'created_at', 'text', 'in_reply_to_user_id'],
+            'user.fields': ['username', 'name', 'profile_image_url'],
+            ...options
+          }
+        );
+        
+        return {
+          success: true,
+          data: result.data.data,
+          includes: result.data.includes,
+          meta: result.data.meta
+        };
+      } catch (error) {
+        console.error('获取推文回复失败:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error)
+        };
+      }
+    },
+    
+    /**
+     * 发布推文
+     * @param text 推文内容
+     * @param options 选项
+     * @returns 发布结果
+     */
+    postTweet: async (text: string, options: any = {}) => {
+      try {
+        const result = await readWriteClient.v2.tweet(text, options);
+        return {
+          success: true,
+          data: result.data
+        };
+      } catch (error) {
+        console.error('发布推文失败:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error)
+        };
+      }
+    },
+    
+    /**
+     * 回复推文
+     * @param tweetId 要回复的推文 ID
+     * @param text 回复内容
+     * @returns 回复结果
+     */
+    replyToTweet: async (tweetId: string, text: string) => {
+      try {
+        const result = await readWriteClient.v2.reply(text, tweetId);
+        return {
+          success: true,
+          data: result.data
+        };
+      } catch (error) {
+        console.error('回复推文失败:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error)
+        };
+      }
+    },
+    
+    /**
+     * 点赞推文
+     * @param tweetId 推文 ID
+     * @returns 点赞结果
+     */
+    likeTweet: async (tweetId: string) => {
+      try {
+        // 获取用户 ID
+        const meUser = await readOnlyClient.v2.me();
+        const userId = meUser.data.id;
+        
+        // 点赞推文
+        await readWriteClient.v2.like(userId, tweetId);
+        return {
+          success: true,
+          message: '点赞成功'
+        };
+      } catch (error) {
+        console.error('点赞推文失败:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error)
+        };
+      }
+    },
+    
+    /**
+     * 转发推文
+     * @param tweetId 推文 ID
+     * @returns 转发结果
+     */
+    retweetTweet: async (tweetId: string) => {
+      try {
+        // 获取用户 ID
+        const meUser = await readOnlyClient.v2.me();
+        const userId = meUser.data.id;
+        
+        // 转发推文
+        await readWriteClient.v2.retweet(userId, tweetId);
+        return {
+          success: true,
+          message: '转发成功'
+        };
+      } catch (error) {
+        console.error('转发推文失败:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error)
+        };
+      }
+    }
+  };
 }
+
+// 导出默认实例
+export default createXClient;

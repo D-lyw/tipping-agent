@@ -1,6 +1,7 @@
 import { mastra } from './mastra';
 import { replyMonitor, ReplyMonitor } from './lib/replyMonitor';
 import dotenv from 'dotenv';
+import { ckbEcosystemMonitor } from './workflows/ckbEcosystemMonitor';
 
 // 加载环境变量
 dotenv.config();
@@ -49,6 +50,23 @@ async function startApp() {
     }
   } catch (error) {
     console.error('启动回复监控服务失败:', error);
+  }
+  
+  // 启动 CKB 生态监控工作流
+  try {
+    console.log('启动 CKB 生态监控工作流...');
+    
+    // 启动定时任务
+    await ckbEcosystemMonitor.trigger('scheduledTrigger');
+    console.log('CKB 生态监控工作流已启动，将按计划执行');
+    
+    // 如果设置了立即执行标志，立即运行一次
+    if (process.env.RUN_ECOSYSTEM_MONITOR_IMMEDIATELY === 'true') {
+      console.log('立即执行 CKB 生态监控...');
+      await ckbEcosystemMonitor.trigger('manualTrigger');
+    }
+  } catch (error) {
+    console.error('启动 CKB 生态监控工作流失败:', error);
   }
   
   console.log('Tapping Agent 应用已启动');
