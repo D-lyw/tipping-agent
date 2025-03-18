@@ -1,12 +1,12 @@
 import { Mastra } from '@mastra/core/mastra';
 import { createLogger } from '@mastra/core/logger';
-import { ckbWorkflow, tappingWorkflow } from './workflows';
+import { ckbWorkflow, tappingWorkflow, nostrContentTappingWorkflow } from './workflows';
 import { tappingAgent } from './agents';
 import { xAgent } from './agents/xAgent';
 import { xWorkflow } from './workflows/x';
 
 export const mastra = new Mastra({
-  workflows: { ckbWorkflow, tappingWorkflow, xWorkflow },
+  workflows: { ckbWorkflow, tappingWorkflow, xWorkflow, nostrContentTappingWorkflow },
   agents: { tappingAgent, xAgent },
   logger: createLogger({
     name: 'Mastra',

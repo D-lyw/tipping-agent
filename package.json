@@ -9,7 +9,18 @@
     "dev": "mastra dev",
     "build": "tsc",
     "start": "node dist/index.js",
-    "monitor": "tsx src/index.ts"
+    "monitor": "tsx src/index.ts",
+    "nostr": "tsx src/nostrOnly.ts",
+    "test-nostr": "node test-nostr.js",
+    "test-nostr:publish": "node test-nostr.js --publish",
+    "gen-nostr-key": "node generate-nostr-key.js",
+    "simple-nostr": "node simple-nostr.js",
+    "simple-nostr:publish": "node simple-nostr.js --publish",
+    "nostr:monitor": "tsx src/nostrMonitoring.ts",
+    "nostr:historical": "tsx src/nostrMonitoring.ts historical",
+    "nostr:historical:24h": "tsx src/nostrMonitoring.ts historical 24",
+    "nostr:historical:72h": "tsx src/nostrMonitoring.ts historical 72",
+    "nostr:realtime": "tsx src/nostrMonitoring.ts realtime"
   },
   "keywords": [],
   "author": "",
@@ -28,6 +39,7 @@
     "dotenv": "^16.4.5",
     "mastra": "^0.3.1",
     "node-schedule": "^2.1.1",
+    "nostr-tools": "^2.11.0",
     "twitter-api-v2": "^1.20.2",
     "zod": "^3.24.2"
   },

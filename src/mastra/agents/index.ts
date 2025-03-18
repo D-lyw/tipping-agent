@@ -39,7 +39,7 @@ const memory = new Memory({
 });
 
 /**
- * CKB 生态内容打赏 Agent
+ * CKB 生态内容激励打赏 Agent
  */
 export const tappingAgent = new Agent({
   name: 'CKB Agent',
