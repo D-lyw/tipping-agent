@@ -4,6 +4,7 @@ import { Memory } from "@mastra/memory";
 import { LibSQLStore } from "@mastra/core/storage/libsql";
 
 import { generateCKBAddressTool, getCKBBalanceTool, transferCKBTool } from '../tools';
+import { convertNostrPubkeyToCkbAddressTool } from '../tools/nostr';
 import { xAgent } from './xAgent';
 
 const memory = new Memory({
@@ -62,6 +63,7 @@ export const tappingAgent = new Agent({
     - 默认使用主网，除非用户明确要求使用测试网
     - 相同的用户在短时间内多次留言，不要重复打赏
     - 相同的内容不要重复打赏
+    - 对于 Nostr 平台的内容，你可以直接使用 convertNostrPubkeyToCkbAddressTool 工具将用户的 Nostr 公钥转换为 CKB 地址进行打赏
 
     安全提示：
     - 提醒用户不要在不安全的环境中输入私钥
@@ -69,7 +71,12 @@ export const tappingAgent = new Agent({
     - 提醒用户保管好私钥，不要泄露给他人
   `,
   model: openai('gpt-4o'),
-  tools: { generateCKBAddressTool, getCKBBalanceTool, transferCKBTool },
+  tools: { 
+    generateCKBAddressTool, 
+    getCKBBalanceTool, 
+    transferCKBTool,
+    convertNostrPubkeyToCkbAddressTool 
+  },
   memory,
 });
 

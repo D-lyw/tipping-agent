@@ -27,7 +27,7 @@ export interface NostrEvent {
  * @param client CKB 客户端实例
  * @returns CKB 地址
  */
-async function nostrPubKeyToCkbAddress(nostrPubkey: string, client: any): Promise<string> {
+export async function nostrPubKeyToCkbAddress(nostrPubkey: string, client: any): Promise<string> {
   try {
     // 确保公钥没有 0x 前缀
     const pubkeyHex = nostrPubkey.startsWith('0x') ? nostrPubkey.substring(2) : nostrPubkey;
@@ -45,6 +45,31 @@ async function nostrPubKeyToCkbAddress(nostrPubkey: string, client: any): Promis
     console.error('转换 Nostr 公钥到 CKB 地址失败:', error);
     throw error;
   }
+}
+
+/**
+ * 创建 CKB 客户端（测试网络）
+ * @returns CKB 客户端实例
+ */
+export async function createCkbTestnetClient(): Promise<any> {
+  try {
+    // 创建客户端实例，当前是测试网环境
+    const client = new ClientPublicTestnet();
+    return client;
+  } catch (error) {
+    console.error('CKB 客户端初始化失败:', error);
+    throw error;
+  }
+}
+
+/**
+ * 简化版将 Nostr 公钥转换为 CKB 地址的工具函数
+ * @param nostrPubkey Nostr 公钥（十六进制字符串）
+ * @returns CKB 地址
+ */
+export async function convertNostrPubkeyToCkbAddress(nostrPubkey: string): Promise<string> {
+  const client = await createCkbTestnetClient();
+  return await nostrPubKeyToCkbAddress(nostrPubkey, client);
 }
 
 export class NostrMonitor extends EventEmitter {
@@ -233,4 +258,9 @@ export class NostrMonitor extends EventEmitter {
 }
 
 // 导出全局单例
-export const nostrMonitor = new NostrMonitor(); 
+export const nostrMonitor = new NostrMonitor();
+
+// 导出工具函数
+export const nostrTools = {
+  convertNostrPubkeyToCkbAddress,
+}; 

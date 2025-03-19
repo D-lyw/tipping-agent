@@ -35,6 +35,7 @@
     "@ckb-lumos/lumos": "^0.23.0",
     "@mastra/core": "^0.6.0",
     "@mastra/deployer-netlify": "^0.1.9",
+    "@mastra/deployer-vercel": "^0.1.12",
     "@mastra/memory": "^0.2.1",
     "dotenv": "^16.4.5",
     "mastra": "^0.3.1",
