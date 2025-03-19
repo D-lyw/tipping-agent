@@ -1,6 +1,7 @@
-import { nostrMonitor } from '../lib/nostrMonitor';
+import { nostrClient } from '../lib/nostrMonitor';
 import { NostrContent } from '../lib/nostrContentFetcher';
 import dotenv from 'dotenv';
+import { evaluateAndReward } from '../mastra/agents/tappingAgent';
 
 // 加载环境变量
 dotenv.config();
@@ -249,10 +250,22 @@ export class NostrRewardTool {
         sig: '',
       };
       
-      // 调用 NostrMonitor 执行打赏
-      await nostrMonitor.evaluateAndReward(nostrEvent);
+      // 调用 tappingAgent 的 evaluateAndReward 执行打赏
+      const ckbAddress = await nostrClient.getNostrPubkeyCkbAddress(evaluationResult.pubkey);
+      const evaluationData = {
+        content: nostrEvent.content,
+        author: evaluationResult.pubkey,
+        ckbAddress,
+        platform: 'nostr' as 'nostr',
+        eventId: evaluationResult.contentId,
+      };
       
-      console.log(`成功打赏内容 [${evaluationResult.contentId.substring(0, 8)}...]`);
+      const result = await evaluateAndReward(evaluationData);
+      if (!result.success) {
+        throw new Error(`打赏失败: ${result.error}`);
+      }
+      
+      console.log(`成功打赏内容 [${evaluationResult.contentId.substring(0, 8)}...]，金额: ${result.amount} CKB，交易哈希: ${result.txHash}`);
       return true;
     } catch (error) {
       console.error('打赏内容时出错:', error);

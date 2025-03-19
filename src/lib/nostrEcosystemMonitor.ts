@@ -1,6 +1,6 @@
 import { nostrContentFetcher, NostrContent } from './nostrContentFetcher';
 import { nostrRewardTool } from '../tools/nostrRewardTool';
-import { nostrMonitor } from './nostrMonitor';
+import { nostrClient } from './nostrMonitor';
 import dotenv from 'dotenv';
 import { mastra } from '../mastra';
 
@@ -27,7 +27,7 @@ export class NostrEcosystemMonitor {
   /**
    * 初始化 Nostr 监控服务
    */
-  public async initNostrMonitor(): Promise<void> {
+  public async initNostrClient(): Promise<void> {
     try {
       console.log('初始化 Nostr 监控服务...');
 
@@ -38,8 +38,9 @@ export class NostrEcosystemMonitor {
         console.warn('未设置 NOSTR_PRIVATE_KEY，将无法发布内容到 Nostr');
       }
 
-      // 初始化 nostrMonitor
-      await nostrMonitor.init(privateKey);
+      // 初始化 nostrClient
+      // nostrClient 是从 nostrMonitor 模块中导入的单例，无需再次初始化
+      // 只需要确保添加中继服务器
 
       // 获取中继服务器列表
       const relaysStr = process.env.NOSTR_RELAYS || 'wss://relay.damus.io,wss://relay.nostr.info';
@@ -47,7 +48,7 @@ export class NostrEcosystemMonitor {
 
       // 添加中继服务器
       for (const relay of relays) {
-        nostrMonitor.addRelay(relay);
+        nostrClient.addRelay(relay);
       }
 
       // 初始化内容检索器
@@ -158,10 +159,10 @@ export class NostrEcosystemMonitor {
       console.log('运行 Nostr 生态监控完整流程...');
 
       // 1. 初始化 Nostr 监控
-      await this.initNostrMonitor();
+      await this.initNostrClient();
 
       // 2. 搜索历史内容（过去 24 小时）
-      await this.fetchHistoricalContent(24);
+      await this.fetchHistoricalContent(48);
 
       // 3. 启动实时监控
       this.startRealtimeMonitoring();

@@ -41,7 +41,7 @@ if (args.length > 0) {
       // 搜索历史内容
       const hours = args[1] ? parseInt(args[1], 10) : 24;
       console.log(`执行历史内容搜索，范围: ${hours} 小时...`);
-      nostrEcosystemMonitor.initNostrMonitor()
+      nostrEcosystemMonitor.initNostrClient()
         .then(() => nostrEcosystemMonitor.fetchHistoricalContent(hours))
         .then(() => {
           console.log('历史内容搜索完成，退出程序');
@@ -56,7 +56,7 @@ if (args.length > 0) {
     case 'realtime':
       // 只启动实时监控
       console.log('启动实时监控...');
-      nostrEcosystemMonitor.initNostrMonitor()
+      nostrEcosystemMonitor.initNostrClient()
         .then(() => nostrEcosystemMonitor.startRealtimeMonitoring())
         .then(() => {
           console.log('实时监控已启动，按 Ctrl+C 停止');

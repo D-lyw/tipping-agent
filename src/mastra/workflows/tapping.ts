@@ -1,4 +1,5 @@
-import { Step, Workflow } from "@mastra/core";
+import { Step } from "@mastra/core";
+import { Workflow } from '@mastra/core/workflows';
 import { z } from "zod";
 import { tappingAgent } from "../agents";
 
@@ -86,7 +87,7 @@ const sendCommentStep = new Step({
     id: 'send-comment',
     description: '发送评论，获取打赏地址',
     execute: async ({ context, mastra }) => {
-        
+
     },
 });
 
