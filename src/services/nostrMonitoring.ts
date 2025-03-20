@@ -1,4 +1,4 @@
-import { nostrEcosystemMonitor } from './lib/nostrEcosystemMonitor';
+import { nostrEcosystemMonitor } from '../lib/nostrEcosystemMonitor';
 import dotenv from 'dotenv';
 
 // 加载环境变量

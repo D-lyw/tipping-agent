@@ -11,10 +11,9 @@
   },
   "include": [
     "src/**/*"
-  ],
+, "test/test-ckb-bot.ts"  ],
   "exclude": [
     "node_modules",
-    "dist",
-    ".mastra"
+    "dist"
   ]
 }

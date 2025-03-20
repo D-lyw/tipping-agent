@@ -1,9 +1,10 @@
 import { Mastra } from '@mastra/core/mastra';
 import { createLogger } from '@mastra/core/logger';
-import { ckbWorkflow, tappingWorkflow, nostrContentTappingWorkflow } from './workflows';
-import { tappingAgent } from './agents';
-import { xAgent } from './agents/xAgent';
-import { xWorkflow } from './workflows/x';
+import { ckbWorkflow, tappingWorkflow, nostrContentTappingWorkflow } from './workflows/index.js';
+import { tappingAgent } from './agents/index.js';
+import { xAgent } from './agents/xAgent.js';
+import { ckbDocAgent } from './agents/ckbDocAgent.js';
+import { xWorkflow } from './workflows/x.js';
 import { VercelDeployer } from '@mastra/deployer-vercel';
 import * as dotenv from 'dotenv';
    
@@ -13,7 +14,11 @@ dotenv.config();
 // 使用最简单的配置
 export const mastra = new Mastra({
   workflows: { ckbWorkflow, tappingWorkflow, xWorkflow, nostrContentTappingWorkflow },
-  agents: { tappingAgent, xAgent },
+  agents: { 
+    tappingAgent, 
+    xAgent,
+    ckbDocAgent
+  },
   logger: createLogger({
     name: 'Mastra',
     level: 'info',
