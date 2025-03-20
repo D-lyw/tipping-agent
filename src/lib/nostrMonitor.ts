@@ -409,6 +409,91 @@ export class NostrClient extends EventEmitter {
     }
 
     /**
+     * 转发特定 Nostr 事件（笔记）- 在 Nostr 中称为 Repost
+     * @param eventId 要转发的事件 ID (十六进制或 note1 格式)
+     * @param pubkey 事件作者的公钥 (十六进制或 npub1 格式)
+     * @param comment 转发时添加的评论（可选）
+     * @param additionalTags 额外的标签
+     * @returns 转发事件 ID
+     */
+    public async retweetNote(
+        eventId: string,
+        pubkey: string,
+        comment: string = '',
+        additionalTags: string[][] = []
+    ): Promise<string> {
+        try {
+            // 处理可能的 NIP-19 格式 (note1, npub1)
+            const hexEventId = eventId.startsWith('note1') ? decodeNip19(eventId) : eventId;
+            
+            // 处理作者公钥，可能是 npub1 格式
+            const hexPubkey = pubkey.startsWith('npub1') ? decodeNip19(pubkey) : pubkey;
+            
+            // 创建转发标签
+            // 使用 ["e", eventId, "", "mention"] 表示提及
+            // 使用 ["e", eventId, "", "root"] 表示根事件
+            // 使用 ["p", pubkey] 引用原始作者
+            const retweetTags: string[][] = [
+                ["e", hexEventId, "", "mention"],  // 提及原始事件
+                ["p", hexPubkey]                   // 引用原始作者
+            ];
+
+            // 如果这是一个直接转发（没有评论），使用 kind=6 的纯转发类型
+            if (!comment || comment.trim() === '') {
+                // 创建特定的转发标签
+                const pureRetweetTags = [
+                    ["e", hexEventId],  // 引用被转发事件
+                    ["p", hexPubkey],   // 引用原始作者
+                    ["k", "1"]          // 表明转发的是 kind 1 的事件（普通文本笔记）
+                ];
+                
+                // 合并额外标签
+                const allTags = [...pureRetweetTags, ...additionalTags];
+
+                // 创建无内容的转发事件
+                const unsignedEvent: UnsignedEvent = {
+                    kind: 6,                              // 转发类型
+                    created_at: Math.floor(Date.now() / 1000),  // 当前时间戳（秒）
+                    tags: allTags,                        // 标签
+                    content: "",                          // 转发无需内容
+                    pubkey: this.publicKey                // 发布者公钥
+                };
+
+                // 使用私钥签名事件
+                const signedEvent = finalizeEvent(unsignedEvent, this.privateKey) as NostrEvent;
+
+                // 验证签名
+                const verified = verifyEvent(signedEvent);
+                if (!verified) {
+                    throw new Error('事件签名验证失败');
+                }
+
+                // 发布到所有中继服务器
+                const relayUrls = Array.from(this.relayInstances.keys());
+                
+                try {
+                    await Promise.any(this.pool.publish(relayUrls, signedEvent));
+                    return signedEvent.id;
+                } catch (error) {
+                    console.error('转发发布失败:', error);
+                    throw error;
+                }
+            } else {
+                // 有评论的转发，使用 kind=1 的普通笔记，并添加适当的引用标签
+                // 合并额外标签
+                const allTags = [...retweetTags, ...additionalTags];
+
+                // 使用 publishNote 方法发布带评论的转发
+                return await this.publishNote(comment, allTags);
+            }
+        } catch (error) {
+            console.error('转发 Nostr 笔记失败:', error);
+            this.emit(NostrClientEvent.ERROR, error);
+            throw error;
+        }
+    }
+
+    /**
      * 创建 CKB 客户端
      * @returns CKB 客户端实例
      */

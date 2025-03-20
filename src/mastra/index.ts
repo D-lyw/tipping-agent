@@ -23,9 +23,9 @@ export const mastra = new Mastra({
     name: 'Mastra',
     level: 'info',
   }),
-  deployer: new VercelDeployer({
-    teamId: process.env.VERCEL_TEAM_ID ?? "",
-    projectName: process.env.MASTRA_PROJECT_NAME ?? "",
-    token: process.env.MASTRA_VERCEL_TOKEN ?? "",
-  }),
+  // deployer: new VercelDeployer({
+  //   teamId: process.env.VERCEL_TEAM_ID ?? "",
+  //   projectName: process.env.MASTRA_PROJECT_NAME ?? "",
+  //   token: process.env.MASTRA_VERCEL_TOKEN ?? "",
+  // }),
 });

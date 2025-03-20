@@ -11,6 +11,7 @@
     "test:direct": "node test/direct-test.js",
     "test:simple": "node test/ckb-test.js --simple",
     "test:verbose": "node test/ckb-test.js --verbose",
+    "test:nostr-retweet": "tsx test/test-nostr-retweet.js",
     "ckb:fetch-docs": "tsx src/lib/ckbDocuments.ts",
     "ckb:discord-bot": "tsx src/services/ckbDocBot.ts",
     "nostr": "tsx src/services/nostrMonitoring.ts",
@@ -46,6 +47,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.13.10",
+    "@vercel/node": "^5.1.14",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"

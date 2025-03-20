@@ -12,6 +12,7 @@
 - 优雅的错误处理和恢复机制
 - 支持多种命令：帮助、刷新文档、清除历史等
 - 整合了Nostr监控服务，可以同时运行多个服务
+- 支持Nostr消息转发功能，可以实现自动或手动转发有价值的内容
 
 ## 安装
 
@@ -153,6 +154,11 @@ npm run test:direct
 # 或
 yarn test:direct
 
+# 测试 Nostr 转发功能
+npm run test:nostr-retweet
+# 或
+yarn test:nostr-retweet "事件ID" "可选的转发评论"
+
 # 强制刷新文档缓存
 npm run test -- --refresh
 ```
@@ -180,6 +186,9 @@ node test/ckb-test.js --simple --verbose "你的问题"
 
 # 使用原始测试脚本
 node test/direct-test.js "你的问题"
+
+# 测试 Nostr 转发功能
+node test/test-nostr-retweet.js "事件ID" "可选的转发评论"
 ```
 
 在交互模式中，你可以：
@@ -202,8 +211,9 @@ node test/direct-test.js "你的问题"
 - `src/lib/ckbDocuments.ts` - 文档检索与处理逻辑
 - `test/direct-test.js` - 原始命令行测试脚本
 - `test/ckb-test.js` - CKB 文档助手测试脚本
+- `test/test-nostr-retweet.js` - Nostr 转发功能测试脚本
 - `src/lib/nostrEcosystemMonitor.ts` - Nostr生态监控实现
-- `src/lib/nostrMonitor.ts` - Nostr客户端实现
+- `src/lib/nostrMonitor.ts` - Nostr客户端实现（包含转发功能）
 - `src/lib/nostrContentFetcher.ts` - Nostr内容获取工具
 
 ## 项目结构
@@ -220,11 +230,12 @@ src/
 │   ├── ckbDocuments.ts         # CKB文档处理
 │   ├── discordBot.ts           # Discord Bot实现
 │   ├── nostrEcosystemMonitor.ts# Nostr生态监控
-│   ├── nostrMonitor.ts         # Nostr客户端
+│   ├── nostrMonitor.ts         # Nostr客户端（包含转发功能）
 │   └── nostrContentFetcher.ts  # Nostr内容检索
 test/
 ├── ckb-test.js                 # CKB文档助手测试脚本
-└── direct-test.js              # 原始命令行测试脚本
+├── direct-test.js              # 原始命令行测试脚本
+└── test-nostr-retweet.js       # Nostr 转发功能测试脚本
 ```
 
 ## 部署

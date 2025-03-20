@@ -140,6 +140,37 @@ const sendCommentStep = new Step({
     },
 });
 
+/**
+ * Step 7: 直接转发内容
+ */
+const retweetStep = new Step({
+    id: 'retweet',
+    description: '直接转发 Nostr 内容',
+    execute: async ({ context }) => {
+        try {
+            console.log(`准备转发内容: ${context.triggerData.id}`);
+            
+            const retweetId = await nostrClient.retweetNote(
+                context.triggerData.id,
+                context.triggerData.pubkey,
+                '' // 无评论的转发
+            );
+            
+            console.log(`成功转发内容: ${context.triggerData.id}, 新事件ID: ${retweetId}`);
+            return { 
+                retweeted: true, 
+                retweetId
+            };
+        } catch (error) {
+            console.error('转发步骤失败:', error);
+            return {
+                retweeted: false,
+                error: String(error)
+            };
+        }
+    },
+});
+
 export const nostrContentTappingWorkflow = new Workflow({
     name: 'nostr-content-tapping',
     triggerSchema: z.object({
@@ -163,4 +194,5 @@ export const nostrContentTappingWorkflow = new Workflow({
         }
     })
     .then(sendCommentStep)
+    .then(retweetStep)
     .commit();

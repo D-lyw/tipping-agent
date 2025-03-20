@@ -162,7 +162,7 @@ export class NostrEcosystemMonitor {
       await this.initNostrClient();
 
       // 2. 搜索历史内容（过去 24 小时）
-      await this.fetchHistoricalContent(48);
+      await this.fetchHistoricalContent(24);
 
       // 3. 启动实时监控
       this.startRealtimeMonitoring();
@@ -180,6 +180,14 @@ export class NostrEcosystemMonitor {
     // 停止实时监控
     this.stopRealtimeMonitoring();
     console.log('所有 Nostr 监控服务已停止');
+  }
+
+  /**
+   * 检查 Nostr 监控服务是否正在运行
+   * @returns 是否正在监控
+   */
+  public isMonitoring(): boolean {
+    return this.isMonitoring;
   }
 }
 
