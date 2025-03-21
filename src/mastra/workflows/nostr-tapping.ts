@@ -9,6 +9,52 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
+// 简单的内存缓存，用于存储最近处理过的交易
+// 格式: { eventId: timestamp }
+const processedEvents = new Map<string, number>();
+
+// 清理缓存的函数，移除超过一定时间的记录
+function cleanupProcessedEvents(maxAgeMs = 3600000) { // 默认1小时
+    const now = Date.now();
+    for (const [eventId, timestamp] of processedEvents.entries()) {
+        if (now - timestamp > maxAgeMs) {
+            processedEvents.delete(eventId);
+        }
+    }
+}
+
+// 定期清理缓存
+setInterval(cleanupProcessedEvents, 300000); // 每5分钟清理一次
+
+/**
+ * 检查事件是否已处理过的步骤
+ */
+const checkEventProcessedStep = new Step({
+    id: "check-event-processed",
+    description: "检查事件是否已被处理过",
+    outputSchema: z.object({
+        shouldProcess: z.boolean().describe("是否应继续处理此事件"),
+    }),
+    execute: async ({ context }) => {
+        const eventId = context.triggerData.id;
+        
+        // 检查该事件是否已处理过
+        if (processedEvents.has(eventId)) {
+            const lastProcessTime = processedEvents.get(eventId);
+            const now = Date.now();
+            const minutesAgo = Math.round((now - lastProcessTime!) / 60000);
+            
+            console.log(`事件 ${eventId} 已在 ${minutesAgo} 分钟前处理过，跳过处理`);
+            return { shouldProcess: false };
+        }
+        
+        // 记录此次处理
+        processedEvents.set(eventId, Date.now());
+        console.log(`开始处理新事件: ${eventId}`);
+        return { shouldProcess: true };
+    },
+});
+
 /**
  * Step 1: 根据用户输入，判断是否为优质内容
  */
@@ -134,7 +180,7 @@ const sendCommentStep = new Step({
     }),
     execute: async ({ context, mastra }) => {
         const { txHash } = context.getStepResult<{ txHash: string }>('tapping');
-        const replyContent = `感谢您对 CKB 生态的持续关注和分享，已为你打赏 100 CKB，交易哈希：${txHash}
+        const replyContent = `神经二狗，已为你打赏 100 CKB，交易哈希：${txHash}
         本次打赏资金由 CKB Seal 社区赞助，期待您更多的精彩内容！`;
         nostrClient.replyToNote(context.triggerData.id, context.triggerData.pubkey, replyContent);
     },
@@ -179,10 +225,24 @@ export const nostrContentTappingWorkflow = new Workflow({
         content: z.string().describe('该条 Nostr 平台内容'),
     }),
 })
-    .step(isGoodContentStep)
-    .then(isContentTappedStep)
+    .step(checkEventProcessedStep)
+    .then(isGoodContentStep, {
+        when: async ({ context }) => {
+            const { shouldProcess } = context.getStepResult<{ shouldProcess: boolean }>('check-event-processed');
+            return shouldProcess;
+        },
+    })
+    .then(isContentTappedStep, {
+        when: async ({ context }) => {
+            const { shouldProcess } = context.getStepResult<{ shouldProcess: boolean }>('check-event-processed');
+            return shouldProcess;
+        },
+    })
     .then(getReceiverAddressStep, {
         when: async ({ context }) => {
+            if (!context.getStepResult<{ shouldProcess: boolean }>('check-event-processed').shouldProcess) {
+                return false;
+            }
             const { isGoodContent } = context.getStepResult<{ isGoodContent: boolean }>('is-good-content');
             const { isContentTapped } = context.getStepResult<{ isContentTapped: boolean }>('is-content-tapped');
             return isGoodContent && !isContentTapped;

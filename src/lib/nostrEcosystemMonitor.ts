@@ -186,7 +186,7 @@ export class NostrEcosystemMonitor {
    * 检查 Nostr 监控服务是否正在运行
    * @returns 是否正在监控
    */
-  public isMonitoring(): boolean {
+  public getMonitoringStatus(): boolean {
     return this.isMonitoring;
   }
 }

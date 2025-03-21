@@ -4,12 +4,15 @@
  * 用于启动所有服务，包括：
  * 1. CKB 文档问答 Discord Bot
  * 2. Nostr 监控服务
+ * 3. Express Web 服务器（用于健康检查和 API）
  */
 
 import { CkbDiscordBot } from './lib/discordBot';
 import { fetchAllDocuments } from './lib/ckbDocuments';
 import { nostrEcosystemMonitor } from './lib/nostrEcosystemMonitor';
 import dotenv from 'dotenv';
+import express from 'express';
+import routes from './routes';
 
 // 加载环境变量
 dotenv.config();
@@ -17,6 +20,7 @@ dotenv.config();
 // 判断是否启用各个服务
 const enableCkbBot = process.env.ENABLE_CKB_BOT !== 'false'; // 默认启用
 const enableNostr = process.env.ENABLE_NOSTR !== 'false';    // 默认启用
+const webPort = process.env.PORT || 3000;                    // Web 服务器端口
 
 // 必要的环境变量检查
 const checkRequiredEnvVars = () => {
@@ -44,6 +48,38 @@ const checkRequiredEnvVars = () => {
   
   return true;
 };
+
+// 启动 Express 服务器
+async function startExpressServer() {
+  try {
+    console.log('正在启动 Web 服务器...');
+    
+    const app = express();
+    
+    // 中间件
+    app.use(express.json());
+    
+    // 路由
+    app.use('/', routes);
+    
+    // 根路由
+    app.get('/', (req: express.Request, res: express.Response) => {
+      res.json({
+        message: 'Tapping Agent API',
+        version: '1.0.0',
+        endpoints: [
+          { path: '/health', description: '健康检查端点' }
+        ]
+      });
+    });
+    
+    // 返回 Express 应用（不启动服务器，由调用者启动）
+    return app;
+  } catch (error) {
+    console.error('创建 Web 服务器失败:', error);
+    return null;
+  }
+}
 
 // 启动 CKB Discord Bot
 async function startCkbBot() {
@@ -112,14 +148,26 @@ async function startNostrMonitor() {
 }
 
 // 主函数 - 启动所有服务
-async function startAllServices() {
+export async function startAllServices() {
   console.log('正在启动所有服务...');
   
   checkRequiredEnvVars();
   
   let ckbBotStarted = false;
   let nostrStarted = false;
+  let webServerStarted = false;
   let discordBot = null;
+  let server: any = null;
+  
+  // 启动 Express 服务器
+  const expressApp = await startExpressServer();
+  if (expressApp) {
+    // 启动 HTTP 服务器
+    server = expressApp.listen(webPort, () => {
+      console.log(`Web 服务器已启动，监听端口: ${webPort}`);
+    });
+    webServerStarted = true;
+  }
   
   // 启动 CKB Discord Bot
   if (enableCkbBot) {
@@ -138,25 +186,28 @@ async function startAllServices() {
   
   // 显示启动状态摘要
   console.log('\n==== 服务启动状态摘要 ====');
+  console.log(`Web 服务器: ${webServerStarted ? '✅ 已启动' : '❌ 未启动'}`);
   console.log(`CKB 文档问答 Discord Bot: ${ckbBotStarted ? '✅ 已启动' : '❌ 未启动'}`);
   console.log(`Nostr 监控服务: ${nostrStarted ? '✅ 已启动' : '❌ 未启动'}`);
   console.log('==========================\n');
   
   // 如果没有成功启动任何服务，退出程序
-  if (!ckbBotStarted && !nostrStarted) {
+  if (!ckbBotStarted && !nostrStarted && !webServerStarted) {
     console.error('没有成功启动任何服务，程序将退出');
-    process.exit(1);
+    throw new Error('没有成功启动任何服务');
   }
   
   // 设置优雅退出
-  setupGracefulShutdown(discordBot);
+  setupGracefulShutdown(discordBot, server);
   
   console.log('所有启用的服务已成功启动！');
   console.log('按 Ctrl+C 停止所有服务');
+  
+  return { ckbBotStarted, nostrStarted, webServerStarted, discordBot, expressApp, server };
 }
 
 // 优雅退出
-function setupGracefulShutdown(discordBot: any) {
+function setupGracefulShutdown(discordBot: any, server: any) {
   // 未捕获的异常处理
   process.on('uncaughtException', (error) => {
     console.error('未捕获的异常:', error);
@@ -180,6 +231,13 @@ function setupGracefulShutdown(discordBot: any) {
       nostrEcosystemMonitor.stopAllMonitoring();
     }
     
+    // 停止 Express 服务器
+    if (server) {
+      server.close(() => {
+        console.log('Express 服务器已关闭');
+      });
+    }
+    
     console.log('所有服务已关闭，程序退出');
     process.exit(0);
   });
@@ -197,13 +255,27 @@ function setupGracefulShutdown(discordBot: any) {
       nostrEcosystemMonitor.stopAllMonitoring();
     }
     
+    // 停止 Express 服务器
+    if (server) {
+      server.close(() => {
+        console.log('Express 服务器已关闭');
+      });
+    }
+    
     console.log('所有服务已关闭，程序退出');
     process.exit(0);
   });
 }
 
-// 启动应用
-startAllServices().catch(error => {
-  console.error('启动过程中出现未捕获的错误:', error);
-  process.exit(1);
-}); 
+// 只有在直接运行此文件时才启动服务
+// ESM 环境中检查是否直接运行此文件
+import { fileURLToPath } from 'url';
+const isMainModule = process.argv[1] === fileURLToPath(import.meta.url);
+
+if (isMainModule) {
+  // 启动应用
+  startAllServices().catch(error => {
+    console.error('启动过程中出现未捕获的错误:', error);
+    process.exit(1);
+  });
+} 

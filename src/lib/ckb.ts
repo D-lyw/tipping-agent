@@ -5,6 +5,68 @@ import { Script } from "@ckb-ccc/core";
 import { Address } from "@ckb-ccc/core";
 import { hashCkb, Transaction, fixedPointFrom } from "@ckb-ccc/core";
 
+// 全局单例的 client 和 signer
+let testnetClient: ClientPublicTestnet | null = null;
+let mainnetClient: ClientPublicMainnet | null = null;
+let testnetSigner: SignerCkbPrivateKey | null = null;
+let mainnetSigner: SignerCkbPrivateKey | null = null;
+
+// 用于跟踪当前使用的私钥
+let currentTestnetPrivateKey: string | null = null;
+let currentMainnetPrivateKey: string | null = null;
+
+/**
+ * 获取或创建客户端实例（单例模式）
+ * @param isTestnet 是否使用测试网络
+ * @returns 客户端实例
+ */
+function getClient(isTestnet: boolean = true) {
+    if (isTestnet) {
+        if (!testnetClient) {
+            testnetClient = new ClientPublicTestnet();
+            console.log('创建新的测试网客户端实例');
+        }
+        return testnetClient;
+    } else {
+        if (!mainnetClient) {
+            mainnetClient = new ClientPublicMainnet();
+            console.log('创建新的主网客户端实例');
+        }
+        return mainnetClient;
+    }
+}
+
+/**
+ * 获取或创建签名者实例（单例模式）
+ * @param privateKey 私钥（带0x前缀）
+ * @param isTestnet 是否使用测试网络
+ * @returns 签名者实例
+ */
+function getSigner(privateKey: string, isTestnet: boolean = true) {
+    // 确保私钥格式正确（添加0x前缀）
+    const formattedPrivateKey = privateKey.startsWith('0x') ? privateKey : `0x${privateKey}`;
+    
+    if (isTestnet) {
+        // 检查私钥是否变更
+        if (!testnetSigner || currentTestnetPrivateKey !== formattedPrivateKey) {
+            const client = getClient(true);
+            testnetSigner = new SignerCkbPrivateKey(client, formattedPrivateKey);
+            currentTestnetPrivateKey = formattedPrivateKey;
+            console.log(`创建新的测试网签名者，私钥: ${formattedPrivateKey.substring(0, 7)}...`);
+        }
+        return testnetSigner;
+    } else {
+        // 检查私钥是否变更
+        if (!mainnetSigner || currentMainnetPrivateKey !== formattedPrivateKey) {
+            const client = getClient(false);
+            mainnetSigner = new SignerCkbPrivateKey(client, formattedPrivateKey);
+            currentMainnetPrivateKey = formattedPrivateKey;
+            console.log(`创建新的主网签名者，私钥: ${formattedPrivateKey.substring(0, 7)}...`);
+        }
+        return mainnetSigner;
+    }
+}
+
 /**
  * 安全序列化函数，处理 BigInt 类型
  * @param obj 要序列化的对象
@@ -28,8 +90,8 @@ const generateAddressByPrivateKey = async (privateKey: string, isTestnet = false
     // 移除可能的 0x 前缀
     const cleanPrivateKey = privateKey.startsWith('0x') ? privateKey.slice(2) : privateKey;
 
-    // 创建客户端（根据网络选择）
-    const client = isTestnet ? new ClientPublicTestnet() : new ClientPublicMainnet();
+    // 获取单例客户端
+    const client = getClient(isTestnet);
     
     // 从私钥创建签名者
     const signer = new SignerCkbPrivateKey(client, '0x' + cleanPrivateKey);
@@ -43,23 +105,15 @@ const generateAddressByPrivateKey = async (privateKey: string, isTestnet = false
  * @param privateKey 发送方私钥
  * @param toAddress 接收方地址
  * @param amount 金额（CKB单位）
- * @param isTestnet 是否使用测试网络，默认为 false（主网）
+ * @param isTestnet 是否使用测试网络，默认为 true（测试网）
  */
 async function transferCKB(privateKey: string, toAddress: string, amount: number, isTestnet = true) {
     try {
         console.log('transferCKB 开始执行...');
         
-        // 确保私钥格式正确（添加0x前缀）
-        const formattedPrivateKey = privateKey.startsWith('0x') ? privateKey : `0x${privateKey}`;
-        console.log(`使用的私钥格式: ${formattedPrivateKey.substring(0, 7)}...`);
-        
-        // 创建客户端
-        const client = isTestnet ? new ClientPublicTestnet() : new ClientPublicMainnet();
-        console.log(`已创建客户端, 网络: ${isTestnet ? '测试网' : '主网'}`);
-        
-        // 从私钥创建签名者
-        console.log('正在创建签名者...');
-        const signer = new SignerCkbPrivateKey(client, formattedPrivateKey);
+        // 获取单例的客户端和签名者
+        const client = getClient(isTestnet);
+        const signer = getSigner(privateKey, isTestnet);
         
         // 获取接收方地址对象
         console.log(`正在解析接收方地址: ${toAddress.substring(0, 10)}...`);
@@ -124,7 +178,8 @@ async function transferCKB(privateKey: string, toAddress: string, amount: number
  * @returns 余额
  */
 const getCKBBalance = async (address: string, isTestnet = false) => {
-    const client = isTestnet ? new ClientPublicTestnet() : new ClientPublicMainnet();
+    // 获取单例客户端
+    const client = getClient(isTestnet);
     const addressObj = await Address.fromString(address, client);
     const balance = await client.getBalance([addressObj.script]);
     return balance;

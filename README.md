@@ -1,5 +1,7 @@
 # CKB 文档问答 Discord Bot
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/yourusername/tapping-agent)
+
 这是一个基于 Discord 的 Bot，用于回答与 Nervos CKB 区块链相关的技术问题。Bot 使用检索增强生成 (RAG) 技术结合大型语言模型来提供准确、相关的回答。
 
 ## 功能特点
@@ -285,3 +287,59 @@ addCustomDocument(
 ## 许可证
 
 MIT
+
+## 项目介绍
+
+Tapping Agent 是一个专注于 Nostr 平台内容监控、评估与互动的智能代理。它能够自动监测 Nostr 平台上的内容，对高质量内容进行打赏，并可以选择性地转发值得分享的帖子。
+
+## 主要功能
+
+- **Nostr 内容监控**：实时监控 Nostr 平台的内容发布
+- **内容价值评估**：使用 AI 自动评估内容的价值和相关性
+- **自动打赏**：对高质量内容进行自动 CKB 打赏
+- **内容转发**：转发高质量的 Nostr 内容
+- **CKB 文档问答**：提供基于 CKB 文档的智能问答服务
+
+## 部署指南
+
+项目支持多种部署方式，包括：
+
+- [本地开发环境](#本地开发)
+- [Vercel 部署](./VERCEL.md)
+- [Render 部署](#render-部署)
+
+### Render 部署
+
+点击上方 "Deploy to Render" 按钮，或按照以下步骤手动部署：
+
+1. 在 Render 仪表板中，点击 "New +" 并选择 "Web Service"
+2. 连接您的 GitHub 仓库
+3. 设置以下配置：
+   - Name: tapping-agent (或您喜欢的名称)
+   - Runtime: Node
+   - Build Command: `npm install && npm run build`
+   - Start Command: `node dist/index.js`
+4. 添加环境变量（在 "Environment" 部分）：
+   - OPENAI_API_KEY
+   - NOSTR_PRIVATE_KEY
+   - DISCORD_BOT_TOKEN (如果使用 Discord 功能)
+   - 其他必要的环境变量
+5. 点击 "Create Web Service" 按钮
+
+更多详细信息，请参阅 [RENDER.md](./RENDER.md) 文档。
+
+## 本地开发
+
+```bash
+# 安装依赖
+npm install
+
+# 编译项目
+npm run build
+
+# 启动服务
+npm start
+
+# 仅启动 Nostr 监控服务
+npm run nostr
+```
