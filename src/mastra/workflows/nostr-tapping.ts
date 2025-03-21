@@ -37,17 +37,17 @@ const checkEventProcessedStep = new Step({
     }),
     execute: async ({ context }) => {
         const eventId = context.triggerData.id;
-        
+
         // 检查该事件是否已处理过
         if (processedEvents.has(eventId)) {
             const lastProcessTime = processedEvents.get(eventId);
             const now = Date.now();
             const minutesAgo = Math.round((now - lastProcessTime!) / 60000);
-            
+
             console.log(`事件 ${eventId} 已在 ${minutesAgo} 分钟前处理过，跳过处理`);
             return { shouldProcess: false };
         }
-        
+
         // 记录此次处理
         processedEvents.set(eventId, Date.now());
         console.log(`开始处理新事件: ${eventId}`);
@@ -124,37 +124,34 @@ const tappingStep = new Step({
     execute: async ({ context }) => {
         try {
             console.log('tappingStep 开始执行...');
-            
+
             // 获取接收地址
             const { receiverAddress } = context.inputData;
             if (!receiverAddress) {
                 throw new Error('未获取到有效的接收地址');
             }
             console.log('接收地址:', receiverAddress);
-            
-            // 检查私钥环境变量 (注意这里使用的是 CKB_PRIVATE_KEY)
-            const privateKey = process.env.CKB_PRIVATE_KEY;
-            if (!privateKey) {
-                throw new Error('环境变量 CKB_PRIVATE_KEY 未设置');
-            }
-            console.log('私钥已配置');
-            
+
             // 执行转账
             console.log('准备执行转账...');
-            const txHash = await transferCKB(
-                privateKey,
-                receiverAddress,
-                100, // 100 CKB
-                true  // 测试网
-            );
-            
+            let txHash = '';
+            try {
+                txHash = await transferCKB(
+                    receiverAddress,
+                    100 // 100 CKB
+                );
+            } catch (error: any) {
+                console.error('转账失败:', error);
+                throw error;
+            }
+
             console.log('转账成功，交易哈希:', txHash);
             return {
                 txHash,
             };
         } catch (error: any) {
             console.error('tappingStep 执行失败:', error);
-            
+
             // 特殊处理 BigInt 序列化错误
             if (error.message && error.message.includes('BigInt')) {
                 console.error('检测到 BigInt 序列化错误，可能是在日志输出时发生。');
@@ -163,7 +160,7 @@ const tappingStep = new Step({
                 console.warn(`返回模拟交易哈希以继续调试: ${mockTxHash}`);
                 return { txHash: mockTxHash };
             }
-            
+
             throw error;
         }
     },
@@ -180,7 +177,7 @@ const sendCommentStep = new Step({
     }),
     execute: async ({ context, mastra }) => {
         const { txHash } = context.getStepResult<{ txHash: string }>('tapping');
-        const replyContent = `神经二狗，已为你打赏 100 CKB，交易哈希：${txHash}
+        const replyContent = `谢谢您关于 CKB 生态的分享，您已被「神经二狗」pitch，已为你空投100CKB，交易哈希：${txHash}
         本次打赏资金由 CKB Seal 社区赞助，期待您更多的精彩内容！`;
         nostrClient.replyToNote(context.triggerData.id, context.triggerData.pubkey, replyContent);
     },
@@ -195,16 +192,16 @@ const retweetStep = new Step({
     execute: async ({ context }) => {
         try {
             console.log(`准备转发内容: ${context.triggerData.id}`);
-            
+
             const retweetId = await nostrClient.retweetNote(
                 context.triggerData.id,
                 context.triggerData.pubkey,
                 '' // 无评论的转发
             );
-            
+
             console.log(`成功转发内容: ${context.triggerData.id}, 新事件ID: ${retweetId}`);
-            return { 
-                retweeted: true, 
+            return {
+                retweeted: true,
                 retweetId
             };
         } catch (error) {

@@ -1,5 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
-import { ClientPublicTestnet, ClientPublicMainnet } from "@ckb-ccc/core";
+import { ClientPublicTestnet } from "@ckb-ccc/core";
 import { SignerCkbPrivateKey } from "@ckb-ccc/core";
 import { Script } from "@ckb-ccc/core";
 import { Address } from "@ckb-ccc/core";
@@ -7,64 +7,44 @@ import { hashCkb, Transaction, fixedPointFrom } from "@ckb-ccc/core";
 
 // 全局单例的 client 和 signer
 let testnetClient: ClientPublicTestnet | null = null;
-let mainnetClient: ClientPublicMainnet | null = null;
 let testnetSigner: SignerCkbPrivateKey | null = null;
-let mainnetSigner: SignerCkbPrivateKey | null = null;
-
-// 用于跟踪当前使用的私钥
-let currentTestnetPrivateKey: string | null = null;
-let currentMainnetPrivateKey: string | null = null;
 
 /**
- * 获取或创建客户端实例（单例模式）
- * @param isTestnet 是否使用测试网络
- * @returns 客户端实例
+ * 获取测试网客户端实例（单例模式）
+ * @returns 测试网客户端实例
  */
-function getClient(isTestnet: boolean = true) {
-    if (isTestnet) {
-        if (!testnetClient) {
-            testnetClient = new ClientPublicTestnet();
-            console.log('创建新的测试网客户端实例');
-        }
-        return testnetClient;
-    } else {
-        if (!mainnetClient) {
-            mainnetClient = new ClientPublicMainnet();
-            console.log('创建新的主网客户端实例');
-        }
-        return mainnetClient;
+function getTestnetClient() {
+    if (!testnetClient) {
+        testnetClient = new ClientPublicTestnet();
+        console.log('创建新的测试网客户端实例');
     }
+    return testnetClient;
 }
 
 /**
- * 获取或创建签名者实例（单例模式）
- * @param privateKey 私钥（带0x前缀）
- * @param isTestnet 是否使用测试网络
- * @returns 签名者实例
+ * 获取测试网签名者实例（单例模式）
+ * 从环境变量获取私钥
+ * @returns 测试网签名者实例
  */
-function getSigner(privateKey: string, isTestnet: boolean = true) {
+function getTestnetSigner() {
+    // 从环境变量获取私钥
+    const privateKey = process.env.CKB_PRIVATE_KEY;
+    
+    if (!privateKey) {
+        throw new Error('环境变量 CKB_PRIVATE_KEY 未设置');
+    }
+    
     // 确保私钥格式正确（添加0x前缀）
     const formattedPrivateKey = privateKey.startsWith('0x') ? privateKey : `0x${privateKey}`;
     
-    if (isTestnet) {
-        // 检查私钥是否变更
-        if (!testnetSigner || currentTestnetPrivateKey !== formattedPrivateKey) {
-            const client = getClient(true);
-            testnetSigner = new SignerCkbPrivateKey(client, formattedPrivateKey);
-            currentTestnetPrivateKey = formattedPrivateKey;
-            console.log(`创建新的测试网签名者，私钥: ${formattedPrivateKey.substring(0, 7)}...`);
-        }
-        return testnetSigner;
-    } else {
-        // 检查私钥是否变更
-        if (!mainnetSigner || currentMainnetPrivateKey !== formattedPrivateKey) {
-            const client = getClient(false);
-            mainnetSigner = new SignerCkbPrivateKey(client, formattedPrivateKey);
-            currentMainnetPrivateKey = formattedPrivateKey;
-            console.log(`创建新的主网签名者，私钥: ${formattedPrivateKey.substring(0, 7)}...`);
-        }
-        return mainnetSigner;
+    // 如果签名者不存在，或者私钥已更改，则创建新的签名者
+    if (!testnetSigner) {
+        const client = getTestnetClient();
+        testnetSigner = new SignerCkbPrivateKey(client, formattedPrivateKey);
+        console.log(`创建新的测试网签名者，私钥: ${formattedPrivateKey.substring(0, 7)}...`);
     }
+    
+    return testnetSigner;
 }
 
 /**
@@ -81,39 +61,29 @@ function safeStringify(obj: any): string {
 }
 
 /**
- * 根据私钥生成 CKB 地址
- * @param privateKey 私钥（带或不带0x前缀）
- * @param isTestnet 是否使用测试网络，默认为 false（主网）
+ * 根据环境变量私钥生成 CKB 地址
  * @returns CKB 地址
  */
-const generateAddressByPrivateKey = async (privateKey: string, isTestnet = false) => {
-    // 移除可能的 0x 前缀
-    const cleanPrivateKey = privateKey.startsWith('0x') ? privateKey.slice(2) : privateKey;
-
-    // 获取单例客户端
-    const client = getClient(isTestnet);
-    
-    // 从私钥创建签名者
-    const signer = new SignerCkbPrivateKey(client, '0x' + cleanPrivateKey);
+const generateTestnetAddress = async () => {
+    // 获取签名者实例
+    const signer = getTestnetSigner();
     
     // 获取地址
     return await signer.getInternalAddress();
 }
 
 /**
- * 转账 CKB
- * @param privateKey 发送方私钥
+ * 转账 CKB（使用环境变量中的私钥）
  * @param toAddress 接收方地址
  * @param amount 金额（CKB单位）
- * @param isTestnet 是否使用测试网络，默认为 true（测试网）
  */
-async function transferCKB(privateKey: string, toAddress: string, amount: number, isTestnet = true) {
+async function transferCKB(toAddress: string, amount: number) {
     try {
         console.log('transferCKB 开始执行...');
         
         // 获取单例的客户端和签名者
-        const client = getClient(isTestnet);
-        const signer = getSigner(privateKey, isTestnet);
+        const client = getTestnetClient();
+        const signer = getTestnetSigner();
         
         // 获取接收方地址对象
         console.log(`正在解析接收方地址: ${toAddress.substring(0, 10)}...`);
@@ -174,15 +144,14 @@ async function transferCKB(privateKey: string, toAddress: string, amount: number
 /**
  * 获取 CKB 余额
  * @param address 地址
- * @param isTestnet 是否使用测试网络，默认为 false（主网）
  * @returns 余额
  */
-const getCKBBalance = async (address: string, isTestnet = false) => {
+const getCKBBalance = async (address: string) => {
     // 获取单例客户端
-    const client = getClient(isTestnet);
+    const client = getTestnetClient();
     const addressObj = await Address.fromString(address, client);
     const balance = await client.getBalance([addressObj.script]);
     return balance;
 }
 
-export { generateAddressByPrivateKey, transferCKB, getCKBBalance };
+export { generateTestnetAddress, transferCKB, getCKBBalance };
