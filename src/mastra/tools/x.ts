@@ -28,6 +28,7 @@ export const searchTweetsTool = createTool({
   }),
   execute: async ({ context }) => {
     const { query, maxResults = 10 } = context;
+    // @ts-ignore
     return await xClient.searchTweets(query, maxResults);
   },
 });
@@ -90,6 +91,7 @@ export const getUserTimelineTool = createTool({
   }),
   execute: async ({ context }) => {
     const { userId, maxResults = 10 } = context;
+    // @ts-ignore
     return await xClient.getUserTimeline(userId, maxResults);
   },
 });

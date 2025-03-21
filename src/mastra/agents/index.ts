@@ -70,7 +70,7 @@ export const tappingAgent = new Agent({
     - 建议用户使用小额测试转账功能
     - 提醒用户保管好私钥，不要泄露给他人
   `,
-  model: openai('gpt-4o'),
+  model: openai('gpt-4o') as any,
   tools: { 
     generateCKBAddressTool, 
     getCKBBalanceTool, 

@@ -33,7 +33,7 @@ export const xAgent = new Agent({
     - 如果操作失败，提供清晰的错误信息和解决建议
     - 对于敏感内容或违反平台规则的请求，应礼貌拒绝
   `,
-  model: openai('gpt-4o'),
+  model: openai('gpt-4o') as any,
   tools: { 
     searchTweetsTool, 
     postTweetTool, 

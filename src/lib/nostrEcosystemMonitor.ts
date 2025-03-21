@@ -1,5 +1,4 @@
 import { nostrContentFetcher, NostrContent } from './nostrContentFetcher';
-import { nostrRewardTool } from '../tools/nostrRewardTool';
 import { nostrClient } from './nostrMonitor';
 import dotenv from 'dotenv';
 import { mastra } from '../mastra';
@@ -162,7 +161,7 @@ export class NostrEcosystemMonitor {
       await this.initNostrClient();
 
       // 2. 搜索历史内容（过去 24 小时）
-      await this.fetchHistoricalContent(24);
+      await this.fetchHistoricalContent(1);
 
       // 3. 启动实时监控
       this.startRealtimeMonitoring();

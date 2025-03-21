@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "tsx src/index.ts",
     "dev": "tsx src/index.ts",
     "test": "node test/ckb-test.js",
     "test:direct": "node test/direct-test.js",
@@ -50,6 +50,7 @@
     "@types/express": "^4.17.21",
     "@types/node": "^22.13.10",
     "@vercel/node": "^5.1.14",
+    "esm-module-alias": "^2.2.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"

@@ -14,7 +14,7 @@ const searchTweetsStep = new Step({
     maxResults: z.number().optional().describe('最大结果数量，默认为 10'),
   }),
   execute: async ({ context }) => {
-    const { query, maxResults = 10 } = context;
+    const { query, maxResults = 10 } = context.inputData;
     
     const response = await xAgent.generate(
       `请搜索关于 "${query}" 的推文，最多返回 ${maxResults} 条结果。`
@@ -39,7 +39,7 @@ const postTweetStep = new Step({
     shouldMonitor: z.boolean().optional().describe('是否监控该推文的回复，默认为 false'),
   }),
   execute: async ({ context }) => {
-    const { text, shouldMonitor = false } = context;
+    const { text, shouldMonitor = false } = context.inputData;
     
     const response = await xAgent.generate(
       `请发布以下内容的推文：${text}`
@@ -90,7 +90,7 @@ const replyToTweetStep = new Step({
     shouldMonitor: z.boolean().optional().describe('是否监控该回复的回复，默认为 true'),
   }),
   execute: async ({ context }) => {
-    const { tweetId, text, shouldMonitor = true } = context;
+    const { tweetId, text, shouldMonitor = true } = context.inputData;
     
     const response = await xAgent.generate(
       `请回复 ID 为 ${tweetId} 的推文，回复内容：${text}`
@@ -141,7 +141,7 @@ const getUserTimelineStep = new Step({
     maxResults: z.number().optional().describe('最大结果数量，默认为 10'),
   }),
   execute: async ({ context }) => {
-    const { userId, maxResults = 10 } = context;
+    const { userId, maxResults = 10 } = context.inputData;
     
     const response = await xAgent.generate(
       `请获取用户 ID 为 ${userId} 的时间线，最多返回 ${maxResults} 条结果。`
@@ -165,7 +165,7 @@ const likeTweetStep = new Step({
     tweetId: z.string().describe('要点赞的推文 ID'),
   }),
   execute: async ({ context }) => {
-    const { tweetId } = context;
+    const { tweetId } = context.inputData;
     
     const response = await xAgent.generate(
       `请点赞 ID 为 ${tweetId} 的推文。`
@@ -189,7 +189,7 @@ const getTweetRepliesStep = new Step({
     maxResults: z.number().optional().describe('最大结果数量，默认为 20'),
   }),
   execute: async ({ context }) => {
-    const { tweetId, maxResults = 20 } = context;
+    const { tweetId, maxResults = 20 } = context.inputData;
     
     const response = await xAgent.generate(
       `请获取 ID 为 ${tweetId} 的推文的回复列表，最多返回 ${maxResults} 条结果。`
@@ -214,7 +214,7 @@ const startMonitoringTweetStep = new Step({
     userId: z.string().optional().describe('发推文的用户 ID，如果不提供将自动获取当前用户 ID'),
   }),
   execute: async ({ context }) => {
-    const { tweetId, userId: providedUserId } = context;
+    const { tweetId, userId: providedUserId } = context.inputData;
     
     let userId = providedUserId;
     
@@ -258,7 +258,7 @@ const stopMonitoringTweetStep = new Step({
     tweetId: z.string().describe('要停止监控的推文 ID'),
   }),
   execute: async ({ context }) => {
-    const { tweetId } = context;
+    const { tweetId } = context.inputData;
     
     // 从监控列表中移除
     replyMonitor.removeTweetFromMonitor(tweetId);

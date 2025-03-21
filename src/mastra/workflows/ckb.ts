@@ -22,14 +22,14 @@ const initializeWalletStep = new Step({
     // 模拟生成一个随机私钥（实际应用中应使用更安全的方法）
     // const randomPrivateKey = '0x' + Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('');
     
-    const address = await generateAddressByPrivateKey(process.env.CKB_PRIVATE_KEY!, context.isTestnet);
+    const address = await generateAddressByPrivateKey(process.env.CKB_PRIVATE_KEY!, context.inputData.isTestnet);
 
     // 在实际应用中，这里应该将私钥安全存储
     // 例如：await secureStorage.storePrivateKey(randomPrivateKey);
     
     return {
       address: address,
-      isTestnet: context.isTestnet
+      isTestnet: context.inputData.isTestnet
     };
   },
 });
@@ -45,7 +45,7 @@ const getBalanceStep = new Step({
     isTestnet: z.boolean().optional().default(false).describe('是否使用测试网络，默认为 false（主网）'),
   }),
   execute: async ({ context, mastra }) => {
-    const { address, isTestnet } = context;
+    const { address, isTestnet } = context.inputData;
     
     // 如果用户没有提供地址，则使用 Agent 自身的地址
     // 实际应用中，这里应该从安全存储中获取 Agent 的地址
@@ -74,7 +74,7 @@ const transferStep = new Step({
     isTestnet: z.boolean().optional().default(false).describe('是否使用测试网络，默认为 false（主网）'),
   }),
   execute: async ({ context, mastra }) => {
-    const { toAddress, amount, isTestnet } = context;
+    const { toAddress, amount, isTestnet } = context.inputData;
     
     // 在实际应用中，这里应该从安全存储中获取 Agent 的私钥
     // const agentPrivateKey = await secureStorage.getPrivateKey();
