@@ -229,13 +229,19 @@ export class NostrContentFetcher extends EventEmitter {
       // 先停止所有现有监控
       this.stopMonitoring();
 
+      // 获取当前时间戳(秒)，用于过滤只接收服务启动后的新推文
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      this.lastFetchTime = currentTimestamp;
+      console.log(`设置监控起始时间: ${new Date(currentTimestamp * 1000).toISOString()}`);
+
       // 为每个标签创建过滤器并订阅
       for (const tag of this.monitoredTags) {
         try {
           // 创建过滤器
           const filter = {
             kinds: [1],
-            "#t": [tag]
+            "#t": [tag],
+            since: currentTimestamp // 只获取当前时间之后的推文
           };
 
           // 创建订阅处理函数
