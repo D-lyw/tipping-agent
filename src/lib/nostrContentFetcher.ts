@@ -29,7 +29,7 @@ export class NostrContentFetcher extends EventEmitter {
   private pool: SimplePool;
   private relays: string[] = [];
   // private monitoredTags: string[] = ['ckb', 'nervos', 'utxo', "fiber", "fibernetwork", "joyid", "lightning"];
-  private monitoredTags: string[] = ['ckb'];
+  private monitoredTags: string[] = ["ckb", "CKB"];
 
   private lastFetchTime: number = 0;
   private subscriptions: { [key: string]: any } = {};
