@@ -161,7 +161,7 @@ const sendCommentStep = new Step({
     inputSchema: z.object({
         txHash: z.string().describe('打赏的 CKB 交易哈希'),
     }),
-    execute: async ({ context, mastra }) => {
+    execute: async ({ context }) => {
         try {
             const { txHash } = context.getStepResult<{ txHash: string }>('tapping');
             const replyContent = `谢谢您关于 CKB 生态的分享，您已被「神经二狗」pitch，已为你空投100CKB，交易哈希：${txHash}

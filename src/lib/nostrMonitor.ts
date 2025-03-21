@@ -4,11 +4,17 @@ import { nip19 } from 'nostr-tools';
 import { SimplePool } from 'nostr-tools/pool';
 import { hexToBytes } from '@noble/hashes/utils';
 // 导入 CKB CCC 库
-import { hexFrom, bytesConcat, hashCkb, KnownScript, Address, ClientPublicTestnet } from '@ckb-ccc/core';
+import { hexFrom, bytesConcat, hashCkb, KnownScript, Address, ClientPublicTestnet, ClientPublicMainnet } from '@ckb-ccc/core';
+// 导入 CKB 网络类型
+import { NETWORK_MAINNET, NETWORK_TESTNET, CKB_NETWORK } from './ckb';
 import * as dotenv from 'dotenv';
 
 // 加载环境变量
 dotenv.config();
+
+// 导出网络类型以供其他模块使用
+export { NETWORK_MAINNET, NETWORK_TESTNET, CKB_NETWORK };
+export type NetworkType = typeof NETWORK_MAINNET | typeof NETWORK_TESTNET;
 
 // 定义事件类型
 export enum NostrClientEvent {
@@ -81,12 +87,41 @@ export async function createCkbTestnetClient(): Promise<any> {
 }
 
 /**
+ * 创建 CKB 客户端（主网）
+ * @returns CKB 客户端实例
+ */
+export async function createCkbMainnetClient(): Promise<any> {
+    try {
+        // 创建客户端实例，主网环境
+        const client = new ClientPublicMainnet();
+        return client;
+    } catch (error) {
+        console.error('CKB 客户端初始化失败:', error);
+        throw error;
+    }
+}
+
+/**
+ * 基于网络类型创建相应的 CKB 客户端
+ * @param network 网络类型，默认使用环境变量中配置的网络
+ * @returns CKB 客户端实例
+ */
+export async function createCkbClient(network: NetworkType = CKB_NETWORK): Promise<any> {
+    if (network === NETWORK_MAINNET) {
+        return createCkbMainnetClient();
+    } else {
+        return createCkbTestnetClient();
+    }
+}
+
+/**
  * 简化版将 Nostr 公钥转换为 CKB 地址的工具函数
  * @param nostrPubkey Nostr 公钥（十六进制字符串）
+ * @param network 网络类型，默认使用环境变量中配置的网络
  * @returns CKB 地址
  */
-export async function convertNostrPubkeyToCkbAddress(nostrPubkey: string): Promise<string> {
-    const client = await createCkbTestnetClient();
+export async function convertNostrPubkeyToCkbAddress(nostrPubkey: string, network: NetworkType = CKB_NETWORK): Promise<string> {
+    const client = await createCkbClient(network);
     return await nostrPubKeyToCkbAddress(nostrPubkey, client);
 }
 
@@ -103,6 +138,7 @@ export class NostrClient extends EventEmitter {
     private ckbClient: any = null;
     private connected: boolean = false;
     private pool: SimplePool;  // nostr-tools 的 SimplePool 实例
+    private ckbNetwork: NetworkType; // CKB 网络类型
 
     /**
      * 构造函数 - 初始化 Nostr 客户端
@@ -122,6 +158,9 @@ export class NostrClient extends EventEmitter {
         if (config.relays && config.relays.length > 0) {
             this.relays = [...config.relays];
         }
+        
+        // 设置 CKB 网络类型，默认使用环境变量中的设置
+        this.ckbNetwork = CKB_NETWORK;
         
         let privateKeyHex = '';
         
@@ -495,14 +534,23 @@ export class NostrClient extends EventEmitter {
 
     /**
      * 创建 CKB 客户端
+     * @param network 可选的网络类型，如不提供则使用实例默认网络
      * @returns CKB 客户端实例
      */
-    private async createCkbClient(): Promise<any> {
+    private async createCkbClient(network?: NetworkType): Promise<any> {
+        const targetNetwork = network || this.ckbNetwork;
+        
         if (!this.ckbClient) {
             try {
-                // 创建客户端实例，当前是测试网环境
-                this.ckbClient = new ClientPublicTestnet();
-                console.log('CKB 客户端初始化成功');
+                if (targetNetwork === NETWORK_MAINNET) {
+                    // 创建主网客户端实例
+                    this.ckbClient = new ClientPublicMainnet();
+                    console.log('CKB 主网客户端初始化成功');
+                } else {
+                    // 创建测试网客户端实例
+                    this.ckbClient = new ClientPublicTestnet();
+                    console.log('CKB 测试网客户端初始化成功');
+                }
             } catch (error) {
                 console.error('CKB 客户端初始化失败:', error);
                 throw error;
@@ -515,15 +563,16 @@ export class NostrClient extends EventEmitter {
     /**
      * 获取 Nostr 公钥对应的 CKB 地址
      * @param nostrPubkey Nostr 公钥 (十六进制或 npub1 格式)
+     * @param network 可选的网络类型，如不提供则使用实例默认网络
      * @returns CKB 地址
      */
-    public async getNostrPubkeyCkbAddress(nostrPubkey: string): Promise<string> {
+    public async getNostrPubkeyCkbAddress(nostrPubkey: string, network?: NetworkType): Promise<string> {
         try {
             // 处理可能的 npub1 格式公钥
             const hexPubkey = nostrPubkey.startsWith('npub1') ? decodeNip19(nostrPubkey) : nostrPubkey;
             
             // 创建 CKB 客户端
-            const client = await this.createCkbClient();
+            const client = await this.createCkbClient(network);
 
             // 将 Nostr 公钥转换为 CKB 地址
             return await nostrPubKeyToCkbAddress(hexPubkey, client);
@@ -551,10 +600,11 @@ export class NostrClient extends EventEmitter {
 
     /**
      * 获取当前客户端的 CKB 地址
+     * @param network 可选的网络类型，如不提供则使用实例默认网络
      * @returns CKB 地址
      */
-    public async getCurrentCkbAddress(): Promise<string> {
-        return await this.getNostrPubkeyCkbAddress(this.publicKey);
+    public async getCurrentCkbAddress(network?: NetworkType): Promise<string> {
+        return await this.getNostrPubkeyCkbAddress(this.publicKey, network);
     }
 }
 
@@ -639,9 +689,10 @@ export function decodeNip19(nip19Str: string): string {
 /**
  * 增强版将 Nostr 公钥转换为 CKB 地址的工具函数
  * @param nostrIdentifier Nostr 公钥或 NIP-19 格式的标识符
+ * @param network 网络类型，默认使用环境变量中配置的网络
  * @returns CKB 地址
  */
-export async function convertNostrIdentifierToCkbAddress(nostrIdentifier: string): Promise<string> {
+export async function convertNostrIdentifierToCkbAddress(nostrIdentifier: string, network: NetworkType = CKB_NETWORK): Promise<string> {
     try {
         // 尝试解码 NIP-19 格式（如果是）
         let pubkey = nostrIdentifier;
@@ -650,7 +701,7 @@ export async function convertNostrIdentifierToCkbAddress(nostrIdentifier: string
         }
 
         // 使用解码后的公钥进行转换
-        const client = await createCkbTestnetClient();
+        const client = await createCkbClient(network);
         return await nostrPubKeyToCkbAddress(pubkey, client);
     } catch (error) {
         console.error('转换 Nostr 标识符到 CKB 地址失败:', error);
@@ -663,6 +714,11 @@ export const nostrTools = {
     convertNostrPubkeyToCkbAddress,
     convertNostrIdentifierToCkbAddress,
     decodeNip19,
+    
+    // 获取当前使用的网络类型
+    getCurrentNetwork: (): NetworkType => {
+        return CKB_NETWORK;
+    },
     
     // 测试中继连接
     testRelayConnection: async (relay: string): Promise<boolean> => {

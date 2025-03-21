@@ -2,7 +2,7 @@ import { Workflow } from '@mastra/core/workflows';
 import { Step } from '@mastra/core/workflows';
 import { z } from 'zod';
 import { tappingAgent } from '../agents';
-import { generateTestnetAddress } from '../../lib/ckb';
+import { generateCkbAddress } from '../../lib/ckb';
 
 /**
  * 初始化 CKB 钱包步骤 - 仅限系统内部使用，不对外暴露
@@ -14,11 +14,11 @@ const initializeWalletStep = new Step({
   inputSchema: z.object({}),
   execute: async ({ context, mastra }) => {
     // 使用环境变量中的私钥生成地址
-    const address = await generateTestnetAddress();
-    
+    const address = await generateCkbAddress();
+
     return {
       address: address,
-      isTestnet: true // 只支持测试网
+      isTestnet: true 
     };
   },
 });
@@ -34,13 +34,13 @@ const getBalanceStep = new Step({
   }),
   execute: async ({ context, mastra }) => {
     const { address } = context.inputData;
-    
+
     // 如果用户没有提供地址，则使用 Agent 自身的地址
     // 实际应用中，这里应该从安全存储中获取 Agent 的地址
     const queryAddress = address || 'Agent的地址'; // 实际应用中应替换为真实地址
-    
+
     const response = await tappingAgent.generate(
-      `请查询以下地址的 CKB 余额，使用测试网：${queryAddress}`
+      `请查询以下地址的 CKB 余额：${queryAddress} 使用环境变量中的网络。`
     );
 
     return {
@@ -62,9 +62,9 @@ const transferStep = new Step({
   }),
   execute: async ({ context, mastra }) => {
     const { toAddress, amount } = context.inputData;
-    
+
     const response = await tappingAgent.generate(
-      `请将 ${amount} CKB 从 Agent 的私钥转账到地址 ${toAddress}，使用测试网。`
+      `请将 ${amount} CKB 从 Agent 的私钥转账到地址 ${toAddress}， 使用环境变量中的网络。`
     );
 
     return {

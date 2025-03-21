@@ -1,6 +1,11 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { convertNostrIdentifierToCkbAddress } from '../../lib/nostrMonitor';
+import { 
+  convertNostrIdentifierToCkbAddress, 
+  NETWORK_MAINNET, 
+  NETWORK_TESTNET, 
+  NetworkType 
+} from '../../lib/nostrMonitor';
 
 /**
  * 将 Nostr 标识符转换为 CKB 地址的工具
@@ -13,15 +18,29 @@ export const convertNostrIdentifierToCkbAddressTool = createTool({
   description: '将 Nostr 公钥或 NIP-19 格式标识符（如 npub1, nprofile1）转换为 CKB 地址',
   inputSchema: z.object({
     nostrIdentifier: z.string().describe('Nostr 公钥（十六进制字符串）或 NIP-19 格式标识符（如 npub1, nprofile1）'),
+    network: z.enum(['mainnet', 'testnet']).optional().describe('CKB 网络类型，可选值: mainnet, testnet。默认为 testnet'),
   }),
   outputSchema: z.object({
     ckbAddress: z.string().describe('生成的 CKB 地址'),
+    network: z.string().describe('使用的网络类型'),
   }),
   execute: async ({ context }) => {
     try {
-      const { nostrIdentifier } = context;
-      const ckbAddress = await convertNostrIdentifierToCkbAddress(nostrIdentifier);
-      return { ckbAddress };
+      const { nostrIdentifier, network } = context;
+      
+      // 确定使用的网络类型
+      let networkType: NetworkType = NETWORK_TESTNET; // 默认使用测试网
+      if (network === 'mainnet') {
+        networkType = NETWORK_MAINNET;
+      }
+      
+      // 转换地址
+      const ckbAddress = await convertNostrIdentifierToCkbAddress(nostrIdentifier, networkType);
+      
+      return { 
+        ckbAddress,
+        network: networkType === NETWORK_MAINNET ? 'mainnet' : 'testnet'
+      };
     } catch (error) {
       console.error('转换 Nostr 标识符到 CKB 地址失败:', error);
       throw error;
