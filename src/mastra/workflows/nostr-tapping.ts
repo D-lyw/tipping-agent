@@ -6,54 +6,11 @@ import { tappingAgent } from "../agents";
 import { convertNostrIdentifierToCkbAddress, nostrClient } from "../../lib/nostrMonitor";
 import { transferCKB } from "../../lib/ckb";
 import * as dotenv from 'dotenv';
+import * as fs from 'fs/promises';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
+import * as path from 'path';
 
 dotenv.config();
-
-// 简单的内存缓存，用于存储最近处理过的交易
-// 格式: { eventId: timestamp }
-const processedEvents = new Map<string, number>();
-
-// 清理缓存的函数，移除超过一定时间的记录
-function cleanupProcessedEvents(maxAgeMs = 3600000) { // 默认1小时
-    const now = Date.now();
-    for (const [eventId, timestamp] of processedEvents.entries()) {
-        if (now - timestamp > maxAgeMs) {
-            processedEvents.delete(eventId);
-        }
-    }
-}
-
-// 定期清理缓存
-setInterval(cleanupProcessedEvents, 300000); // 每5分钟清理一次
-
-/**
- * 检查事件是否已处理过的步骤
- */
-const checkEventProcessedStep = new Step({
-    id: "check-event-processed",
-    description: "检查事件是否已被处理过",
-    outputSchema: z.object({
-        shouldProcess: z.boolean().describe("是否应继续处理此事件"),
-    }),
-    execute: async ({ context }) => {
-        const eventId = context.triggerData.id;
-
-        // 检查该事件是否已处理过
-        if (processedEvents.has(eventId)) {
-            const lastProcessTime = processedEvents.get(eventId);
-            const now = Date.now();
-            const minutesAgo = Math.round((now - lastProcessTime!) / 60000);
-
-            console.log(`事件 ${eventId} 已在 ${minutesAgo} 分钟前处理过，跳过处理`);
-            return { shouldProcess: false };
-        }
-
-        // 记录此次处理
-        processedEvents.set(eventId, Date.now());
-        console.log(`开始处理新事件: ${eventId}`);
-        return { shouldProcess: true };
-    },
-});
 
 /**
  * Step 1: 根据用户输入，判断是否为优质内容
@@ -84,11 +41,36 @@ const isContentTappedStep = new Step({
         isContentTapped: z.boolean().describe('是否已经被打赏过'),
     }),
     execute: async ({ context }) => {
-        const response = await tappingAgent.generate(
-            `请判断该条 Nostr 平台内容是否已经被打赏过，请用"是"或"否"回答：${context.triggerData.content}`
-        );
-        return {
-            isContentTapped: response.text === '是',
+        try {
+            // 定义JSON文件路径
+            const tappedContentPath = path.join(process.cwd(), 'data/tapped-content.json');
+            
+            // 检查文件是否存在，如果不存在则创建空数组
+            if (!existsSync(tappedContentPath)) {
+                // 确保目录存在
+                const dirPath = path.dirname(tappedContentPath);
+                if (!existsSync(dirPath)) {
+                    await fs.mkdir(dirPath, { recursive: true });
+                }
+                await fs.writeFile(tappedContentPath, JSON.stringify([], null, 2));
+                console.log(`创建空的打赏记录文件: ${tappedContentPath}`);
+                return { isContentTapped: false };
+            }
+            
+            // 读取已打赏内容列表
+            const fileContent = await fs.readFile(tappedContentPath, 'utf8');
+            const tappedContent = JSON.parse(fileContent);
+            
+            // 检查当前内容是否在列表中
+            const contentId = context.triggerData.id;
+            const isTapped = tappedContent.some(item => item.id === contentId);
+            
+            console.log(`检查内容 ${contentId} 是否已打赏: ${isTapped}`);
+            return { isContentTapped: isTapped };
+        } catch (error) {
+            console.error('检查内容是否已打赏时出错:', error);
+            // 出错时保守处理，避免重复打赏
+            return { isContentTapped: true };
         }
     },
 });
@@ -176,10 +158,40 @@ const sendCommentStep = new Step({
         txHash: z.string().describe('打赏的 CKB 交易哈希'),
     }),
     execute: async ({ context, mastra }) => {
-        const { txHash } = context.getStepResult<{ txHash: string }>('tapping');
-        const replyContent = `谢谢您关于 CKB 生态的分享，您已被「神经二狗」pitch，已为你空投100CKB，交易哈希：${txHash}
-        本次打赏资金由 CKB Seal 社区赞助，期待您更多的精彩内容！`;
-        nostrClient.replyToNote(context.triggerData.id, context.triggerData.pubkey, replyContent);
+        try {
+            const { txHash } = context.getStepResult<{ txHash: string }>('tapping');
+            const replyContent = `谢谢您关于 CKB 生态的分享，您已被「神经二狗」pitch，已为你空投100CKB，交易哈希：${txHash}
+            本次打赏资金由 CKB Seal 社区赞助，期待您更多的精彩内容！`;
+            
+            await nostrClient.replyToNote(context.triggerData.id, context.triggerData.pubkey, replyContent);
+            
+            // 记录已处理的内容到JSON文件
+            const tappedContentPath = path.join(process.cwd(), 'data/tapped-content.json');
+            let tappedContent = [];
+            
+            if (existsSync(tappedContentPath)) {
+                const fileContent = await fs.readFile(tappedContentPath, 'utf8');
+                tappedContent = JSON.parse(fileContent);
+            }
+            
+            // 添加新处理的内容
+            tappedContent.push({
+                id: context.triggerData.id,
+                pubkey: context.triggerData.pubkey,
+                content: context.triggerData.content,
+                txHash: txHash,
+                timestamp: new Date().toISOString()
+            });
+            
+            // 写回文件
+            await fs.writeFile(tappedContentPath, JSON.stringify(tappedContent, null, 2));
+            console.log(`已记录内容 ${context.triggerData.id} 到已打赏列表`);
+            
+            return { commented: true };
+        } catch (error) {
+            console.error('发送评论步骤失败:', error);
+            return { commented: false, error: String(error) };
+        }
     },
 });
 
@@ -222,24 +234,10 @@ export const nostrContentTappingWorkflow = new Workflow({
         content: z.string().describe('该条 Nostr 平台内容'),
     }),
 })
-    .step(checkEventProcessedStep)
-    .then(isGoodContentStep, {
-        when: async ({ context }) => {
-            const { shouldProcess } = context.getStepResult<{ shouldProcess: boolean }>('check-event-processed');
-            return shouldProcess;
-        },
-    })
-    .then(isContentTappedStep, {
-        when: async ({ context }) => {
-            const { shouldProcess } = context.getStepResult<{ shouldProcess: boolean }>('check-event-processed');
-            return shouldProcess;
-        },
-    })
+    .step(isGoodContentStep)
+    .then(isContentTappedStep)
     .then(getReceiverAddressStep, {
         when: async ({ context }) => {
-            if (!context.getStepResult<{ shouldProcess: boolean }>('check-event-processed').shouldProcess) {
-                return false;
-            }
             const { isGoodContent } = context.getStepResult<{ isGoodContent: boolean }>('is-good-content');
             const { isContentTapped } = context.getStepResult<{ isContentTapped: boolean }>('is-content-tapped');
             return isGoodContent && !isContentTapped;

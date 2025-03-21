@@ -141,7 +141,9 @@ export class NostrEcosystemMonitor {
 
       // 评估每个内容
       for (const content of contents) {
+        // 每个评估间隔 1 分钟
         await this.handleNewContent(content);
+        await new Promise(resolve => setTimeout(resolve, 60000));
       }
 
       console.log('历史内容评估完成');
@@ -161,7 +163,7 @@ export class NostrEcosystemMonitor {
       await this.initNostrClient();
 
       // 2. 搜索历史内容（过去 24 小时）
-      await this.fetchHistoricalContent(0);
+      // await this.fetchHistoricalContent(0);
 
       // 3. 启动实时监控
       this.startRealtimeMonitoring();
