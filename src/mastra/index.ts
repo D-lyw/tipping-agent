@@ -21,7 +21,7 @@ export const mastra = new Mastra({
   },
   agents: {
     tappingAgent,
-    xAgent,
+    // xAgent,
     ckbDocAgent
   },
   logger: createLogger({
