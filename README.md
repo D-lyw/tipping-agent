@@ -1,345 +1,182 @@
-# CKB 文档问答 Discord Bot
+<div align="center">
+  <img src="https://s21.ax1x.com/2025/03/21/pE0pABT.png" alt="神经二狗 Logo">
+  <h1>神经二狗</h1>
+</div>
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/yourusername/tapping-agent)
+一个为 CKB 社区而生的智能体集合，致力于为社区带来更多的趣味、温暖和效用。
 
-这是一个基于 Discord 的 Bot，用于回答与 Nervos CKB 区块链相关的技术问题。Bot 使用检索增强生成 (RAG) 技术结合大型语言模型来提供准确、相关的回答。
+我们利用 AI 的能力，借鉴 meme 生态 IP 概念，设计并构建了一个神经二狗的 IP 形象，赋予它趣味性和实用性，为 CKB 社区生态带来一点有趣的东西。
 
-## 功能特点
+JUST FOR FUN，我们的目标是让神经二狗从南塘出发，出道 CKB 社区。
 
-- 基于 RAG 技术，从 CKB 技术文档中检索相关内容
-- 使用高级语言模型，确保回答质量和准确性
-- 支持中英文问答，默认使用中文回复
-- 自动分割长消息以符合 Discord 消息长度限制
-- 可配置的命令前缀和允许的频道
-- 优雅的错误处理和恢复机制
-- 支持多种命令：帮助、刷新文档、清除历史等
-- 整合了Nostr监控服务，可以同时运行多个服务
-- 支持Nostr消息转发功能，可以实现自动或手动转发有价值的内容
+## 系统核心架构
 
-## 安装
+### 基础框架设计
 
-1. 克隆仓库：
+"神经二狗"基于 Mastra 智能体框架构建，采用模块化设计，核心组件包括：
 
-```bash
-git clone https://github.com/YourUsername/ckb-doc-qa-bot.git
-cd ckb-doc-qa-bot
+**1. Mastra 工作流引擎：**
+
+- 定义了完整的工作流程序，包括内容检测、评估、打赏和互动等步骤
+- 基于事件驱动的步骤链，确保每一步都有明确的输入和输出
+- 支持条件分支和错误处理，提高系统稳定性
+
+**2. AI 驱动的判断模块：**
+
+- 利用 GPT-4o 模型进行内容质量评估
+- 通过精心设计的提示词指导 AI 识别值得打赏的优质 CKB 社区内容
+- 智能过滤垃圾信息和低质量内容
+
+**3. 区块链交互层：**
+
+- 与 CKB 测试网/主网的无缝集成
+- 支持地址生成、余额查询、交易构建和发送
+- 基于 @ckb-ccc/core 库实现安全可靠的交易
+
+**4. 使用 RAG 技术实现的 CKB 文档 Agent：**
+
+- 通过 RAG 技术，实现了一个可以在 Discord 集成的 CKB 文档 Agent
+- 该 Agent 可以回答关于 CKB 文档和社区的问题
+
+**5. 社交媒体集成：**
+
+- Nostr 平台内容监控和互动
+- 支持实时内容检索和历史内容搜索
+- 评论、回复和转发功能，增强社区互动
+
+
+### 技术亮点
+
+- 基于 Mastra 框架构建的工作流系统
+- AI 驱动的内容质量评估
+- 与 CKB 区块链的无缝集成
+- 多平台社交媒体集成 (Nostr, 更多平台开发中)
+- 可扩展的模块化设计
+
+## 技术架构
+
+### 系统结构
+
+```
+tapping-agent/
+├── src/
+│   ├── mastra/       # Mastra 工作流引擎
+│   │   ├── agents/   # AI 代理定义
+│   │   ├── tools/    # 工具集成
+│   │   └── workflows/ # 工作流定义
+│   ├── lib/          # 核心功能库
+│   ├── services/     # 服务实现
+│   └── routes/       # API 路由
+├── data/             # 数据存储目录
+│   └── tapped-content.json  # 已打赏记录
+└── ...
 ```
 
-2. 安装依赖：
+### 工作流程
 
+1. **内容监控**：监听 Nostr 平台上的 CKB 相关内容
+2. **智能评估**：使用 AI 判断内容是否为高质量且值得打赏
+3. **查重检查**：通过 JSON 文件检查内容是否已被打赏过
+4. **打赏流程**：获取创作者 CKB 地址，自动执行打赏转账
+5. **社交互动**：发送评论通知创作者，并转发有价值的内容
+
+## 安装指南
+
+### 环境要求
+
+- Node.js >= 18.x
+- TypeScript >= 5.x
+- OpenAI API 密钥
+
+### 安装步骤
+
+1. 克隆仓库
+```bash
+git clone https://github.com/your-repo/tapping-agent.git
+cd tapping-agent
+```
+
+2. 安装依赖
 ```bash
 npm install
 # 或
 yarn install
 ```
 
-3. 设置环境变量：
-
-在项目根目录创建 `.env` 文件，并添加以下配置：
-
-```
-# Discord Bot 基本配置
-DISCORD_BOT_TOKEN=your_discord_bot_token_here
-OPENAI_API_KEY=your_openai_api_key_here
-BOT_PREFIX=!ckb
-ALLOWED_CHANNEL_IDS=channel_id_1,channel_id_2
-
-# Nostr 配置
-NOSTR_PRIVATE_KEY=your_nostr_private_key_here
-NOSTR_RELAYS=wss://relay.damus.io,wss://relay.nostr.band
-
-# 服务启用配置
-ENABLE_CKB_BOT=true
-ENABLE_NOSTR=true
+3. 配置环境变量
+```bash
+cp .env.example .env
+# 编辑 .env 文件，填入必要的配置信息
 ```
 
-> 注意：更多详细的配置选项请参考 `.env.example` 文件。
+4. 编译项目
+```bash
+npm run build
+# 或
+yarn build
+```
 
-## 创建 Discord Bot
-
-1. 前往 [Discord Developer Portal](https://discord.com/developers/applications)
-2. 点击 "New Application"，创建一个新应用
-3. 在 "Bot" 选项卡中，点击 "Add Bot"
-4. 开启 "Message Content Intent" 选项
-5. 复制 Bot 令牌填入 `.env` 文件
-6. 在 "OAuth2" > "URL Generator" 中，选择 `bot` 和相关权限
-7. 使用生成的 URL 将机器人添加到您的服务器
-
-## 使用方法
+## 使用指南
 
 ### 启动服务
 
-项目支持多种启动方式，可以启动单个服务或同时启动多个服务：
-
-1. 启动所有服务（CKB文档Bot和Nostr监控）：
-
 ```bash
+# 启动完整服务
 npm run all
 # 或
 yarn all
-```
 
-2. 只启动CKB文档问答Discord Bot：
-
-```bash
-npm run ckb:discord-bot
-# 或
-yarn ckb:discord-bot
-```
-
-3. 只启动Nostr监控服务：
-
-```bash
-# 启动完整Nostr监控
-npm run nostr
-# 或
-yarn nostr
-
-# 只监控历史内容
-npm run nostr:historical
-# 或
-yarn nostr:historical
-
-# 只启动实时监控
+# 仅启动 Nostr 监控（实时模式）
 npm run nostr:realtime
 # 或
 yarn nostr:realtime
 ```
 
-4. 强制刷新文档缓存启动：
+### 配置选项
 
-```bash
-npm run all -- --refresh
-# 或
-yarn all --refresh
-```
+主要配置选项在 `.env` 文件中，包括：
 
-### 与Discord Bot交互
+- `OPENAI_API_KEY`: OpenAI API 密钥
+- `CKB_PRIVATE_KEY`: 打赏用的 CKB 发送方私钥
+- `NOSTR_PRIVATE_KEY`: Nostr 私钥（用于发送评论和转发）
+- `DISCORD_BOT_TOKEN`: Discord bot token
 
-在 Discord 服务器中，使用以下命令与 Bot 交互：
+### 尚存问题
 
-```
-!ckb CKB的共识机制是什么?
-```
+- 快速多次 CKB 转账交易仍会执行报错
 
-您也可以通过直接在消息中提及 Bot 或通过私信与 Bot 交互。
+## 后续改进方向
 
-### 可用命令
+**1. 增强重复检测机制：**
 
-- `!ckb help` - 显示帮助信息
-- `!ckb refresh` - 刷新文档缓存
-- `!ckb info` - 显示Bot信息
-- `!ckb clear` - 清除对话历史
+目前的重复检测机制基于简单的 ID 匹配，可以改进为更复杂的内容相似度检测。
 
-## 本地测试
+**2. 优化打赏金额策略：**
 
-使用命令行测试 Bot 的问答功能：
+实现基于内容质量的动态打赏金额，更好地激励优质创作。
 
-```bash
-# 运行标准测试
-npm run test
-# 或
-yarn test
+**3. 多平台支持：**
 
-# 使用简单模式（无CKB专业知识）
-npm run test:simple
-# 或
-yarn test:simple
+扩展到 X、Reddit 等更多社交媒体平台，扩大影响范围。增加在 Discord 社区中主动性回复的能力，增强其趣味性和工具性能力
 
-# 显示详细调试信息
-npm run test:verbose
-# 或
-yarn test:verbose
+**4. 改进内容评估 Prompt：**
 
-# 使用原始测试脚本
-npm run test:direct
-# 或
-yarn test:direct
+进一步优化 AI 提示词，提高内容评估的准确性和效率。
 
-# 测试 Nostr 转发功能
-npm run test:nostr-retweet
-# 或
-yarn test:nostr-retweet "事件ID" "可选的转发评论"
+**5. 社区参与机制：**
 
-# 强制刷新文档缓存
-npm run test -- --refresh
-```
+增加让社区成员参与内容推荐和评价的机制，实现更加去中心化的内容发现。
 
-## 使用测试脚本
+**6. 对话交互能力：**
 
-如果你只是希望测试CKB文档智能体的功能，可以使用我们提供的测试脚本：
+增强智能体与用户的对话能力，实现更加自然和有趣的互动体验。
 
-```bash
-# 使用增强版测试脚本
-## 直接提供问题
-node test/ckb-test.js "你的问题"
+**7. 数据分析和报告：**
 
-## 或者进入交互模式
-node test/ckb-test.js
+增加数据分析功能，生成社区内容趋势和热点的定期报告。
 
-## 使用通用助手模式（无CKB专业知识）
-node test/ckb-test.js --simple "你的问题"
 
-## 显示详细的调试信息
-node test/ckb-test.js --verbose "你的问题"
-
-## 组合使用选项
-node test/ckb-test.js --simple --verbose "你的问题"
-
-# 使用原始测试脚本
-node test/direct-test.js "你的问题"
-
-# 测试 Nostr 转发功能
-node test/test-nostr-retweet.js "事件ID" "可选的转发评论"
-```
-
-在交互模式中，你可以：
-- 输入 `exit` 退出程序
-- 输入 `clear` 清除对话历史
-
-## 配置说明
-
-您可以通过环境变量控制各个服务的启用状态：
-
-- `ENABLE_CKB_BOT=true|false` - 控制是否启用CKB文档问答Discord Bot
-- `ENABLE_NOSTR=true|false` - 控制是否启用Nostr监控服务
-
-## 开发指南
-
-- `src/index.ts` - 应用主入口，可启动所有服务
-- `src/services/ckbDocBot.ts` - 单独启动CKB文档问答Discord Bot的入口
-- `src/services/nostrMonitoring.ts` - 单独启动Nostr监控服务的入口
-- `src/agents/ckbDocAgent.ts` - CKB 文档智能体实现
-- `src/lib/ckbDocuments.ts` - 文档检索与处理逻辑
-- `test/direct-test.js` - 原始命令行测试脚本
-- `test/ckb-test.js` - CKB 文档助手测试脚本
-- `test/test-nostr-retweet.js` - Nostr 转发功能测试脚本
-- `src/lib/nostrEcosystemMonitor.ts` - Nostr生态监控实现
-- `src/lib/nostrMonitor.ts` - Nostr客户端实现（包含转发功能）
-- `src/lib/nostrContentFetcher.ts` - Nostr内容获取工具
-
-## 项目结构
-
-```
-src/
-├── index.ts                    # 主入口文件，可启动所有服务
-├── services/                   # 各种服务的入口文件
-│   ├── ckbDocBot.ts            # CKB文档问答Discord Bot服务入口
-│   └── nostrMonitoring.ts      # Nostr监控服务入口
-├── agents/                     # 智能体实现
-│   └── ckbDocAgent.ts          # CKB文档智能体
-├── lib/                        # 库文件
-│   ├── ckbDocuments.ts         # CKB文档处理
-│   ├── discordBot.ts           # Discord Bot实现
-│   ├── nostrEcosystemMonitor.ts# Nostr生态监控
-│   ├── nostrMonitor.ts         # Nostr客户端（包含转发功能）
-│   └── nostrContentFetcher.ts  # Nostr内容检索
-test/
-├── ckb-test.js                 # CKB文档助手测试脚本
-├── direct-test.js              # 原始命令行测试脚本
-└── test-nostr-retweet.js       # Nostr 转发功能测试脚本
-```
-
-## 部署
-
-推荐使用 Docker 部署：
-
-```bash
-# 构建 Docker 镜像
-docker build -t ckb-doc-qa-bot .
-
-# 运行容器
-docker run -d --env-file .env --name ckb-bot ckb-doc-qa-bot
-```
-
-或者使用 PM2 在服务器上部署：
-
-```bash
-npm install -g pm2
-pm2 start dist/index.js --name ckb-doc-bot
-```
-
-## 定制化
-
-### 添加自定义文档
-
-您可以通过编程方式添加自定义文档：
-
-```typescript
-import { addCustomDocument } from './src/lib/ckbDocuments';
-
-// 添加自定义文档
-addCustomDocument(
-  '这是一段关于CKB的自定义文档内容...',
-  '自定义文档标题',
-  '内部文档'
-);
-```
-
-### 修改相似度计算
-
-默认情况下，系统使用 Jaccard 系数计算文档与查询的相似度。您可以在 `src/agents/ckbDocAgent.ts` 中修改 `calculateSimilarity` 函数来使用其他算法。
-
-## 贡献
-
-欢迎提交 Pull Requests 和 Issues！
 
 ## 许可证
 
-MIT
-
-## 项目介绍
-
-Tapping Agent 是一个专注于 Nostr 平台内容监控、评估与互动的智能代理。它能够自动监测 Nostr 平台上的内容，对高质量内容进行打赏，并可以选择性地转发值得分享的帖子。
-
-## 主要功能
-
-- **Nostr 内容监控**：实时监控 Nostr 平台的内容发布
-- **内容价值评估**：使用 AI 自动评估内容的价值和相关性
-- **自动打赏**：对高质量内容进行自动 CKB 打赏
-- **内容转发**：转发高质量的 Nostr 内容
-- **CKB 文档问答**：提供基于 CKB 文档的智能问答服务
-
-## 部署指南
-
-项目支持多种部署方式，包括：
-
-- [本地开发环境](#本地开发)
-- [Vercel 部署](./VERCEL.md)
-- [Render 部署](#render-部署)
-
-### Render 部署
-
-点击上方 "Deploy to Render" 按钮，或按照以下步骤手动部署：
-
-1. 在 Render 仪表板中，点击 "New +" 并选择 "Web Service"
-2. 连接您的 GitHub 仓库
-3. 设置以下配置：
-   - Name: tapping-agent (或您喜欢的名称)
-   - Runtime: Node
-   - Build Command: `npm install && npm run build`
-   - Start Command: `node dist/index.js`
-4. 添加环境变量（在 "Environment" 部分）：
-   - OPENAI_API_KEY
-   - NOSTR_PRIVATE_KEY
-   - DISCORD_BOT_TOKEN (如果使用 Discord 功能)
-   - 其他必要的环境变量
-5. 点击 "Create Web Service" 按钮
-
-更多详细信息，请参阅 [RENDER.md](./RENDER.md) 文档。
-
-## 本地开发
-
-```bash
-# 安装依赖
-npm install
-
-# 编译项目
-npm run build
-
-# 启动服务
-npm start
-
-# 仅启动 Nostr 监控服务
-npm run nostr
-```
+本项目采用 MIT 许可证 - 详情请查看 [LICENSE](LICENSE) 文件

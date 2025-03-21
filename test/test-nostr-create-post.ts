@@ -1,4 +1,4 @@
-import { nostrClient, nostrTools } from './src/lib/nostrMonitor';
+import { nostrClient, nostrTools } from '../src/lib/nostrMonitor';
 import dotenv from 'dotenv';
 
 // 加载环境变量
