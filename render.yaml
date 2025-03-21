@@ -3,7 +3,7 @@ services:
     name: tapping-agent
     runtime: node
     buildCommand: npm install && npm run build
-    startCommand: npx tsx src/index.ts
+    startCommand: node dist/src/index.js
     envVars:
       - key: NODE_ENV
         value: production
