@@ -1,6 +1,9 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { createXClient } from '../../lib/x';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 // 从环境变量获取 Twitter API 凭证
 const apiKey = process.env.TWITTER_API_KEY || '';
