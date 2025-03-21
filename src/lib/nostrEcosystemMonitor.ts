@@ -42,7 +42,7 @@ export class NostrEcosystemMonitor {
       // 只需要确保添加中继服务器
 
       // 获取中继服务器列表
-      const relaysStr = process.env.NOSTR_RELAYS || 'wss://relay.damus.io,wss://relay.nostr.info';
+      const relaysStr = process.env.NOSTR_RELAYS || 'wss://relay.damus.io,wss://strfry.iris.to,wss://relay.nostr.info,wss://nos.lol';
       const relays = relaysStr.split(',').map(relay => relay.trim());
 
       // 添加中继服务器

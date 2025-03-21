@@ -52,7 +52,7 @@ export class NostrContentFetcher extends EventEmitter {
       this.relays = relays;
     } else {
       // 否则使用环境变量中的中继列表
-      const relaysStr = process.env.NOSTR_RELAYS || 'wss://relay.damus.io,wss://relay.nostr.info';
+      const relaysStr = process.env.NOSTR_RELAYS || 'wss://relay.damus.io,wss://strfry.iris.to,wss://relay.nostr.info,wss://nos.lol';
       this.relays = relaysStr.split(',').map(relay => relay.trim());
     }
 

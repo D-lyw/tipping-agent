@@ -22,8 +22,12 @@ const isGoodContentStep = new Step({
         isGoodContent: z.boolean().describe('是否为优质内容'),
     }),
     execute: async ({ context }) => {
+        // Mark only for demo day
+        // const response = await tappingAgent.generate(
+        //     `请判断该条 Nostr 平台内容是达到打赏标准的优质内容，请用"是"或"否"回答：${context.triggerData.content}`
+        // );
         const response = await tappingAgent.generate(
-            `请判断该条 Nostr 平台内容是达到打赏标准的优质内容，请用"是"或"否"回答：${context.triggerData.content}`
+            `请判断该条 Nostr 平台内容是不是有涉及 Nervos CKB 的任何信息，请用"是"或"否"回答：${context.triggerData.content}`
         );
         return {
             isGoodContent: response.text === '是',
@@ -44,7 +48,7 @@ const isContentTappedStep = new Step({
         try {
             // 定义JSON文件路径
             const tappedContentPath = path.join(process.cwd(), 'data/tapped-content.json');
-            
+
             // 检查文件是否存在，如果不存在则创建空数组
             if (!existsSync(tappedContentPath)) {
                 // 确保目录存在
@@ -56,15 +60,15 @@ const isContentTappedStep = new Step({
                 console.log(`创建空的打赏记录文件: ${tappedContentPath}`);
                 return { isContentTapped: false };
             }
-            
+
             // 读取已打赏内容列表
             const fileContent = await fs.readFile(tappedContentPath, 'utf8');
             const tappedContent = JSON.parse(fileContent);
-            
+
             // 检查当前内容是否在列表中
             const contentId = context.triggerData.id;
             const isTapped = tappedContent.some(item => item.id === contentId);
-            
+
             console.log(`检查内容 ${contentId} 是否已打赏: ${isTapped}`);
             return { isContentTapped: isTapped };
         } catch (error) {
@@ -162,18 +166,18 @@ const sendCommentStep = new Step({
             const { txHash } = context.getStepResult<{ txHash: string }>('tapping');
             const replyContent = `谢谢您关于 CKB 生态的分享，您已被「神经二狗」pitch，已为你空投100CKB，交易哈希：${txHash}
             本次打赏资金由 CKB Seal 社区赞助，期待您更多的精彩内容！`;
-            
+
             await nostrClient.replyToNote(context.triggerData.id, context.triggerData.pubkey, replyContent);
-            
+
             // 记录已处理的内容到JSON文件
             const tappedContentPath = path.join(process.cwd(), 'data/tapped-content.json');
             let tappedContent = [];
-            
+
             if (existsSync(tappedContentPath)) {
                 const fileContent = await fs.readFile(tappedContentPath, 'utf8');
                 tappedContent = JSON.parse(fileContent);
             }
-            
+
             // 添加新处理的内容
             tappedContent.push({
                 id: context.triggerData.id,
@@ -182,11 +186,11 @@ const sendCommentStep = new Step({
                 txHash: txHash,
                 timestamp: new Date().toISOString()
             });
-            
+
             // 写回文件
             await fs.writeFile(tappedContentPath, JSON.stringify(tappedContent, null, 2));
             console.log(`已记录内容 ${context.triggerData.id} 到已打赏列表`);
-            
+
             return { commented: true };
         } catch (error) {
             console.error('发送评论步骤失败:', error);

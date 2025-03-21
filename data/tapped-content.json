@@ -5,5 +5,19 @@
     "content": "Even though it’s only been 10 days since $CKB made its local top, it feels as if it’s been weeks.\n\n#CKB mitigated the FVG, finding its bottom there, and now has made a sign of strength. Good things are coming for the #NervosNetwork https://image.nostr.build/3674277c8140869a463ae1dc9142a9144ef97834504f0f7514672c33c2fc3f51.jpg ",
     "txHash": "0xc4a94edde0917d9e246cf296b8be948f628932cda75f485c8eb915ef092af056",
     "timestamp": "2025-03-21T05:22:28.827Z"
+  },
+  {
+    "id": "954ae85f7aa3ed9d960dd6ec97bd80a0eb39d6d6b96ec20b0dcc45c7460e86aa",
+    "pubkey": "978b53adff7762c14d6b0d293ffa29e4d2324e767122196bc699badbb3492786",
+    "content": "✨ Just rolled out a fresh batch of updates to Nervos docs\n\nSolid improvements for devs building on CKB include:\n\n- Refactored dApp tutorials with offckb v3 and CCC SDK \n  (Transfer CKB, create DOB, store data on Cell, issue xUDT, simple lock tutorials all updated)\n- Quick start guide now uses offckb v3\nhttp://docs.nervos.org/docs/getting-started/quick-start\n- Ensured Cells hold at least 61 CKB in examples in How CKB Works \nhttp://docs.nervos.org/docs/getting-started/how-ckb-works\n\nFor details, check out the full v2.11.0 release notes! 👇\nhttp://github.com/nervosnetwork/docs.nervos.org/releases/tag/v2.11.0\n\n nostr:npub1qepgwa9039vcxveyz0948z0unaduwhkpdl6v9aa9p6zfpvq4w9mql7tu4t #ckb #nervosnetwork ",
+    "txHash": "0x2007f62b0c99b54eb0dd29180d33c84a5b6851eba42c517abdac5a6f963b9594",
+    "timestamp": "2025-03-21T06:43:02.577Z"
+  },
+  {
+    "id": "982c25ce92ea03ab818e8d1f6bc5b0885c7dca5c3d8e85c2f76e01d204c17c8c",
+    "pubkey": "4e9e1b3d88402ac15e02793e9a79815327ff0daafaeb130dec4aef36537f6131",
+    "content": "$CKB down 20% today, but still up 125% for the week.\n\nThis price action is considered a healthy pull back, before continuing to the upside.\n\nTwo scenarios: (1) #CKB retraces to the FVG or (2) it retraces to the order block, then marches upwards.\n\nIn both scenarios, #NervosNetwork will still be considered making higher highs and higher lows. Going below these levels would make me less bullish. https://image.nostr.build/74967b1b130f537c4e3691ab92d1e0db02bd236ffeecc0b39cefdcca3b0a39ab.jpg ",
+    "txHash": "0xdfc3a9f192868a4bc6f6b2c27740e304c684a875e10e5d7759ab9437a5490fd6",
+    "timestamp": "2025-03-21T06:48:13.836Z"
   }
 ]

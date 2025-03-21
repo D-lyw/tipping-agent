@@ -560,7 +560,7 @@ export class NostrClient extends EventEmitter {
 
 // 导出全局单例，但必须在使用前设置私钥
 const privateKey = process.env.NOSTR_PRIVATE_KEY || '';
-const relaysString = process.env.NOSTR_RELAYS || 'wss://relay.damus.io,wss://relay.nostr.info,wss://nos.lol';
+const relaysString = process.env.NOSTR_RELAYS || 'wss://relay.damus.io,wss://strfry.iris.to,wss://relay.nostr.info,wss://nos.lol';
 const relays = relaysString.split(',').map(relay => relay.trim());
 
 export const nostrClient = new NostrClient({ 
