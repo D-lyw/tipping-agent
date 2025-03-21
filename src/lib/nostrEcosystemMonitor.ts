@@ -161,7 +161,7 @@ export class NostrEcosystemMonitor {
       await this.initNostrClient();
 
       // 2. 搜索历史内容（过去 24 小时）
-      await this.fetchHistoricalContent(1);
+      await this.fetchHistoricalContent(0);
 
       // 3. 启动实时监控
       this.startRealtimeMonitoring();
