@@ -2,6 +2,9 @@ import { createXClient } from './x';
 import { tappingAgent } from '../mastra/agents';
 import { EventEmitter } from 'events';
 import { TwitterApi } from 'twitter-api-v2';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 // 从环境变量获取 Twitter API 凭证
 const apiKey = process.env.TWITTER_API_KEY || '';
