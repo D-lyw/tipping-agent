@@ -44,7 +44,6 @@ JUST FOR FUN，我们的目标是让神经二狗从南塘出发，出道 CKB 社
 - 支持实时内容检索和历史内容搜索
 - 评论、回复和转发功能，增强社区互动
 
-
 ### 技术亮点
 
 - 基于 Mastra 框架构建的工作流系统
@@ -91,12 +90,14 @@ tapping-agent/
 ### 安装步骤
 
 1. 克隆仓库
+
 ```bash
 git clone https://github.com/your-repo/tapping-agent.git
 cd tapping-agent
 ```
 
 2. 安装依赖
+
 ```bash
 npm install
 # 或
@@ -104,12 +105,14 @@ yarn install
 ```
 
 3. 配置环境变量
+
 ```bash
 cp .env.example .env
 # 编辑 .env 文件，填入必要的配置信息
 ```
 
 4. 编译项目
+
 ```bash
 npm run build
 # 或
@@ -175,7 +178,9 @@ yarn nostr:realtime
 
 增加数据分析功能，生成社区内容趋势和热点的定期报告。
 
+**8. MCP 功能集成**
 
+添加 MCP Server 能力，赋予神经二狗同其他社区 AI Agent 沟通交流的能力。
 
 ## 许可证
 
