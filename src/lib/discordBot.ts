@@ -5,7 +5,7 @@
  */
 
 import { Client, Events, GatewayIntentBits, Message, TextChannel } from 'discord.js';
-import { ckbDocAgent, askCkbQuestion } from '../mastra/agents/ckbDocAgent';
+import { ckbDocAgent, askCkbQuestion, streamCkbQuestion } from '../mastra/agents/ckbDocAgent';
 import { fetchAllDocuments } from './ckbDocuments';
 import dotenv from 'dotenv';
 
@@ -191,18 +191,54 @@ export class CkbDiscordBot {
           console.log(`开始处理问题: ${question}`);
           const startTime = Date.now();
           
-          const answer = await askCkbQuestion(question);
+          // 使用流式输出替代一次性返回
+          const ckbDocAgentResponse = await streamCkbQuestion(question);
+          
+          // 用于累积完整回答的字符串
+          let accumulatedAnswer = '';
+          // 上次更新消息的时间戳，用于控制更新频率
+          let lastUpdateTime = Date.now();
+          // 更新间隔 (毫秒)
+          const UPDATE_INTERVAL = 500;
+          
+          // 首次更新消息内容
+          await thinkingMessage.edit('正在生成回答: ');
+          
+          // 处理流式响应
+          for await (const chunk of ckbDocAgentResponse.textStream) {
+            // 累积回答
+            accumulatedAnswer += chunk;
+            
+            // 控制更新频率，避免频繁API调用
+            const currentTime = Date.now();
+            if (currentTime - lastUpdateTime >= UPDATE_INTERVAL) {
+              try {
+                // 如果累积内容过长，就只显示最后的2000个字符
+                const displayContent = accumulatedAnswer.length > 2000 
+                  ? accumulatedAnswer.slice(-2000) 
+                  : accumulatedAnswer;
+                
+                await thinkingMessage.edit(displayContent);
+                lastUpdateTime = currentTime;
+              } catch (editError) {
+                console.error('更新消息时出错:', editError);
+              }
+            }
+          }
           
           const endTime = Date.now();
           console.log(`问题处理完成，耗时: ${(endTime - startTime) / 1000}秒`);
+          console.log(`生成的回答长度: ${accumulatedAnswer.length} 字符`);
           
           // 响应过长时分段发送
-          if (answer.length > 2000) {
-            const chunks = this.splitMessage(answer);
-            console.log(`回答长度为 ${answer.length} 字符，将分为 ${chunks.length} 条消息发送`);
+          if (accumulatedAnswer.length > 2000) {
+            const chunks = this.splitMessage(accumulatedAnswer);
+            console.log(`回答长度为 ${accumulatedAnswer.length} 字符，将分为 ${chunks.length} 条消息发送`);
             
+            // 编辑第一条消息
             await thinkingMessage.edit(chunks[0]);
             
+            // 发送剩余的块
             for (let i = 1; i < chunks.length; i++) {
               // 对不同类型的频道使用不同的发送方法
               if ('send' in message.channel) {
@@ -213,7 +249,8 @@ export class CkbDiscordBot {
               }
             }
           } else {
-            await thinkingMessage.edit(answer);
+            // 确保最终的完整响应被发送
+            await thinkingMessage.edit(accumulatedAnswer);
           }
         } catch (error) {
           console.error('智能体生成回答时出错:', error);
@@ -378,6 +415,160 @@ export class CkbDiscordBot {
       }
     } catch (error) {
       console.error('发送Discord消息失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 向指定频道发送流式消息
+   * @param channelId 频道ID
+   * @param getContentStream 获取内容流的函数
+   */
+  public async sendStreamingMessage(channelId: string, getContentStream: () => AsyncIterable<string>): Promise<void> {
+    try {
+      if (!this.isRunning()) {
+        throw new Error('Discord Bot未运行，无法发送消息');
+      }
+      
+      const channel = await this.client.channels.fetch(channelId);
+      if (!channel || !(channel instanceof TextChannel)) {
+        throw new Error(`无法找到文本频道: ${channelId}`);
+      }
+      
+      // 发送初始消息
+      const initialMessage = await channel.send('正在生成回答...');
+      
+      // 用于累积完整回答的字符串
+      let accumulatedAnswer = '';
+      // 上次更新消息的时间戳
+      let lastUpdateTime = Date.now();
+      // 更新间隔 (毫秒)
+      const UPDATE_INTERVAL = 500;
+      
+      // 处理流式响应
+      const contentStream = getContentStream();
+      for await (const chunk of contentStream) {
+        // 累积回答
+        accumulatedAnswer += chunk;
+        
+        // 控制更新频率
+        const currentTime = Date.now();
+        if (currentTime - lastUpdateTime >= UPDATE_INTERVAL) {
+          try {
+            // 如果累积内容过长，就只显示最后的2000个字符
+            const displayContent = accumulatedAnswer.length > 2000 
+              ? accumulatedAnswer.slice(-2000) 
+              : accumulatedAnswer;
+            
+            await initialMessage.edit(displayContent);
+            lastUpdateTime = currentTime;
+          } catch (editError) {
+            console.error('更新消息时出错:', editError);
+          }
+        }
+      }
+      
+      // 发送最终完整的响应
+      if (accumulatedAnswer.length > 2000) {
+        const chunks = this.splitMessage(accumulatedAnswer);
+        console.log(`流式回答长度为 ${accumulatedAnswer.length} 字符，将分为 ${chunks.length} 条消息发送`);
+        
+        // 编辑第一条消息
+        await initialMessage.edit(chunks[0]);
+        
+        // 发送剩余的块
+        for (let i = 1; i < chunks.length; i++) {
+          await channel.send(chunks[i]);
+        }
+      } else {
+        // 确保最终的完整响应被发送
+        await initialMessage.edit(accumulatedAnswer);
+      }
+    } catch (error) {
+      console.error('发送流式Discord消息失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 向指定频道发送CKB问题的流式回答
+   * @param channelId 频道ID
+   * @param question CKB相关问题
+   */
+  public async sendCkbQuestionStream(channelId: string, question: string): Promise<void> {
+    try {
+      if (!this.isRunning()) {
+        throw new Error('Discord Bot未运行，无法发送消息');
+      }
+      
+      const channel = await this.client.channels.fetch(channelId);
+      if (!channel || !(channel instanceof TextChannel)) {
+        throw new Error(`无法找到文本频道: ${channelId}`);
+      }
+      
+      // 发送初始消息
+      const initialMessage = await channel.send('正在查询相关文档，请稍候...');
+      
+      console.log(`开始处理问题: ${question}`);
+      const startTime = Date.now();
+      
+      // 使用流式输出
+      const ckbDocAgentResponse = await streamCkbQuestion(question);
+      
+      // 用于累积完整回答的字符串
+      let accumulatedAnswer = '';
+      // 上次更新消息的时间戳
+      let lastUpdateTime = Date.now();
+      // 更新间隔 (毫秒)
+      const UPDATE_INTERVAL = 500;
+      
+      // 首次更新消息内容
+      await initialMessage.edit('正在生成回答: ');
+      
+      // 处理流式响应
+      for await (const chunk of ckbDocAgentResponse.textStream) {
+        // 累积回答
+        accumulatedAnswer += chunk;
+        
+        // 控制更新频率
+        const currentTime = Date.now();
+        if (currentTime - lastUpdateTime >= UPDATE_INTERVAL) {
+          try {
+            // 如果累积内容过长，就只显示最后的2000个字符
+            const displayContent = accumulatedAnswer.length > 2000 
+              ? accumulatedAnswer.slice(-2000) 
+              : accumulatedAnswer;
+            
+            await initialMessage.edit(displayContent);
+            lastUpdateTime = currentTime;
+          } catch (editError) {
+            console.error('更新消息时出错:', editError);
+          }
+        }
+      }
+      
+      const endTime = Date.now();
+      console.log(`问题处理完成，耗时: ${(endTime - startTime) / 1000}秒`);
+      console.log(`生成的回答长度: ${accumulatedAnswer.length} 字符`);
+      
+      // 发送最终完整的响应
+      if (accumulatedAnswer.length > 2000) {
+        const chunks = this.splitMessage(accumulatedAnswer);
+        console.log(`回答长度为 ${accumulatedAnswer.length} 字符，将分为 ${chunks.length} 条消息发送`);
+        
+        // 编辑第一条消息
+        await initialMessage.edit(chunks[0]);
+        
+        // 发送剩余的块
+        for (let i = 1; i < chunks.length; i++) {
+          await channel.send(chunks[i]);
+        }
+      } else {
+        // 确保最终的完整响应被发送
+        await initialMessage.edit(accumulatedAnswer);
+      }
+    } catch (error) {
+      console.error('发送CKB问题流式Discord消息失败:', error);
       throw error;
     }
   }

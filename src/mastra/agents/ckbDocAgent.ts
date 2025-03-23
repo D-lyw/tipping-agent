@@ -56,4 +56,33 @@ export async function askCkbQuestion(question: string): Promise<string> {
     const errorMessage = error instanceof Error ? error.message : '未知错误';
     return `抱歉，处理您的问题时遇到了错误: ${errorMessage}`;
   }
+}
+
+/**
+ * 与智能体交互的流式方法
+ * 返回一个可以实时获取生成内容片段的流
+ */
+export async function streamCkbQuestion(question: string) {
+  try {
+    console.log(`尝试向智能体发送流式问题: "${question}"`);
+    
+    // 使用 agent.stream 与 agent 交互，获取流式响应
+    const streamResponse = await ckbDocAgent.stream(question);
+    
+    // 返回流式响应对象
+    return streamResponse;
+  } catch (error) {
+    console.error('流式询问问题时出错:');
+    console.error(error instanceof Error ? error.stack : JSON.stringify(error, null, 2));
+    
+    // 创建一个特殊的异步生成器，表示错误情况
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    const errorStream = {
+      textStream: (async function* () {
+        yield `抱歉，处理您的问题时遇到了错误: ${errorMessage}`;
+      })()
+    };
+    
+    return errorStream;
+  }
 } 
