@@ -1,0 +1,466 @@
+Directory structure:
+└── utxostack-rgbpp-sdk-python/
+    ├── README.md
+    ├── LICENSE
+    ├── requirements.txt
+    ├── setup.py
+    ├── examples/
+    │   ├── rgbpp_transfer.py
+    │   └── rpc_state.py
+    └── rgbpp/
+        ├── __init__.py
+        ├── rpc.py
+        ├── test_rpc.py
+        └── types.py
+
+================================================
+File: README.md
+================================================
+# rgbpp-sdk-python
+
+This repository offers essential utilities for RGB++ asset integration using the [RGB++ SDK Service](https://github.com/ckb-cell/rgbpp-sdk/tree/develop/apps/service).
+
+## Start RGB++ SDK Service
+
+> [!IMPORTANT]
+> The RGB++ SDK Service must be runing before using `rgbpp-sdk-python` to build your RGB++ DApps
+
+### Clone rgbpp-sdk to start service
+
+```shell
+git clone https://github.com/ckb-cell/rgbpp-sdk.git
+cd apps/service
+```
+
+### Update Environment Variables
+
+Copy the `.env.example` file to `.env`:
+
+```shell
+cp .env.example .env
+```
+
+Update the configuration values:
+
+```yml
+# testnet for CKB and BTC Testnet and mainnet for CKB and BTC Mainnet, the default value is testnet
+NETWORK=testnet
+
+# The Bitcoin Testnet type including Testnet3 and Signet, the default value is Signet
+# Testnet3: https://mempool.space/testnet
+# Signet: https://mempool.space/signet
+BTC_TESTNET_TYPE=Signet
+
+# CKB node url which should match NETWORK
+CKB_RPC_URL=https://testnet.ckb.dev
+
+# The BTC assets api url which should match NETWORK and BTC_TESTNET_TYPE
+# The BTC Testnet Service url is: https://api.testnet.rgbpp.io
+# The BTC Signet Service url is: https://api.signet.rgbpp.io
+BTC_SERVICE_URL=https://api.signet.rgbpp.io
+
+# The BTC assets api token which should match NETWORK and BTC_TESTNET_TYPE
+# To get an access token of BTC Testnet, please refer to https://github.com/ckb-cell/rgbpp-sdk/tree/develop/packages/service#get-an-access-token
+BTC_SERVICE_TOKEN=
+
+# The BTC assets api origin which should match NETWORK and BTC_TESTNET_TYPE
+BTC_SERVICE_ORIGIN=https://btc-test.app
+```
+
+### Run RGB++ SDK Service
+
+```shell
+pnpm install && pnpm dev
+```
+
+## Quick Start
+
+Install in a virtualenv
+
+```shell
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+## Example Code
+
+See `examples/` directory. For instance this example calls the RGB++ SDK Service RPC to get RGB++ tx state:
+
+```shell
+PYTHONPATH=. python examples/rpc_state.py
+```
+
+And the RGB++ assets transfer on BTC example is provided:
+```shell
+# The example is only for RGB++ transfer on BTC 
+# You can get RGB++ assets using the [rgbpp-sdk examples](https://github.com/ckb-cell/rgbpp-sdk/tree/develop/examples/rgbpp/xudt)
+PYTHONPATH=. python examples/rgbpp_transfer.py
+```
+
+## Test
+
+Please make sure the RGB++ SDK Service is running
+
+```shell
+python3 -m unittest
+```
+
+## Reference
+
+There are BTC and CKB transactions for RGB++ transfer on BTC Signet network as following:
+
+BTC TX: https://mempool.space/signet/tx/395b0eeeed629e389bcbcb93c211b343e8a3ca2396e95891e6c38c186dc40a2d
+
+CKB TX: https://pudge.explorer.nervos.org/transaction/0xf021237b6a6af7fa5628e4a69736efa5f5fed9a858439e6e9d612097f1bf38be
+
+
+================================================
+File: LICENSE
+================================================
+MIT License
+
+Copyright (c) 2024 CELL Studio
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+================================================
+File: requirements.txt
+================================================
+jsonrpcclient==4.0.3
+requests==2.32.3
+typing-extensions==4.12.1
+buidl==0.2.36
+
+
+
+================================================
+File: setup.py
+================================================
+import os
+import io
+from setuptools import setup, find_packages
+from rgbpp import __version__
+
+HERE = os.path.dirname(os.path.realpath(__file__))
+
+README = os.path.join(HERE, 'README.md')
+with io.open(README, encoding='utf-8') as f:
+    long_description = f.read()
+
+VERSION = os.path.join(HERE, 'rgbpp', '__init__.py')
+with io.open(VERSION, encoding='utf-8') as f:
+    package = {}
+    exec(f.read(), package)
+    version = package['__version__']
+
+setup(name='rgbpp-sdk-python',
+      version=version,
+      description='RGB++ SDK',
+      long_description=long_description,
+      long_description_content_type='text/markdown',
+      url='https://github.com/ckb-cell/rgbpp-sdk-python',
+      author='Dylan',
+      author_email='duanyytop@gmail.com',
+      license='MIT',
+      packages=find_packages(),
+      install_requires=['jsonrpcclient', 'requests', 'typing-extensions', 'buidl'],
+      zip_safe=False,
+      include_package_data=True,
+      )
+      
+
+================================================
+File: examples/rgbpp_transfer.py
+================================================
+from io import BytesIO
+from buidl import HDPrivateKey, NamedHDPublicKey, PSBT, read_varstr
+import requests
+import threading
+import time
+
+from rgbpp.types import RgbppTransferReq, Hex
+from rgbpp.rpc import rpc
+
+INTERVAL_TIME_SECONDS = 30
+# Please use your own BTC seed to generate private key
+SEED = b'Hello RGB++'
+
+# Please make sure you have enough BTC and RGB++ Assets, the example is only for RGB++ transfer on BTC.
+# You can get RGB++ assets using the [rgbpp-sdk examples](https://github.com/ckb-cell/rgbpp-sdk/tree/develop/examples/rgbpp/xudt)
+def transfer_rgbpp_on_btc(params: RgbppTransferReq):
+    # Please make sure the newtork of BTC is correct, including mainnet, testnet and signet
+    network = "signet"
+
+    # HD Key (note the named_key path only contains 4 layers)
+    root_key = HDPrivateKey.from_seed(SEED, network)
+    root_named_key = NamedHDPublicKey.from_hd_priv(root_key, "m/84'/0'/0'")
+
+    # P2WPKH Address
+    p2wpkh_path = "m/84'/0'/0'/0"
+    p2wpkh_key = root_key.traverse(p2wpkh_path)
+    p2wpkh_child_0 = p2wpkh_key.child(0)
+    print(f'BTC P2WPKH Address: {p2wpkh_child_0.p2wpkh_address()}')
+
+    # Generate RGB++ CKB virtual tx and BTC PSBT hex from the rgbpp-sdk-service
+    response = rpc.generate_rgbpp_transfer_tx(params)
+    btc_psbt_hex = response['btc_psbt_hex']
+    ckb_virtual_tx_result = response['ckb_virtual_tx_result']
+    print(f'CKB virtual tx result: {ckb_virtual_tx_result}')
+
+    # Parse PSBT
+    psbt = PSBT.parse(BytesIO(bytes.fromhex(btc_psbt_hex)), network)
+    
+    # Update lookup context
+    tx_lookup = psbt.tx_obj.get_input_tx_lookup()
+    pubkey_lookup = root_named_key.bip44_lookup()
+    psbt.update(tx_lookup, pubkey_lookup)
+
+    # Sign PSBT with the root_key
+    psbt.sign(root_key)
+
+    # Finalize PSBT and convert to TX
+    psbt.finalize()
+    btc_tx = psbt.final_tx()
+    signed_tx_hex = btc_tx.serialize().hex()
+    print(f"BTC signed tx: {signed_tx_hex}")
+
+    # Broadcast the BTC signed transaction
+    btc_tx_id = rpc.send_btc_transaction({ 'tx_hex': signed_tx_hex })
+    print(f"BTC tx id: {btc_tx_id}")
+
+    # Repost the CKB virtual tx and BTC tx id to the Queue Service
+    rpc.report_rgbpp_ckb_tx_btc_txid({
+        'ckb_virtual_tx_result': ckb_virtual_tx_result,
+        'btc_tx_id': btc_tx_id
+    })
+
+    # Check the RGB++ TX state from the Queue Service every 30 seconds
+    while True:
+        response = rpc.get_rgbpp_tx_state({
+            'btc_tx_id': btc_tx_id,
+            'params': {
+                'with_data': False
+            }
+        })
+        state = response["state"]
+        print(f"RGB++ TX state: {state}")
+
+        if (state == "completed"):
+            ckb_tx_hash = rpc.get_rgbpp_ckb_tx_hash({'btc_tx_id': btc_tx_id})
+            print(f"RGB++ assets have been completed and CKB tx hash: {ckb_tx_hash}")
+            break
+        elif (state == "failed"):
+            print(f"RGB++ assets have been failed and the reason is {response["failed_reason"]}")
+            break
+        else:
+            time.sleep(INTERVAL_TIME_SECONDS)
+
+
+# Pelase replace the correct parameters with your own
+transfer_rgbpp_on_btc({
+    # xUDT type args which can be found in the CKB explorer or the logs from your RGB++ issue transaction
+    'xudt_type_args': '0x562e4e8a2f64a3e9c24beb4b7dd002d0ad3b842d0cc77924328e36ad114e3ebe',
+    # RGB++ lock args is the RGB++ lock script args which you can find in the CKB explorer
+    # The args inludes two parts: btc tx output index(little endien u32) and btc tx id(32 bytes)
+    # The btc tx id displayed on BTC explorer is different from the btc tx id in the RGB++ lock args. They are in reverse byte order
+    'rgbpp_lock_args_list': ['0x010000002d0ac46d188cc3e69158e99623caa3e843b311c293cbcb9b389e62edee0e5b39'],
+    'transfer_amount': hex(800 * 10 ** 8),
+    'from_btc_address': 'tb1qs4n7d4c7n242uyw26gcwvmurhnrt2he84zk2cr',
+    'to_btc_address': 'tb1qs4n7d4c7n242uyw26gcwvmurhnrt2he84zk2cr'
+})
+
+================================================
+File: examples/rpc_state.py
+================================================
+from rgbpp.rpc import rpc
+
+request = {
+    'btc_tx_id': 'fb4ebf0f4f9c9fc32b22c89cac7eccd7364d013f4a0422e402c70839c70339ca',
+    'params': {
+        'with_data': True
+    }
+}
+response = rpc.get_rgbpp_tx_state(request)
+print('response: ', response)
+
+
+================================================
+File: rgbpp/__init__.py
+================================================
+__version__ = "0.1.0"
+
+================================================
+File: rgbpp/rpc.py
+================================================
+import os
+import requests
+import jsonrpcclient
+
+from .types import Hex, RgbppTransferReq, RgbppTransferResp, Version, RgbppTxStateReq, RgbppTxStateResp, RgbppTxReportReq, RgbppCkbTxHashReq, BtcTxSendReq
+
+DEFAULT_ENDPOINT = os.environ.get('RGBPP_SDK_SERVICE_URL', 'http://127.0.0.1:3000/json-rpc')
+
+class RPCClient:
+    def __init__(self, endpoint: str = DEFAULT_ENDPOINT):
+        self.endpoint = endpoint
+
+    def request(self, method: str, *args):
+        payload = jsonrpcclient.request(method, params=tuple(args))
+        response = requests.post(self.endpoint, json=payload)
+
+        parsed = jsonrpcclient.parse(response.json())
+        if isinstance(parsed, jsonrpcclient.Ok):
+            return parsed.result
+        else:
+            raise Exception(parsed.message)
+
+    def generate_rgbpp_transfer_tx(self, params: RgbppTransferReq) -> RgbppTransferResp:
+        return self.request('generate_rgbpp_transfer_tx', params)
+    
+    def report_rgbpp_ckb_tx_btc_txid(self, params: RgbppTxReportReq) -> RgbppTxStateResp:
+        return self.request('report_rgbpp_ckb_tx_btc_txid', params)
+    
+    def get_rgbpp_tx_state(self, params: RgbppTxStateReq) -> RgbppTxStateResp:
+        return self.request('get_rgbpp_tx_state', params)
+    
+    def get_rgbpp_ckb_tx_hash(self, params: RgbppCkbTxHashReq) -> Hex:
+        return self.request('get_rgbpp_ckb_tx_hash', params)
+
+    def send_btc_transaction(self, params: BtcTxSendReq) -> Hex:
+        return self.request('send_btc_transaction', params)
+
+    def get_version(self) -> Version:
+        return self.request('get_version')
+
+
+rpc = RPCClient()
+
+================================================
+File: rgbpp/test_rpc.py
+================================================
+import json
+
+from unittest import TestCase
+from .rpc import rpc
+
+class TestRpc(TestCase):
+    def test_get_version(self):
+        self.assertEqual(rpc.get_version(), "0.0.1")
+
+    def test_generate_rgbpp_transfer_tx(self):
+        request = {
+            'xudt_type_args': '0xb14ad9ac44164d6fb09701f46e274c6607e33372f7f22930f4997930516bd5c9',
+            'rgbpp_lock_args_list': ['0x010000006052b830ba09b72edb187a03789e1d6a26f8cb0fb6f1dffe956dd459fa0b8bd7'],
+            'transfer_amount': hex(2000 * 10 ** 8),
+            'from_btc_address': 'tb1qvt7p9g6mw70sealdewtfp0sekquxuru6j3gwmt',
+            'to_btc_address': 'tb1qvt7p9g6mw70sealdewtfp0sekquxuru6j3gwmt'
+        }
+        response = rpc.generate_rgbpp_transfer_tx(request)
+        # print('response: ', response)
+        self.assertEqual(len(response["btc_psbt_hex"]) > 10, True)
+
+        data = json.loads(response["ckb_virtual_tx_result"])
+        self.assertEqual(data["ckbRawTx"]["version"], "0x0")
+
+    def test_report_rgbpp_ckb_tx_btc_txid(self):
+        request = {
+            'ckb_virtual_tx_result': '{"ckbRawTx":{"version":"0x0","cellDeps":[{"outPoint":{"txHash":"0xf1de59e973b85791ec32debbba08dff80c63197e895eb95d67fc1e9f6b413e00","index":"0x0"},"depType":"code"},{"outPoint":{"txHash":"0xf1de59e973b85791ec32debbba08dff80c63197e895eb95d67fc1e9f6b413e00","index":"0x1"},"depType":"code"},{"outPoint":{"txHash":"0xbf6fb538763efec2a70a6a3dcb7242787087e1030c4e7d86585bc63a9d337f5f","index":"0x0"},"depType":"code"},{"outPoint":{"txHash":"0xf8de3bb47d055cdf460d93a2a6e1b05f7432f9777c8c474abf4eec1d4aee5d37","index":"0x0"},"depType":"depGroup"}],"headerDeps":[],"inputs":[{"previousOutput":{"txHash":"0x4cef44a6e03819322e826c85ec891f556c7ce6e9fab8155af953c13d0bffbfbf","index":"0x0"},"since":"0x0"}],"outputs":[{"lock":{"codeHash":"0x61ca7a4796a4eb19ca4f0d065cb9b10ddcf002f10f7cbb810c706cb6bb5c3248","hashType":"type","args":"0x010000000000000000000000000000000000000000000000000000000000000000000000"},"type":{"codeHash":"0x25c29dc317811a6f6f3985a7a9ebc4838bd388d19d0feeecf0bcd60f6c0975bb","hashType":"type","args":"0xb14ad9ac44164d6fb09701f46e274c6607e33372f7f22930f4997930516bd5c9"},"capacity":"0x5e9f52db8"},{"lock":{"codeHash":"0x61ca7a4796a4eb19ca4f0d065cb9b10ddcf002f10f7cbb810c706cb6bb5c3248","hashType":"type","args":"0x020000000000000000000000000000000000000000000000000000000000000000000000"},"type":{"codeHash":"0x25c29dc317811a6f6f3985a7a9ebc4838bd388d19d0feeecf0bcd60f6c0975bb","hashType":"type","args":"0xb14ad9ac44164d6fb09701f46e274c6607e33372f7f22930f4997930516bd5c9"},"capacity":"0x5e9f53e00"}],"outputsData":["0x00d0ed902e0000000000000000000000","0x007019c9c17507000000000000000000"],"witnesses":["0xFF"]},"commitment":"df644812e2cb679c6ab712652eb642cf42837bba7aa38012929ece451b0fb861","needPaymasterCell":true,"sumInputsCapacity":"0x5e9f52db8"}',
+            'btc_tx_id': 'fb4ebf0f4f9c9fc32b22c89cac7eccd7364d013f4a0422e402c70839c70339ca'
+        }
+        response = rpc.report_rgbpp_ckb_tx_btc_txid(request)
+        self.assertEqual(response["state"], "completed")
+
+    def test_get_rgbpp_tx_state(self):
+        request = {
+            'btc_tx_id': 'fb4ebf0f4f9c9fc32b22c89cac7eccd7364d013f4a0422e402c70839c70339ca',
+            'params': {
+                'with_data': True
+            }
+        }
+        response = rpc.get_rgbpp_tx_state(request)
+        self.assertEqual(response["state"], "completed")
+        # See the response of the API https://api.testnet.rgbpp.io/docs/static/index.html#/RGB%2B%2B/get_rgbpp_v1_transaction__btc_txid__job
+        self.assertEqual(response["data"]["ckb_virtual_result"]["ckb_raw_tx"]["version"], "0x0")
+
+    def test_get_rgbpp_ckb_tx_hash(self):
+        request = {
+            'btc_tx_id': 'fb4ebf0f4f9c9fc32b22c89cac7eccd7364d013f4a0422e402c70839c70339ca'
+        }
+        ckb_tx_hash = rpc.get_rgbpp_ckb_tx_hash(request)
+        self.assertEqual(ckb_tx_hash, "0x603da15febfaf9621f61092b3bc54570c9fb3305a6ed6d0edbae175b73e83c41")
+
+
+================================================
+File: rgbpp/types.py
+================================================
+from typing import NewType, Sequence, Optional
+
+from typing_extensions import TypedDict
+
+Hex = NewType('Hex', str)
+Version = NewType('Version', str)
+BtcAddress = NewType('BtcAddress', str)
+Json = NewType('Json', str)
+# 'completed' | 'failed' | 'delayed' | 'active' | 'waiting'
+State = NewType('State', str)
+
+RgbppTransferReq = TypedDict('RgbppTransferReq', {
+    'xudt_type_args': Hex,
+    'rgbpp_lock_args_list': Sequence[Hex],
+    'transfer_amount': Hex,
+    'from_btc_address': BtcAddress,
+    'to_btc_address': BtcAddress,
+})
+
+RgbppTransferResp = TypedDict('RgbppTransferResp', {
+    'ckb_virtual_tx_result': Json,
+    'btc_psbt_hex': Hex,
+})
+
+RgbppTxReportReq = TypedDict('RgbppTxReportReq', {
+    'ckb_virtual_tx_result': Json,
+    'btc_tx_id': Hex
+})
+
+RgbppTxStateParams = TypedDict('RgbppTxStateParams', {
+    'with_data': bool,
+})
+
+RgbppTxStateReq = TypedDict('RgbppTxStateReq', {
+    'btc_tx_id': Hex,
+    'params': Optional[RgbppTxStateParams]
+})
+
+RgbppTxStateResp = TypedDict('RgbppTxStateResp', {
+    'state': State,
+    'failed_reason': Optional[str],
+    'data': Json
+})
+
+RgbppCkbTxHashReq = TypedDict('RgbppCkbTxHashReq', {
+    'btc_tx_id': Hex,
+})
+
+BtcTxSendReq = TypedDict('BtcTxSendReq', {
+    'tx_hex': Hex
+})
+
+

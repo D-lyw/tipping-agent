@@ -1,0 +1,5643 @@
+Directory structure:
+└── ckb-devrel-nervdao-prototype/
+    ├── README.md
+    ├── craco.config.cjs
+    ├── package.json
+    ├── tsconfig.json
+    ├── .eslintrc.cjs
+    ├── public/
+    │   ├── index.html
+    │   ├── manifest.json
+    │   └── robots.txt
+    └── src/
+        ├── App.css
+        ├── App.test.tsx
+        ├── App.tsx
+        ├── config.ts
+        ├── index.css
+        ├── index.scss
+        ├── index.tsx
+        ├── react-app-env.d.ts
+        ├── reportWebVitals.ts
+        ├── setupTests.ts
+        ├── .d.ts
+        ├── assets/
+        │   ├── icons/
+        │   ├── images/
+        │   └── videos/
+        ├── components/
+        │   ├── index.ts
+        │   ├── Button/
+        │   │   ├── Button.module.scss
+        │   │   ├── Button.tsx
+        │   │   └── index.ts
+        │   ├── Cell/
+        │   │   ├── Cell.module.scss
+        │   │   ├── Cell.tsx
+        │   │   └── index.ts
+        │   └── Input/
+        │       ├── Input.module.scss
+        │       ├── Input.tsx
+        │       └── index.ts
+        ├── dao/
+        │   ├── index.ts
+        │   ├── lumos-patcher.ts
+        │   └── lib/
+        │       └── helpers.ts
+        ├── hooks/
+        │   ├── index.ts
+        │   └── useOnClickOutside.ts
+        ├── services/
+        │   ├── basic-wallet.ts
+        │   └── helpers.ts
+        ├── styles/
+        │   ├── globals.scss
+        │   ├── typography.scss
+        │   └── variables.scss
+        ├── types/
+        │   ├── jpeg.d.ts
+        │   ├── modules.scss.d.ts
+        │   ├── mp4.d.ts
+        │   └── scss.d.ts
+        └── utils/
+            └── classname.ts
+
+================================================
+File: README.md
+================================================
+## **Nerv DAO**
+
+### **What is Nerv DAO**
+Nerv DAO is an advanced implementation of the Nervos DAO, designed to deliver a more user-friendly and accessible experience for CKB holders. By leveraging the latest wallet abstraction technologies through the Common Chain Connector (CCC), Nerv DAO provides a seamless interface that integrates with various wallets. This modern tool simplifies the process of managing deposits and withdrawals in the Nervos DAO, allowing CKB holders to protect their investments while earning rewards with ease.
+<img width="1512" alt="image" src="https://github.com/user-attachments/assets/d183853c-f557-4f1f-bd00-89732f3c1ee1">
+
+
+### **What Nerv DAO Has Accomplished So Far**
+
+Currently, Nerv DAO has successfully built and deployed a platform that integrates wallet abstraction with a wide range of wallets, including MetaMask, Unisat, OKX Wallet, and passkey wallets like JoyID. This functionality allows users from different blockchain ecosystems to easily interact with the Nervos DAO, making it a versatile and accessible solution for protecting CKBytes. Nerv DAO has also ensured that its interface is user-friendly and secure, making it simpler for users to manage their DAO interactions while safeguarding their investments.
+
+### **What’s Next for Nerv DAO**
+
+Looking ahead, Nerv DAO is set to introduce several new features and enhancements to further benefit the CKB community:
+
+- **UI Optimization**: Ongoing improvements to the user interface will ensure that Nerv DAO remains intuitive and accessible, even as new features are added. The goal is to provide a seamless experience for both new and experienced users.
+- **NFT Credentials**: Nerv DAO is exploring the integration of NFT credentials as a way to provide users with unique, verifiable identities and access rights within the platform. These NFT credentials could be used to represent user achievements, participation in specific events, or even governance rights within the DAO ecosystem. This feature aims to enhance user engagement and bring an additional layer of security and personalization to the Nerv DAO experience.
+- **Expanded Wallet Compatibility**: Nerv DAO will continue to expand its compatibility with more wallets across various blockchain ecosystems, ensuring that users have a broad choice of platforms to interact with the Nervos DAO.
+
+### **How to Use Nerv DAO**
+
+To use Nerv DAO, follow these simple steps:
+
+1. **Visit the Platform**: Go to [Nerv DAO Mainnet](https://www.nervdao.com/) to access the platform.
+2. **Connect Your Wallet**: Nerv DAO supports multiple wallets like MetaMask, OKX Wallet, and JoyID. Simply choose your preferred wallet and connect it to Nerv DAO.
+3. **Deposit CKBytes**: After connecting your wallet, you can deposit CKBytes into the Nervos DAO by following the on-screen instructions. The platform will guide you through the process of locking your CKBytes in a "Nervos DAO" cell.
+4. **Manage Your Deposits**: Nerv DAO allows you to manage your deposits and track your rewards within the platform. You can also withdraw your CKBytes when needed by following the provided steps.
+5. **Earn Rewards**: Once your CKBytes are locked in the Nervos DAO, you will start earning rewards based on the amount deposited.
+
+### **How to Deploy Nerv DAO**
+
+If you are a developer and would like to deploy Nerv DAO yourself, follow these steps:
+
+1. **Clone the Repository**: Download the code for Nerv DAO from the repository.
+2. **Install Dependencies**: Navigate to the project directory and run the following commands to install the necessary packages:
+    
+    ```bash
+    npm install
+    
+    ```
+    
+3. **Build the Project**: After installing dependencies, build the project with:
+    
+    ```bash
+    npm run build
+    
+    ```
+    
+4. **Run the Development Server**: Finally, start the development server in development mode:
+    
+    ```bash
+    npm run dev
+    
+    ```
+    
+
+By following these steps, you can customize and deploy your own instance of Nerv DAO, making it possible to explore and contribute to its development.
+
+### **Relevant Links**
+
+- **Nerv DAO Mainnet**: https://www.nervdao.com/
+- **Nerv DAO Testnet**: https://test.nervdao.com/
+- **CCC Demo**: https://app.ckbccc.com/
+- **Nervos DAO Overview**: [Understanding the Nervos DAO and Cell Model](https://medium.com/nervosnetwork/understanding-the-nervos-dao-and-cell-model-d68f38272c24)
+
+If you have any feedback or suggestions for improving Nerv DAO, please share them in the issue section on our GitHub or join the CKB dev chat on Discord to connect with us: https://discord.gg/nVWSNeqn
+
+
+================================================
+File: craco.config.cjs
+================================================
+const webpack = require('webpack');
+
+module.exports = {
+  webpack: {
+    configure: {
+      resolve: {
+        fallback: {
+          "path": require.resolve("path-browserify"),
+          "fs": require.resolve("browserify-fs"),
+          "crypto": require.resolve("crypto-browserify"),
+          "util": require.resolve("util/"),
+          "stream": require.resolve("stream-browserify"),
+          "vm": require.resolve("vm-browserify"),
+          "process": require.resolve("process/browser"),
+          "buffer": require.resolve("buffer/"),
+          "assert": require.resolve("assert/"),
+          "url": require.resolve("url/"),
+        }
+      }
+    },
+    plugins: [
+      new webpack.ProvidePlugin({
+        process: 'process/browser',
+        Buffer: ['buffer', 'Buffer'],
+      }),
+      // other plugins...
+    ]
+  }
+};
+
+
+================================================
+File: package.json
+================================================
+{
+  "name": "nervos-dao-with-joyid",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@ckb-ccc/connector-react": "^0.0.13-alpha.6",
+    "@ckb-ccc/lumos-patches": "^0.0.13-alpha.6",
+    "@ckb-lumos/common-scripts": "^0.24.0-alpha.1",
+    "@ckb-lumos/lumos": "^0.24.0-alpha.1",
+    "@joyid/ckb": "^0.0.8",
+    "@joyid/core": "^0.2.0-beta.4",
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.18.97",
+    "@types/react": "^18.3.2",
+    "@types/react-dom": "^18.3.0",
+    "@types/react-modal": "^3.16.3",
+    "assert": "^2.1.0",
+    "notistack": "^3.0.1",
+    "react": "^18.3.1",
+    "react-circular-progressbar": "^2.1.0",
+    "react-dom": "^18.3.1",
+    "react-modal": "^3.16.1",
+    "react-scripts": "5.0.1",
+    "react-transition-group": "^4.4.5",
+    "react-zoom-pan-pinch": "3.4.4",
+    "sass": "^1.77.8",
+    "typescript": "^4.9.5",
+    "url": "^0.11.3",
+    "web-vitals": "^2.1.4"
+  },
+  "scripts": {
+    "start": "craco start",
+    "build": "craco build",
+    "test": "craco test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@craco/craco": "^7.1.0",
+    "@types/react-transition-group": "^4.4.10",
+    "browserify-fs": "^1.0.0",
+    "crypto-browserify": "^3.12.0",
+    "path-browserify": "^1.0.1",
+    "process": "^0.11.10",
+    "stream-browserify": "^3.0.0",
+    "util": "^0.12.5",
+    "vm-browserify": "^1.1.2"
+  }
+}
+
+
+================================================
+File: tsconfig.json
+================================================
+{
+  "compilerOptions": {
+    "target": "es2015",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "experimentalDecorators": true,
+    "noImplicitAny": false
+  },
+  "include": [
+    "src"
+  ]
+}
+
+================================================
+File: .eslintrc.cjs
+================================================
+module.exports = {
+    globals: {
+      BigInt: true,
+    },
+};
+
+================================================
+File: public/index.html
+================================================
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Web site created using create-react-app"
+    />
+    <meta name="viewport" content="width=device-width, user-scalable=no" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <!--
+      manifest.json provides metadata used when your web app is installed on a
+      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
+    -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <!--
+      Notice the use of %PUBLIC_URL% in the tags above.
+      It will be replaced with the URL of the `public` folder during the build.
+      Only files inside the `public` folder can be referenced from the HTML.
+
+      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
+      work correctly both with client-side routing and a non-root public URL.
+      Learn how to configure a non-root public URL by running `npm run build`.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800" rel="stylesheet">
+    <title>NervDAO</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
+
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
+
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
+  </body>
+</html>
+
+
+================================================
+File: public/manifest.json
+================================================
+{
+  "short_name": "NervDAO",
+  "name": "Create NervDAO",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}
+
+
+================================================
+File: public/robots.txt
+================================================
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Disallow:
+
+
+================================================
+File: src/App.css
+================================================
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-height: 100%;
+  border: none;
+  border-radius: 1rem;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  overflow: auto;
+  position: absolute;
+}
+
+@keyframes rainbow {
+  14% {
+    color: orange;
+  }
+  28% {
+    color: yellow;
+  }
+  42% {
+    color: lime;
+  }
+  71% {
+    color: indigo;
+  }
+  85% {
+    color: violet;
+  }
+}
+
+@keyframes fadeIntro {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes blink {
+  0% {
+    border-color: #bd491398;
+  }
+  50% {
+    border-color: #ffffff;
+  }
+  100% {
+    border-color: #00c891;
+  }
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1rem);
+  }
+}
+
+@keyframes loading-rainbow {
+  0% {
+    border-top-color: red;
+  }
+  16.67% {
+    border-top-color: yellow;
+  }
+  33.33% {
+    border-top-color: green;
+  }
+  50% {
+    border-top-color: cyan;
+  }
+  66.67% {
+    border-top-color: blue;
+  }
+  83.33% {
+    border-top-color: magenta;
+  }
+  100% {
+    border-top-color: red;
+  }
+
+  0% {
+    border-right-color: red;
+  }
+  16.67% {
+    border-right-color: yellow;
+  }
+  33.33% {
+    border-right-color: green;
+  }
+  50% {
+    border-right-color: cyan;
+  }
+  66.67% {
+    border-right-color: blue;
+  }
+  83.33% {
+    border-right-color: magenta;
+  }
+  100% {
+    border-right-color: red;
+  }
+
+  0% {
+    border-left-color: red;
+  }
+  16.67% {
+    border-left-color: yellow;
+  }
+  33.33% {
+    border-left-color: green;
+  }
+  50% {
+    border-left-color: cyan;
+  }
+  66.67% {
+    border-left-color: blue;
+  }
+  83.33% {
+    border-left-color: magenta;
+  }
+  100% {
+    border-left-color: red;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-180deg);
+  }
+}
+
+@keyframes blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes shake {
+  0% {
+    transform: translate(0.1rem, 0.1rem) rotate(0deg);
+  }
+  10% {
+    transform: translate(-0.1rem, -0.2rem) rotate(-1deg);
+  }
+  20% {
+    transform: translate(-0.3rem, 0) rotate(1deg);
+  }
+  30% {
+    transform: translate(0.3rem, 0.2rem) rotate(0deg);
+  }
+  40% {
+    transform: translate(0.1rem, -0.1rem) rotate(1deg);
+  }
+  50% {
+    transform: translate(-0.1rem, 0.2rem) rotate(-1deg);
+  }
+  60% {
+    transform: translate(-0.3rem, 0.1rem) rotate(0deg);
+  }
+  70% {
+    transform: translate(0.3rem, 0.1rem) rotate(-1deg);
+  }
+  80% {
+    transform: translate(-0.1rem, -0.1rem) rotate(1deg);
+  }
+  90% {
+    transform: translate(0.1rem, 0.2rem) rotate(0deg);
+  }
+  100% {
+    transform: translate(0.1rem, -0.2rem) rotate(-1deg);
+  }
+}
+
+@keyframes warningAnimation {
+  0% {
+    color: cadetblue;
+    transform: scale(1);
+  }
+  100% {
+    color: rgb(255, 123, 0);
+    transform: scale(1.1);
+  }
+}
+
+
+================================================
+File: src/App.test.tsx
+================================================
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import App from './App';
+
+test('renders learn react link', () => {
+  render(<App />);
+  const linkElement = screen.getByText(/learn react/i);
+  expect(linkElement).toBeInTheDocument();
+});
+
+
+================================================
+File: src/App.tsx
+================================================
+import { ccc } from "@ckb-ccc/connector-react";
+import { blockchain, utils } from "@ckb-lumos/base";
+import { Config, initializeConfig } from "@ckb-lumos/config-manager";
+import { CKBTransaction } from "@joyid/ckb";
+import * as React from "react";
+import { buildTransfer } from "./services/basic-wallet";
+import {
+  Balance,
+  DaoCell,
+  SeededRandom,
+  enrichDaoCellInfo,
+  estimateReturn,
+  getTipEpoch,
+  isDefaultAddress,
+  isJoyIdAddress,
+  isOmnilockAddress,
+  queryBalance,
+  waitForTransactionConfirmation,
+} from "./services/helpers";
+
+import {
+  CKB_SHANNON_RATIO,
+  DAO_MINIMUM_CAPACITY,
+  EXPLORER_PREFIX,
+  ISMAINNET,
+  NETWORK_CONFIG,
+} from "./config";
+
+import {
+  collectDeposits,
+  collectWithdrawals,
+  buildDepositTransaction,
+  buildWithdrawTransaction,
+  buildUnlockTransaction,
+  batchDaoCells,
+} from "./dao";
+
+import { SnackbarProvider, useSnackbar } from "notistack";
+import { CircularProgressbarWithChildren } from "react-circular-progressbar";
+import "react-circular-progressbar/dist/styles.css";
+
+import Modal from "react-modal";
+import "./App.css";
+import gradientLogo from "./assets/icons/logo.svg";
+import bgGuestLogin01 from "./assets/images/bg-login-01.jpeg";
+import { Button, Input } from "./components";
+import "./index.scss";
+
+Modal.setAppElement("#root");
+
+import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
+import Cell from "./components/Cell";
+import { useOnClickOutside } from "./hooks";
+import { cx } from "./utils/classname";
+
+const { ckbHash } = utils;
+
+enum DaoFunction {
+  none = 0,
+  depositing = 1,
+  withdrawing = 2,
+  unlocking = 3,
+}
+
+const App = () => {
+  const [balance, setBalance] = React.useState<Balance | null>(null);
+  const [ckbAddress, setCkbAddress] = React.useState("");
+  const [depositCells, setDepositCells] = React.useState<DaoCell[]>([]);
+  const [withdrawalCells, setWithdrawalCells] = React.useState<DaoCell[]>([]);
+  const depositCellsRef = React.useRef(depositCells);
+  const withdrawalCellsRef = React.useRef(withdrawalCells);
+  const [renderKick, setRenderKick] = React.useState<number>(0);
+  const [pickedCells, setPickedCells] = React.useState<DaoCell[]>([]);
+
+  const [depositAmount, setDepositAmount] = React.useState("");
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [isWaitingTxConfirm, setIsWaitingTxConfirm] = React.useState(false);
+  const [modalIsOpen, setModalIsOpen] = React.useState(false);
+  const [pickedDaoCell, setPickedDaoCell] = React.useState<DaoCell | null>(
+    null
+  );
+  const [currentTx, setCurrentTx] = React.useState<{
+    tx: CKBTransaction | null;
+    fee: number;
+  }>({ tx: null, fee: 0 });
+  const [daoMode, setDaoMode] = React.useState<DaoFunction | null>(
+    DaoFunction.none
+  );
+  const [tipEpoch, setTipEpoch] = React.useState<number | null>(null);
+  const [isDaoTransitMsgLoading, setIsDaoTransitMsgLoading] =
+    React.useState(false);
+  const [compensation, setCompensation] = React.useState<number | null>(null);
+
+  // basic wallet
+  const [transferTo, setTransferTo] = React.useState<string>("");
+  const [transferAmount, setTransferAmount] = React.useState<string>("");
+
+  const { open, disconnect, setClient } = ccc.useCcc();
+  const signer = ccc.useSigner();
+  const { enqueueSnackbar } = useSnackbar();
+
+  initializeConfig(NETWORK_CONFIG as Config);
+
+  /**
+   * Sum up deposits.
+   */
+  const sumDeposit = () => {
+    const sum = [...depositCells].reduce(
+      (sum, c) => sum + parseInt(c.cellOutput.capacity, 16),
+      0
+    );
+    return sum;
+  };
+
+  /**
+   * Sum up locked amount.
+   */
+  const sumLocked = () => {
+    const sum = [...withdrawalCells].reduce(
+      (sum, c) => sum + parseInt(c.cellOutput.capacity, 16),
+      0
+    );
+    return sum;
+  };
+
+  /**
+   * Get compensation and convert to string.
+   */
+  const getCompensation = (cell: DaoCell): string => {
+    if (!cell.maximumWithdraw) return " ~ CKB";
+
+    const compensation =
+      parseInt(cell?.maximumWithdraw) - parseInt(cell?.cellOutput.capacity, 16);
+    return (compensation / CKB_SHANNON_RATIO).toFixed(2).toString() + " CKB";
+  };
+
+  /**
+   * Fetching NervDAO information. There're for modes:
+   * - deposit: update deposits
+   * - withdraw: update withdraw
+   * - balance: update balance
+   * - all: update all 3 information
+   */
+  const updateNervDAOInfo = async (
+    type: "all" | "deposit" | "withdraw" | "balance"
+  ) => {
+    const storedCkbAddress = localStorage.getItem("ckbAddress");
+    if (storedCkbAddress) {
+      try {
+        let balance, deposits, withdrawals;
+        if (type == "all") {
+          [balance, deposits, withdrawals] = await Promise.all([
+            queryBalance(storedCkbAddress),
+            collectDeposits(storedCkbAddress),
+            collectWithdrawals(storedCkbAddress),
+          ]);
+
+          setBalance(balance);
+          setDepositCells(deposits as DaoCell[]);
+          setWithdrawalCells(withdrawals as DaoCell[]);
+
+          localStorage.setItem("balance", JSON.stringify(balance));
+          localStorage.setItem("depositCells", JSON.stringify(deposits));
+          localStorage.setItem("withdrawalCells", JSON.stringify(withdrawals));
+        } else if (type == "deposit") {
+          [balance, deposits] = await Promise.all([
+            queryBalance(storedCkbAddress),
+            collectDeposits(storedCkbAddress),
+          ]);
+
+          setBalance(balance);
+          setDepositCells(deposits as DaoCell[]);
+
+          localStorage.setItem("balance", JSON.stringify(balance));
+          localStorage.setItem("depositCells", JSON.stringify(deposits));
+        } else if (type == "withdraw") {
+          [balance, withdrawals] = await Promise.all([
+            queryBalance(storedCkbAddress),
+            collectWithdrawals(storedCkbAddress),
+          ]);
+
+          setBalance(balance);
+          setWithdrawalCells(withdrawals as DaoCell[]);
+
+          localStorage.setItem("balance", JSON.stringify(balance));
+          localStorage.setItem("withdrawalCells", JSON.stringify(withdrawals));
+        } else {
+          // load balance
+          const balance = await queryBalance(storedCkbAddress);
+          setBalance(balance);
+          localStorage.setItem("balance", JSON.stringify(balance));
+        }
+      } catch (e: any) {
+        enqueueSnackbar("Error: " + e.message, { variant: "error" });
+      }
+    }
+  };
+
+  /**
+   * Query DAO information from CKB and settle to the state variables.
+   */
+  const settleUserInfo = async (ckbAddress: string) => {
+    setIsLoading(true);
+    try {
+      const [balance, deposits, withdrawals, epoch] = await Promise.all([
+        queryBalance(ckbAddress),
+        collectDeposits(ckbAddress),
+        collectWithdrawals(ckbAddress),
+        getTipEpoch(),
+      ]);
+
+      setCkbAddress(ckbAddress);
+      setBalance(balance);
+      setDepositCells(deposits as DaoCell[]);
+      setWithdrawalCells(withdrawals as DaoCell[]);
+      setIsLoading(false);
+      setTipEpoch(epoch);
+
+      localStorage.setItem("ckbAddress", ckbAddress);
+      localStorage.setItem("balance", JSON.stringify(balance));
+      localStorage.setItem("depositCells", JSON.stringify(deposits));
+      localStorage.setItem("withdrawalCells", JSON.stringify(withdrawals));
+    } catch (e: any) {
+      enqueueSnackbar("Error: " + e.message, { variant: "error" });
+    }
+  };
+
+  /**
+   * Processing transaction batching.
+   */
+  const onBatch = async (cells: DaoCell[]) => {
+    try {
+      if (!signer) throw new Error("Wallet disconnected. Reconnect!");
+
+      const fromAddresses = await signer.getAddresses();
+      const batchTx = await batchDaoCells(fromAddresses[0], cells);
+
+      // might be over-cautious, but worth checking with utxo
+      // TODO remove when fully support fee-rate configuration
+      if (batchTx!.fee > 1 * CKB_SHANNON_RATIO)
+        throw new Error("Paying too much transaction fee");
+
+      const txid = await signer.sendTransaction(batchTx.tx);
+      enqueueSnackbar(`Transaction Sent: ${txid}`, { variant: "success" });
+      setIsWaitingTxConfirm(true);
+      setIsLoading(true);
+      await waitForTransactionConfirmation(txid);
+      setIsWaitingTxConfirm(false);
+      await updateNervDAOInfo("all");
+      setIsLoading(false);
+      setPickedCells([]);
+    } catch (e: any) {
+      enqueueSnackbar("Error: " + e.message, { variant: "error" });
+    } finally {
+      setSidebarMode(0);
+    }
+  };
+
+  /**
+   * Processing transfer.
+   */
+  const onTransfer = async () => {
+    if (transferAmount == "") {
+      enqueueSnackbar("Please fill address and amount!", { variant: "error" });
+      return;
+    } else if (!/^[0-9]+$/.test(transferAmount)) {
+      enqueueSnackbar("Please input a valid numeric amount!", {
+        variant: "error",
+      });
+      return;
+    }
+
+    try {
+      // output readable error for common cases
+      if (
+        (isJoyIdAddress(transferTo) || isOmnilockAddress(transferTo)) &&
+        parseInt(transferAmount) < 63
+      ) {
+        enqueueSnackbar(
+          "Your receiver address requires a minimum amount of 63CKB",
+          {
+            variant: "error",
+          }
+        );
+        return;
+      } else if (
+        isDefaultAddress(transferTo) &&
+        parseInt(transferAmount) < 61
+      ) {
+        enqueueSnackbar(
+          "Your receiver address requires a minimum amount of 61CKB",
+          {
+            variant: "error",
+          }
+        );
+        return;
+      }
+
+      if (!signer) throw new Error("Wallet disconnected. Reconnect!");
+
+      const transferTx = await buildTransfer(
+        signer!,
+        transferTo,
+        transferAmount
+      );
+      const txid = await signer.sendTransaction(transferTx);
+
+      enqueueSnackbar(`Transaction Sent: ${txid}`, { variant: "success" });
+      setIsWaitingTxConfirm(true);
+      setIsLoading(true);
+      await waitForTransactionConfirmation(txid);
+      setIsWaitingTxConfirm(false);
+      setTransferTo("");
+      setTransferAmount("");
+      await updateNervDAOInfo("balance");
+      setIsLoading(false);
+    } catch (e: any) {
+      enqueueSnackbar("Error: " + e.message, { variant: "error" });
+    } finally {
+      setSidebarMode(0);
+    }
+  };
+
+  /**
+   * Built deposit transaction for tx submission in the next step.
+   */
+  const preBuildDeposit = async () => {
+    if (!signer) throw new Error("Wallet disconnected. Reconnect!");
+    const fromAddresses = await signer.getAddresses();
+    const daoTx: { tx: CKBTransaction | null; fee: number } =
+      await buildDepositTransaction(fromAddresses[0], BigInt(depositAmount));
+
+    // might be over-cautious, but worth checking with utxo
+    // TODO remove when fully support fee-rate configuration
+    if (daoTx!.fee > 1 * CKB_SHANNON_RATIO)
+      throw new Error("Paying too much transaction fee");
+
+    setCurrentTx(daoTx!);
+  };
+
+  /**
+   * Built withdraw transaction for tx submission in the next step.
+   */
+  const preBuildWithdraw = async (depositCell: DaoCell) => {
+    if (!signer) throw new Error("Wallet disconnected. Reconnect!");
+    const fromAddresses = await signer.getAddresses();
+    const daoTx: { tx: CKBTransaction | null; fee: number } =
+      await buildWithdrawTransaction(fromAddresses[0], depositCell);
+
+    // might be over-cautious, but worth checking with utxo
+    // TODO remove when fully support fee-rate configuration
+    if (daoTx!.fee > 1 * CKB_SHANNON_RATIO)
+      throw new Error("Paying too much transaction fee");
+
+    setCurrentTx(daoTx!);
+  };
+
+  /**
+   * Built unlock transaction for tx submission in the next step.
+   */
+  const preBuildUnlock = async (withdrawalCell: DaoCell) => {
+    if (!signer) throw new Error("Wallet disconnected. Reconnect!");
+    const fromAddresses = await signer.getAddresses();
+    const daoTx: { tx: CKBTransaction | null; fee: number } =
+      await buildUnlockTransaction(fromAddresses[0], withdrawalCell);
+
+    // might be over-cautious, but worth checking with utxo
+    // TODO remove when fully support fee-rate configuration
+    if (daoTx!.fee > 1 * CKB_SHANNON_RATIO)
+      throw new Error("Paying too much transaction fee");
+
+    setCurrentTx(daoTx!);
+  };
+
+  /**
+   * Deposit button handler.
+   */
+  const onDeposit = async () => {
+    try {
+      if (!signer) throw new Error("Wallet disconnected. Reconnect!");
+
+      if (!balance || balance.available === "0")
+        throw new Error("Empty balance!");
+
+      if (depositAmount == "") {
+        enqueueSnackbar("Please input amount!", { variant: "error" });
+        return;
+      } else if (!/^[0-9]+$/.test(depositAmount)) {
+        enqueueSnackbar("Please input a valid numeric amount!", {
+          variant: "error",
+        });
+        return;
+      }
+
+      if (
+        parseInt(depositAmount) * CKB_SHANNON_RATIO >
+        parseInt(balance.available)
+      )
+        throw new Error("Insufficient balance!");
+
+      if (parseInt(depositAmount) < DAO_MINIMUM_CAPACITY) {
+        throw new Error("Minimum NervDAO deposit is 104 CKB.");
+      }
+
+      setDaoMode(DaoFunction.depositing);
+      setModalIsOpen(true);
+      setIsDaoTransitMsgLoading(true);
+      await preBuildDeposit();
+      setIsDaoTransitMsgLoading(false);
+    } catch (e: any) {
+      enqueueSnackbar("Error: " + e.message, { variant: "error" });
+    }
+  };
+
+  /**
+   * Deposit modal proceed button handler.
+   */
+  const onDepositProceed = async () => {
+    try {
+      if (!currentTx.tx) throw new Error("Transaction building has failed");
+
+      if (!signer) throw new Error("Wallet disconnected. Reconnect!");
+      const txid = await signer.sendTransaction(currentTx.tx);
+      enqueueSnackbar(`Transaction Sent: ${txid}`, { variant: "success" });
+      setIsWaitingTxConfirm(true);
+      setIsLoading(true);
+      await waitForTransactionConfirmation(txid);
+      setIsWaitingTxConfirm(false);
+      setDepositAmount("");
+      await updateNervDAOInfo("deposit");
+      setIsLoading(false);
+    } catch (e: any) {
+      enqueueSnackbar("Error: " + e.message, { variant: "error" });
+    }
+  };
+
+  /**
+   * Withdraw button handler.
+   */
+  const onWithdraw = async (cell: DaoCell) => {
+    try {
+      if (!signer) throw new Error("Wallet disconnected. Reconnect!");
+
+      if (isLoading)
+        throw new Error(
+          "Please wait a moment! NervDAO is fetching data for you."
+        );
+
+      setDaoMode(DaoFunction.withdrawing);
+      setModalIsOpen(true);
+      setIsDaoTransitMsgLoading(true);
+      await preBuildWithdraw(cell);
+      setPickedDaoCell(cell);
+      setIsDaoTransitMsgLoading(false);
+    } catch (e: any) {
+      enqueueSnackbar("Error: " + e.message, { variant: "error" });
+    }
+  };
+
+  /**
+   * Withdraw modal proceed button handler
+   */
+  const onWithdrawProceed = async () => {
+    try {
+      if (!currentTx.tx) throw new Error("Transaction building has failed");
+
+      if (!signer) throw new Error("Wallet disconnected. Reconnect!");
+      const txid = await signer.sendTransaction(currentTx.tx);
+      enqueueSnackbar(`Transaction Sent: ${txid}`, { variant: "success" });
+      setIsWaitingTxConfirm(true);
+      setIsLoading(true);
+      await waitForTransactionConfirmation(txid);
+      setIsWaitingTxConfirm(false);
+      await updateNervDAOInfo("all");
+      setIsLoading(false);
+      setPickedDaoCell(null);
+    } catch (e: any) {
+      enqueueSnackbar("Error: " + e.message, { variant: "error" });
+    }
+  };
+
+  /**
+   * Unlock button handler.
+   */
+  const onUnlock = async (cell: DaoCell) => {
+    try {
+      if (!signer) throw new Error("Wallet disconnected. Reconnect!");
+
+      if (isLoading)
+        throw new Error(
+          "Please wait a moment! NervDAO is fetching data for you."
+        );
+
+      setDaoMode(DaoFunction.unlocking);
+      setModalIsOpen(true);
+      setIsDaoTransitMsgLoading(true);
+      if (cell.ripe) await preBuildUnlock(cell);
+      setPickedDaoCell(cell);
+      setIsDaoTransitMsgLoading(false);
+    } catch (e: any) {
+      enqueueSnackbar("Error: " + e.message, { variant: "error" });
+    }
+  };
+
+  /**
+   * Unlock modal proceed button handler.
+   */
+  const onUnlockProceed = async () => {
+    try {
+      if (!currentTx.tx) throw new Error("Transaction building has failed");
+
+      if (!signer) throw new Error("Wallet disconnected. Reconnect!");
+      const txid = await signer.sendTransaction(currentTx.tx);
+      enqueueSnackbar(`Transaction Sent: ${txid}`, { variant: "success" });
+      setIsWaitingTxConfirm(true);
+      setIsLoading(true);
+      await waitForTransactionConfirmation(txid);
+      setIsWaitingTxConfirm(false);
+      await updateNervDAOInfo("withdraw");
+      setIsLoading(false);
+      setPickedDaoCell(null);
+    } catch (e: any) {
+      enqueueSnackbar("Error: " + e.message, { variant: "error" });
+    }
+  };
+
+  /**
+   * Sign out button handler.
+   */
+  const onSignOut = async () => {
+    disconnect();
+    setCkbAddress("");
+    setBalance(null);
+    setDepositCells([]);
+    setWithdrawalCells([]);
+    setIsLoading(false);
+
+    localStorage.removeItem("joyidInfo");
+    localStorage.removeItem("ckbAddress");
+    localStorage.removeItem("balance");
+    localStorage.removeItem("depositCells");
+    localStorage.removeItem("withdrawalCells");
+  };
+
+  /**
+   * Shorten address.
+   */
+  const shortenAddress = (address: string) => {
+    if (!address) return "";
+    return `${address.slice(0, 8)}...${address.slice(-6)}`;
+  };
+
+  /**
+   * handle deposit when enter button is pressed.
+   */
+  const handleDepositKeyDown = (
+    event: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      onDeposit();
+    }
+  };
+
+  /**
+   * Copy address to cliploarb
+   */
+  const copyAddress = (address: string) => {
+    if (navigator.clipboard) {
+      navigator.clipboard
+        .writeText(address)
+        .then(() => {
+          enqueueSnackbar("Address copied to clipboard", { variant: "info" });
+        })
+        .catch((err) => {
+          enqueueSnackbar("Could not copy address", { variant: "error" });
+        });
+    } else {
+      const textarea = document.createElement("textarea");
+      textarea.value = address;
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand("copy");
+      } catch (err) {
+        enqueueSnackbar("Could not copy address", { variant: "error" });
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    }
+  };
+
+  /**
+   * Enriching DAO dell information
+   */
+  React.useEffect(() => {
+    if (!tipEpoch || !depositCells || !withdrawalCells) return;
+
+    try {
+      if (depositCellsRef.current !== depositCells) {
+        Promise.all(
+          depositCells.map(async (cell) => {
+            await enrichDaoCellInfo(cell as DaoCell, true, tipEpoch!);
+          })
+        ).then(() => {
+          depositCellsRef.current = depositCells;
+          // kick re-renderring when enriching process's done
+          setRenderKick((prevRenderKick) => prevRenderKick + 1);
+        });
+      }
+
+      if (withdrawalCellsRef.current !== withdrawalCells) {
+        Promise.all(
+          withdrawalCells.map(async (cell) => {
+            await enrichDaoCellInfo(cell as DaoCell, false, tipEpoch!);
+          })
+        ).then(() => {
+          withdrawalCellsRef.current = withdrawalCells;
+          // kick re-renderring when enriching process's done
+          setRenderKick((prevRenderKick) => prevRenderKick + 1);
+        });
+      }
+    } catch (e: any) {
+      if (e.message.includes("Network request failed")) {
+        enqueueSnackbar(
+          "NervDAO is chasing down your data. Refresh and give it another go!",
+          { variant: "info" }
+        );
+      } else {
+        enqueueSnackbar("Error: " + e.message, { variant: "error" });
+      }
+    }
+  }, [depositCells, withdrawalCells, tipEpoch]);
+
+  /**
+   * When page refreshed, fetch from localstorage
+   */
+  React.useEffect(() => {
+    const storedCkbAddress = localStorage.getItem("ckbAddress");
+    const storedBalance = localStorage.getItem("balance");
+    const storedDepositCells = localStorage.getItem("depositCells");
+    const storedWithdrawalCells = localStorage.getItem("withdrawalCells");
+
+    if (storedCkbAddress) {
+      setCkbAddress(storedCkbAddress);
+    }
+    if (storedBalance) {
+      setBalance(JSON.parse(storedBalance));
+    }
+    if (storedDepositCells) {
+      setDepositCells(JSON.parse(storedDepositCells));
+    }
+    if (storedWithdrawalCells) {
+      setWithdrawalCells(JSON.parse(storedWithdrawalCells));
+    }
+  }, []);
+
+  /**
+   * Set CKB address
+   */
+  React.useEffect(() => {
+    if (!signer) {
+      setCkbAddress("");
+      return;
+    }
+
+    (async () => {
+      setCkbAddress(await signer.getRecommendedAddress());
+      // setBalance(await signer.getBalance());
+    })();
+  }, [signer]);
+
+  /**
+   * Query and settle NervDAO states variables
+   */
+  React.useEffect(() => {
+    if (ckbAddress) settleUserInfo(ckbAddress);
+  }, [ckbAddress]);
+
+  /**
+   * Client control. Effective when deployment only
+   */
+  React.useEffect(() => {
+    if (ISMAINNET) setClient(new ccc.ClientPublicMainnet());
+    else setClient(new ccc.ClientPublicTestnet());
+  }, [setClient, ISMAINNET]);
+
+  /**
+   * Estimate return based on tip epoch and current picked NervDAO cell
+   */
+  React.useEffect(() => {
+    if (!tipEpoch || !pickedDaoCell) return;
+
+    if (!pickedDaoCell.isDeposit) return;
+
+    const fetchData = async () => {
+      const totalReturn = await estimateReturn(pickedDaoCell, tipEpoch);
+      const compensation =
+        totalReturn -
+        parseInt(pickedDaoCell.cellOutput.capacity, 16) / CKB_SHANNON_RATIO;
+      setCompensation(compensation);
+    };
+    fetchData();
+  }, [tipEpoch, pickedDaoCell]);
+
+  // Sidebar Mode
+  // 0. default
+  // 1. transfer
+  // 2. deposit
+  // 3. batch
+  const [sidebarMode, setSidebarMode] = React.useState(0);
+
+  /**
+   * NervDAO front information board UI
+   */
+  const accountBalances = () => {
+    return (
+      <div className="balances">
+        <div className="balance-background"></div>
+        {(sidebarMode === 1 || sidebarMode === 0) && (
+          <p className="balance-index free-balance">
+            <span>Free</span>
+            <span>
+              {balance
+                ? (BigInt(balance.available) / BigInt(CKB_SHANNON_RATIO))
+                    .toString()
+                    .replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " CKB"
+                : "Loading..."}
+            </span>
+          </p>
+        )}
+        {sidebarMode === 0 && (
+          <>
+            <p className="balance-index depositing-balance">
+              <span>Depositing</span>
+              <span>
+                {balance
+                  ? (sumDeposit() / CKB_SHANNON_RATIO)
+                      .toString()
+                      .replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " CKB"
+                  : "Loading..."}
+              </span>
+            </p>
+
+            <p className="balance-index withdrawing-balance">
+              <span>Withdrawing</span>
+              <span>
+                {balance
+                  ? (sumLocked() / CKB_SHANNON_RATIO)
+                      .toString()
+                      .toString()
+                      .replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " CKB"
+                  : "Loading..."}
+              </span>
+            </p>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const depositForm = () => {
+    return (
+      <div className="deposit-form">
+        <div className="form-header">
+          <Button
+            type="ghost"
+            icon={require("./assets/icons/back.svg").default}
+            onClick={() => setSidebarMode(0)}
+          />
+          <h3>
+            <span className="highlight-txt">Deposit CKB</span>
+            <span>to Nervos DAO</span>
+          </h3>
+        </div>
+        <Input
+          className="form-field"
+          htmlType="text"
+          value={depositAmount}
+          onChange={(e) => setDepositAmount(e.target.value)}
+          onKeyDown={handleDepositKeyDown}
+          placeholder="Deposit amount"
+          leadIcon={require("./assets/icons/zap.svg").default}
+        />
+        <Button className="submit" type="glass" onClick={() => onDeposit()}>
+          Execute
+        </Button>
+      </div>
+    );
+  };
+
+  const transferForm = () => {
+    return (
+      <div className="transfer-form">
+        <div className="form-header">
+          <Button
+            type="ghost"
+            icon={require("./assets/icons/back.svg").default}
+            onClick={() => setSidebarMode(0)}
+          />
+          <h3>
+            <span className="highlight-txt">Transfer</span>
+            <span>to destination address</span>
+          </h3>
+        </div>
+        <Input
+          className="form-field"
+          htmlType="text"
+          value={transferTo}
+          onInput={(e) => setTransferTo(e.currentTarget.value)}
+          placeholder="Destination address"
+          leadIcon={require("./assets/icons/user.svg").default}
+        />
+        <Input
+          className="form-field"
+          htmlType="text"
+          value={transferAmount}
+          onInput={(e) => setTransferAmount(e.currentTarget.value)}
+          placeholder="Amount of transfer"
+          leadIcon={require("./assets/icons/zap.svg").default}
+        />
+        <Button className="submit" type="glass" onClick={() => onTransfer()}>
+          Execute
+        </Button>
+      </div>
+    );
+  };
+
+  const batchForm = () => {
+    return (
+      <div className="transfer-form">
+        <div className="form-header">
+          <Button
+            type="ghost"
+            icon={require("./assets/icons/back.svg").default}
+            onClick={() => {
+              setPickedCells([]);
+              setSidebarMode(0);
+            }}
+          />
+          <h3>
+            <span className="highlight-txt">Batch</span>
+            <span>{`${pickedCells.length} ${
+              pickedCells.length > 1 ? " cells" : " cell"
+            }`}</span>
+          </h3>
+        </div>
+        {pickedCells.length === 0 && (
+          <p>
+            <i>Please select cells</i>
+          </p>
+        )}
+        {pickedCells.length === 1 && (
+          <p>
+            <i>Please select at least 2 cells</i>
+          </p>
+        )}
+        <Button
+          className="submit"
+          type="glass"
+          onClick={() => onBatch(pickedCells)}
+          disabled={pickedCells.length < 2}
+        >
+          Execute
+        </Button>
+      </div>
+    );
+  };
+
+  /**
+   * NervDAO deposit information UI
+   */
+  function daoDepositCircularProgressBarInfo() {
+    return (
+      <div className="deposit-circular-progress-bar">
+        <svg style={{ height: 0, width: "100%" }}>
+          <defs>
+            <linearGradient
+              id="deposit_progress"
+              x1="0.5"
+              y1="26.5"
+              x2="26.5"
+              y2="0.5"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="#82DBF7" />
+              <stop offset="1" stop-color="#B6F09C" />
+            </linearGradient>
+          </defs>
+          <defs>
+            <linearGradient
+              id="withdraw_progress"
+              x1="0.5"
+              y1="26"
+              x2="26.5"
+              y2="-3.74348e-07"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="#CA6100" />
+              <stop offset="1" stop-color="#FF9900" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <CircularProgressbarWithChildren
+          value={pickedDaoCell?.currentCycleProgress!}
+          styles={{
+            path: {
+              stroke: `url(#${
+                pickedDaoCell?.currentCycleProgress! < 93
+                  ? "deposit_progress"
+                  : "withdraw_progress"
+              })`,
+              height: "100%",
+            },
+            trail: {
+              stroke: "#2e2e2e",
+            },
+          }}
+        >
+          {!isDaoTransitMsgLoading && (
+            <>
+              <p className="dao-transition-message">
+                Cycle{" "}
+                {pickedDaoCell
+                  ? !pickedDaoCell?.isDeposit && pickedDaoCell?.ripe
+                    ? pickedDaoCell?.completedCycles!
+                    : pickedDaoCell?.completedCycles! + 1
+                  : "~"}{" "}
+                | Progress:{" "}
+                {pickedDaoCell
+                  ? pickedDaoCell.currentCycleProgress! + "%"
+                  : "~"}
+              </p>
+
+              {!pickedDaoCell?.isDeposit && (
+                <p className="dao-transition-message">
+                  Compensation:{" "}
+                  {pickedDaoCell ? getCompensation(pickedDaoCell) : "~"}
+                </p>
+              )}
+
+              {!pickedDaoCell?.isDeposit &&
+                (!pickedDaoCell?.ripe ? (
+                  <p className="dao-transition-message highlight">
+                    Complete in:{" "}
+                    {pickedDaoCell
+                      ? (pickedDaoCell?.cycleEndInterval! + 1) / 6 > 2
+                        ? `${(
+                            (pickedDaoCell?.cycleEndInterval! + 1) /
+                            6
+                          ).toFixed(2)}d`
+                        : `${(pickedDaoCell?.cycleEndInterval! + 1) * 4}h`
+                      : "~"}
+                  </p>
+                ) : (
+                  <p className="dao-transition-message highlight">
+                    Complete now!
+                  </p>
+                ))}
+
+              {pickedDaoCell?.isDeposit && (
+                <p className="dao-transition-message">
+                  Compensation:{" "}
+                  {compensation != null
+                    ? `${compensation?.toFixed(2)} CKB`
+                    : "~"}
+                </p>
+              )}
+
+              {pickedDaoCell?.isDeposit && pickedDaoCell.ripe && (
+                <p className="dao-transition-message highlight">
+                  New Lock Cycle in: {pickedDaoCell?.cycleEndInterval! * 4}h
+                </p>
+              )}
+
+              {pickedDaoCell?.isDeposit &&
+                (!pickedDaoCell.ripe ? (
+                  <p className="dao-transition-message highlight">
+                    Max Reward in:{" "}
+                    {pickedDaoCell?.cycleEndInterval! >= 12 &&
+                    (pickedDaoCell?.cycleEndInterval! - 12) / 6 > 2
+                      ? `${(
+                          (pickedDaoCell?.cycleEndInterval! - 12) /
+                          6
+                        ).toFixed(2)}d`
+                      : `${(pickedDaoCell?.cycleEndInterval! - 12) * 4}h`}
+                  </p>
+                ) : (
+                  <p className="dao-transition-message highlight">
+                    Withdraw now!
+                  </p>
+                ))}
+
+              {!(!pickedDaoCell?.isDeposit && !pickedDaoCell?.ripe) && (
+                <p className="dao-transition-message">
+                  Tx fee:{" "}
+                  {currentTx.fee
+                    ? `${(currentTx.fee / CKB_SHANNON_RATIO).toFixed(8)} CKB`
+                    : `${" ~ CKB"}`}
+                </p>
+              )}
+            </>
+          )}
+        </CircularProgressbarWithChildren>
+      </div>
+    );
+  }
+
+  /**
+   * NervDAO deposit transition messsage UI
+   */
+  function depositTransitionMessage() {
+    return (
+      <div className="deposit-confirmation-modal">
+        <h2 className="highlight-txt">Depositing {depositAmount} CKB</h2>
+        <div className="description">
+          <p className="dao-transition-message deposit">
+            Withdrawals can be initiated any time later on but each withdrawal
+            is only completed at the end of its{" "}
+            <span className="highlight-txt">30-day</span> cycle
+          </p>
+          <p className="dao-transition-message deposit">
+            Tx fee:{" "}
+            <span className="highlight-txt">
+              {currentTx.fee
+                ? `${(currentTx.fee / CKB_SHANNON_RATIO).toFixed(8)} CKB`
+                : `${" ~ CKB"}`}
+            </span>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  /**
+   * NervDAO information transit modal UI
+   */
+  function daoTransitInfoModal() {
+    return (
+      <Modal
+        isOpen={modalIsOpen}
+        onRequestClose={() => {
+          setModalIsOpen(false);
+          setPickedDaoCell(null);
+        }}
+        shouldCloseOnOverlayClick
+        shouldCloseOnEsc
+      >
+        {daoMode == DaoFunction.depositing
+          ? depositTransitionMessage()
+          : daoDepositCircularProgressBarInfo()}
+
+        {!isDaoTransitMsgLoading && (
+          <div className="modal-btns">
+            <button
+              className="proceed"
+              disabled={
+                daoMode == DaoFunction.unlocking && pickedDaoCell
+                  ? !pickedDaoCell.isDeposit && !pickedDaoCell.ripe
+                  : false
+              }
+              onClick={() => {
+                if (daoMode == DaoFunction.withdrawing) {
+                  onWithdrawProceed();
+                } else if (daoMode == DaoFunction.unlocking) {
+                  onUnlockProceed();
+                } else if (daoMode == DaoFunction.depositing) {
+                  onDepositProceed();
+                } else {
+                  //nothing
+                }
+                setModalIsOpen(false);
+                setDaoMode(DaoFunction.none);
+              }}
+            >
+              Proceed
+            </button>
+          </div>
+        )}
+      </Modal>
+    );
+  }
+
+  // in case there're too few deposit, fill up dummy cells
+
+  const [mouseDown, setMouseDown] = React.useState(false);
+
+  const handleMouseDown = () => {
+    setMouseDown(true);
+  };
+
+  const handleMouseUp = () => {
+    setMouseDown(false);
+  };
+
+  React.useEffect(() => {
+    if (/Mobi|Android/i.test(window.navigator.userAgent)) {
+      window.addEventListener("mousedown", handleMouseDown);
+      window.addEventListener("mouseup", handleMouseUp);
+      return () => {
+        window.removeEventListener("mousedown", handleMouseDown);
+        window.removeEventListener("mouseup", handleMouseUp);
+      };
+    }
+  }, []);
+
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState<Boolean>(
+    !!Number(localStorage.getItem("isSidebarCollapse"))
+  );
+
+  const cells = React.useMemo(
+    () =>
+      [...depositCells, ...withdrawalCells].sort(
+        (a, b) => parseInt(b.blockNumber!, 16) - parseInt(a.blockNumber!, 16)
+      ),
+    [depositCells, withdrawalCells]
+  );
+
+  const onExploringCell = (cell: any) => {
+    window.open(
+      EXPLORER_PREFIX + `${cell.outPoint?.txHash}`,
+      "_blank",
+      "noreferrer"
+    );
+  };
+
+  const onSelectCell = (e: any, cell: any) => {
+    e.stopPropagation();
+    try {
+      if (isLoading)
+        throw new Error(
+          "Please wait a moment! NervDAO is fetching data for you."
+        );
+
+      if (!pickedCells.includes(cell)) {
+        if (!cell.isDeposit && !cell.ripe)
+          throw new Error("Can not batch processing withdrawals");
+
+        pickedCells.push(cell);
+        setPickedCells(pickedCells);
+        setRenderKick((prevRenderKick) => prevRenderKick + 1);
+      } else {
+        // remove cell if re-picked
+        const index = pickedCells.indexOf(cell);
+        if (index !== -1) {
+          pickedCells.splice(index, 1);
+          setPickedCells(pickedCells);
+          setRenderKick((prevRenderKick) => prevRenderKick + 1);
+        }
+      }
+    } catch (e: any) {
+      enqueueSnackbar("Error: " + e.message, {
+        variant: "error",
+      });
+    }
+  };
+
+  const sidebarRef = React.useRef(null);
+
+  useOnClickOutside(sidebarRef, () => {
+    const isFirstDeposit =
+      !cells.length && !isSidebarCollapsed && sidebarMode === 2;
+    const isBatching = sidebarMode === 3;
+    if (!isFirstDeposit && !modalIsOpen && !isBatching) {
+      setSidebarMode(0);
+      setIsSidebarCollapsed(true);
+    }
+  });
+
+  return (
+    <>
+      <div className="background">
+        <picture>
+          <img
+            id="dynamicBg"
+            src={require("./assets/videos/dynamic-bg.gif")}
+            alt="background"
+          />
+        </picture>
+      </div>
+      {(isLoading || isDaoTransitMsgLoading) && (
+        <div className="modal-loading-overlay">
+          <div className="modal-loading-circle" />
+          {isWaitingTxConfirm && (
+            <p className="tx-confirmation-message highlight-txt">
+              Your transaction can take a few minutes to process!
+            </p>
+          )}
+        </div>
+      )}
+
+      {!ckbAddress && (
+        <div className="guest--screen">
+          <div className="guest--content">
+            <img
+              src={gradientLogo}
+              alt="NervDAO"
+              className="logo"
+              draggable={false}
+            />
+            <h1 className="title">NervDAO</h1>
+            <p className="sub-title">
+              Universal Wallet-Interfaced Nervos DAO Portal
+            </p>
+            <Button
+              className="signin-button"
+              onClick={() => {
+                try {
+                  open();
+                } catch (e: any) {
+                  enqueueSnackbar("Error: " + e.message, {
+                    variant: "error",
+                  });
+                }
+              }}
+            >
+              Login Now
+            </Button>
+            <footer>
+              <p>
+                <span>NervDAO © 2024</span>
+
+                <a
+                  href="https://github.com/ckb-ecofund/nervdao"
+                  target="_blank"
+                  style={{ display: "inline-block" }}
+                >
+                  <span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      x="0px"
+                      y="0px"
+                      width="25"
+                      height="25"
+                      viewBox="0 0 40 40"
+                    >
+                      <path
+                        fill="#b6c9d6"
+                        d="M38.5,20c0,10.299-8.391,18.5-18.5,18.5C9.892,38.5,1.5,30.299,1.5,20S9.701,1.5,20,1.5 S38.5,9.701,38.5,20z"
+                      ></path>
+                      <path
+                        fill="#fff"
+                        d="M33.171,19.24c0,2.306-1.191,5.51-3.148,7.102c-1.582,1.289-3.672,1.695-6.034,1.823 c0.888,0.539,1.479,1.515,1.479,2.629v7.636C23.979,38.8,22.429,39,20.832,39c-1.582,0-3.127-0.195-4.606-0.565v-5.017 c-0.642,0.2-1.484,0.318-2.568,0.262c-3.595-0.19-4.108-2.372-4.683-3.913c-0.58-1.541-2.378-1.736-2.121-2.372 c1.241-0.426,2.215-0.02,2.874,0.482c0.523,0.398,0.887,0.961,1.131,1.571c0.279,0.697,1.02,1.86,2.86,1.86 c1.299,0,2.069-0.303,2.511-0.601c0.026-1.089,0.621-2.033,1.494-2.552c-2.506-0.159-4.704-0.632-6.321-2.039 c-1.797-1.561-2.881-4.678-2.881-6.876c0-1.833,0.755-4.093,2.049-5.515c0.041-0.041,0.077-0.087,0.128-0.128 c-0.298-0.894-0.642-2.66,0.195-4.822c2.49-0.046,4.457,1.315,5.258,1.972c1.448-0.334,3.03-0.493,4.694-0.493 c1.705,0,3.333,0.149,4.806,0.493c0.801-0.657,2.773-2.018,5.258-1.967c0.873,2.249,0.467,4.072,0.164,4.925 C32.401,15.229,33.171,17.391,33.171,19.24z"
+                      ></path>
+                      <path
+                        fill="#788b9c"
+                        d="M20,39C9.523,39,1,30.477,1,20C1,9.346,9.346,1,20,1s19,8.346,19,19C39,30.477,30.477,39,20,39z M20,2C9.907,2,2,9.907,2,20c0,9.925,8.075,18,18,18s18-8.075,18-18C38,9.907,30.093,2,20,2z"
+                      ></path>
+                    </svg>
+                  </span>
+                </a>
+
+                <span>
+                  Deposit to <span className="highlight-txt">Nervos DAO</span>{" "}
+                  today!
+                </span>
+              </p>
+            </footer>
+          </div>
+          <div className="guest--slider">
+            <img src={bgGuestLogin01} alt="blockchain-mountain" />
+          </div>
+        </div>
+      )}
+
+      {ckbAddress && (
+        <div className="auth--screen">
+          {cells.length === 0 && isLoading == false ? (
+            <div className="no-deposit-message">
+              <h2 className="highlight-txt">You don't have any deposit yet</h2>
+              <Button
+                onClick={() => {
+                  setIsSidebarCollapsed(false);
+                  setSidebarMode(2);
+                }}
+              >
+                Deposit Now
+              </Button>
+            </div>
+          ) : (
+            <TransformWrapper
+              alignmentAnimation={{ animationType: "linear" }}
+              zoomAnimation={{ animationType: "linear" }}
+              velocityAnimation={{ animationType: "linear" }}
+            >
+              <TransformComponent>
+                <div
+                  className="cell-diagram"
+                  style={{ cursor: mouseDown ? "grabbing" : "grab" }}
+                >
+                  {cells.map((cell, index) => {
+                    // dao deposit complete shaking rythm
+                    const animationDelayRandomizer = new SeededRandom(
+                      parseInt(
+                        ckbHash(blockchain.OutPoint.pack(cell.outPoint!)).slice(
+                          -8
+                        ),
+                        16
+                      )
+                    );
+
+                    const animationDelay = animationDelayRandomizer.next(0, 1);
+
+                    const capacity =
+                      parseInt(cell.cellOutput.capacity, 16) /
+                      CKB_SHANNON_RATIO;
+
+                    const isDeposit = depositCells.some(
+                      (c) => c.outPoint?.txHash === cell.outPoint?.txHash
+                    );
+
+                    return (
+                      <Cell
+                        key={ckbHash(blockchain.OutPoint.pack(cell.outPoint!))}
+                        type={isDeposit ? "deposit" : "withdraw"}
+                        progress={cell.currentCycleProgress}
+                        value={capacity}
+                        selected={pickedCells.includes(cell)}
+                        onSelectCell={(e) => {
+                          if (sidebarMode === 3) {
+                            e.stopPropagation();
+                            onSelectCell(e, cell);
+                          }
+                        }}
+                        onCellAction={(e: any) => {
+                          e.stopPropagation();
+                          isDeposit ? onWithdraw(cell) : onUnlock(cell);
+                        }}
+                        onExploringTransaction={(e: any) => {
+                          e.stopPropagation();
+                          onExploringCell(cell);
+                        }}
+                        className={cx([sidebarMode === 3 && "selectable"])}
+                        isRipe={cell.ripe}
+                        animationDelay={animationDelay}
+                      />
+                    );
+                  })}
+                </div>
+              </TransformComponent>
+            </TransformWrapper>
+          )}
+          <aside
+            ref={sidebarRef}
+            className={cx([
+              isSidebarCollapsed ? "collapsed" : "expanded",
+              sidebarMode === 3 && "batching",
+            ])}
+          >
+            <header>
+              <img
+                className="logo"
+                src={require("./assets/icons/logo.svg").default}
+                alt="NervDAO"
+                draggable={false}
+              />
+              <p className="address">{shortenAddress(ckbAddress)}</p>
+              <Button
+                type="ghost"
+                icon={require("./assets/icons/copy.svg").default}
+                className="copy"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyAddress(ckbAddress);
+                }}
+              />
+            </header>
+            {accountBalances()}
+            {sidebarMode === 0 && (
+              <>
+                <ul className="sidebar-menu">
+                  {!isJoyIdAddress(ckbAddress) && (
+                    <li
+                      className="sidebar-item"
+                      onClick={() => {
+                        setIsSidebarCollapsed(false);
+                        setSidebarMode(1);
+                      }}
+                    >
+                      <img
+                        src={require("./assets/icons/transfer.svg").default}
+                        className="icon"
+                        draggable={false}
+                      />
+                      <span className="text">Transfer</span>
+                    </li>
+                  )}
+                  <li
+                    className="sidebar-item"
+                    onClick={() => {
+                      setIsSidebarCollapsed(false);
+                      setSidebarMode(2);
+                    }}
+                  >
+                    <img
+                      src={require("./assets/icons/deposit.svg").default}
+                      className="icon"
+                      draggable={false}
+                    />
+                    <span className="text">Deposit</span>
+                  </li>
+                  <li
+                    className="sidebar-item"
+                    onClick={() => {
+                      setIsSidebarCollapsed(false);
+                      setPickedCells([]);
+                      setSidebarMode(3);
+                    }}
+                  >
+                    <img
+                      src={require("./assets/icons/batch.svg").default}
+                      className="icon"
+                      draggable={false}
+                    />
+                    <span className="text">Batch</span>
+                  </li>
+                  <li className="sidebar-item sign-out" onClick={onSignOut}>
+                    <img
+                      src={require("./assets/icons/sign-out.svg").default}
+                      className="icon"
+                      draggable={false}
+                    />
+                    <span className="text">Sign Out</span>
+                  </li>
+                </ul>
+                <Button
+                  type="ghost"
+                  icon={require("./assets/icons/sidebar-control.svg").default}
+                  className="sidebar-control"
+                  onClick={() => {
+                    const newState = !isSidebarCollapsed;
+                    localStorage.setItem(
+                      "isSidebarCollapse",
+                      newState ? "1" : "0"
+                    );
+                    setIsSidebarCollapsed(newState);
+                  }}
+                />
+              </>
+            )}
+            {!isJoyIdAddress(ckbAddress) && sidebarMode === 1 && transferForm()}
+            {sidebarMode === 2 && depositForm()}
+            {sidebarMode === 3 && batchForm()}
+          </aside>
+        </div>
+      )}
+      {daoTransitInfoModal()}
+    </>
+  );
+};
+
+const cccWrappedApp = () => {
+  return (
+    <SnackbarProvider
+      className="notif"
+      anchorOrigin={{ vertical: "top", horizontal: "right" }}
+    >
+      <ccc.Provider>
+        <App />
+      </ccc.Provider>
+    </SnackbarProvider>
+  );
+};
+
+export default cccWrappedApp;
+
+
+================================================
+File: src/config.ts
+================================================
+export const ISMAINNET = process.env.REACT_APP_IS_MAINNET === "true";
+
+export const NODE_URL = ISMAINNET
+  ? "https://mainnet.ckb.dev/"
+  : "https://testnet.ckb.dev/";
+export const INDEXER_URL = ISMAINNET
+  ? "https://mainnet.ckb.dev/indexer"
+  : "https://testnet.ckb.dev/indexer";
+
+export const JOYID_CELLDEP = ISMAINNET
+  ? {
+      codeHash:
+        "0xd00c84f0ec8fd441c38bc3f87a371f547190f2fcff88e642bc5bf54b9e318323",
+      hashType: "type",
+      outPoint: {
+        txHash:
+          "0xf05188e5f3a6767fc4687faf45ba5f1a6e25d3ada6129dae8722cb282f262493",
+        index: "0x0",
+      },
+      depType: "depGroup",
+    }
+  : {
+      codeHash:
+        "0xd23761b364210735c19c60561d213fb3beae2fd6172743719eff6920e020baac",
+      hashType: "type",
+      outPoint: {
+        txHash:
+          "0x4dcf3f3b09efac8995d6cbee87c5345e812d310094651e0c3d9a730f32dc9263",
+        index: "0x0",
+      },
+      depType: "depGroup",
+    };
+
+export const OMNILOCK_CELLDEP = ISMAINNET
+  ? {
+      codeHash:
+        "0x9b819793a64463aed77c615d6cb226eea5487ccfc0783043a587254cda2b6f26",
+      hashType: "type",
+      outPoint: {
+        txHash:
+          "0xdfdb40f5d229536915f2d5403c66047e162e25dedd70a79ef5164356e1facdc8",
+        index: "0x0",
+      },
+      depType: "code",
+    }
+  : {
+      codeHash:
+        "0xf329effd1c475a2978453c8600e1eaf0bc2087ee093c3ee64cc96ec6847752cb",
+      hashType: "type",
+      outPoint: {
+        txHash:
+          "0xec18bf0d857c981c3d1f4e17999b9b90c484b303378e94de1a57b0872f5d4602",
+        index: "0x0",
+      },
+      depType: "code",
+    };
+
+export const NETWORK_CONFIG = ISMAINNET
+  ? {
+      PREFIX: "ckb",
+      SCRIPTS: {
+        SECP256K1_BLAKE160: {
+          CODE_HASH:
+            "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
+          HASH_TYPE: "type",
+          TX_HASH:
+            "0x71a7ba8fc96349fea0ed3a5c47992e3b4084b031a42264a018e0072e8172e46c",
+          INDEX: "0x0",
+          DEP_TYPE: "depGroup",
+        },
+        SECP256K1_BLAKE160_MULTISIG: {
+          CODE_HASH:
+            "0x5c5069eb0857efc65e1bca0c07df34c31663b3622fd3876c876320fc9634e2a8",
+          HASH_TYPE: "type",
+          TX_HASH:
+            "0x71a7ba8fc96349fea0ed3a5c47992e3b4084b031a42264a018e0072e8172e46c",
+          INDEX: "0x1",
+          DEP_TYPE: "depGroup",
+        },
+        DAO: {
+          CODE_HASH:
+            "0x82d76d1b75fe2fd9a27dfbaa65a039221a380d76c926f378d3f81cf3e7e13f2e",
+          HASH_TYPE: "type",
+          TX_HASH:
+            "0xe2fb199810d49a4d8beec56718ba2593b665db9d52299a0f9e6e75416d73ff5c",
+          INDEX: "0x2",
+          DEP_TYPE: "code",
+        },
+      },
+    }
+  : {
+      PREFIX: "ckt",
+      SCRIPTS: {
+        SECP256K1_BLAKE160: {
+          CODE_HASH:
+            "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
+          HASH_TYPE: "type",
+          TX_HASH:
+            "0xf8de3bb47d055cdf460d93a2a6e1b05f7432f9777c8c474abf4eec1d4aee5d37",
+          INDEX: "0x0",
+          DEP_TYPE: "depGroup",
+          SHORT_ID: 0,
+        },
+        SECP256K1_BLAKE160_MULTISIG: {
+          CODE_HASH:
+            "0x5c5069eb0857efc65e1bca0c07df34c31663b3622fd3876c876320fc9634e2a8",
+          HASH_TYPE: "type",
+          TX_HASH:
+            "0xf8de3bb47d055cdf460d93a2a6e1b05f7432f9777c8c474abf4eec1d4aee5d37",
+          INDEX: "0x1",
+          DEP_TYPE: "depGroup",
+          SHORT_ID: 1,
+        },
+        DAO: {
+          CODE_HASH:
+            "0x82d76d1b75fe2fd9a27dfbaa65a039221a380d76c926f378d3f81cf3e7e13f2e",
+          HASH_TYPE: "type",
+          TX_HASH:
+            "0x8f8c79eb6671709633fe6a46de93c0fedc9c1b8a6527a18d3983879542635c9f",
+          INDEX: "0x2",
+          DEP_TYPE: "code",
+        },
+      },
+    };
+
+// shannon per KB
+export const FEE_RATE = ISMAINNET ? 2000 : 1500;
+export const MIN_FEE_RATE = 1000;
+// 104CKB for joyidLock/moniLock + DAO cell
+export const DAO_MINIMUM_CAPACITY = 104;
+// 63CKB for joyidLock/moniLock cell
+export const MINIMUM_CHANGE_CAPACITY = 63;
+export const CKB_SHANNON_RATIO = 100_000_000;
+
+// TODO because payFeeByFeeRate doesn't fully support joyID
+export const JOYID_SIGNATURE_PLACEHOLDER_DEFAULT = "0x" + "0".repeat(1000);
+
+export const EXPLORER_PREFIX = ISMAINNET
+  ? "https://explorer.nervos.org/transaction/"
+  : "https://pudge.explorer.nervos.org/transaction/";
+
+export const COTA_AGGREGATOR_URL = ISMAINNET
+  ? "https://cota.nervina.dev/mainnet-aggregator"
+  : "https://cota.nervina.dev/aggregator";
+
+
+================================================
+File: src/index.css
+================================================
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+
+================================================
+File: src/index.scss
+================================================
+@import "./styles/variables.scss";
+@import "./styles/typography.scss";
+
+/* Background Video */
+#dynamicBg {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: auto;
+  height: auto;
+  min-width: 100%;
+  min-height: 100%;
+  z-index: -1;
+  opacity: 0.4;
+
+  /* Center the image */
+  transform: translate(-50%, -50%);
+}
+
+/* Login page */
+.guest--screen {
+  height: 100%;
+  display: flex;
+
+  color: #e8e9e9;
+
+  cursor: default;
+
+  .guest--content {
+    position: relative;
+    width: 50%;
+    padding: 4.8rem;
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    @include txt-m-medium;
+
+    .logo {
+      margin: 0 0 2.4rem;
+      width: 8rem;
+    }
+
+    .title {
+      @include txt-xl-medium;
+      font-weight: bold;
+      color: $stem-green;
+    }
+
+    .sub-title {
+      margin: 0 0 6.4rem;
+    }
+
+    footer {
+      width: 100%;
+      box-sizing: border-box;
+
+      position: absolute;
+
+      bottom: 0;
+      left: 0;
+      padding: 4.8rem;
+
+      p {
+        width: inherit;
+        display: flex;
+        justify-content: space-between;
+        margin: 0;
+      }
+    }
+  }
+  .guest--slider {
+    width: 50%;
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  @media (max-width: 768px) {
+    position: relative;
+    text-align: center;
+
+    .guest--content {
+      position: absolute;
+      height: 86%;
+      width: 86%;
+      border-radius: 2.4rem;
+      box-shadow: 0 0 12.8rem 0 #000;
+      backdrop-filter: blur(1.6rem);
+      background-color: rgba(6, 7, 8, 0.45);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .guest--slider {
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .guest--content footer {
+      padding: 2.8rem;
+      p {
+        flex-direction: column-reverse;
+        align-items: center;
+        gap: 1.2rem;
+      }
+    }
+  }
+}
+
+aside {
+  position: absolute;
+  top: 0.8rem;
+  left: 0.8rem;
+
+  width: 30rem;
+  box-sizing: border-box;
+  padding: 0.8rem;
+  border-radius: 1.6rem;
+  background-color: #161616;
+
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+
+  @include txt-l-semibold;
+  // color: $nokia-black;
+  color: #cdcecf;
+
+  box-shadow: inset 0.6rem 0.4rem 3.2rem -0.4rem rgba(255, 255, 255, 0.4),
+    1.2rem 1.2rem 3.2rem 0.4rem #000,
+    inset 2.8rem 1.6rem 6.4rem -2.4rem rgba(255, 255, 255, 0.4),
+    0 0 12.8rem 1.6rem #000;
+
+  header {
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0.8rem;
+    justify-content: space-between;
+    cursor: default;
+
+    .logo {
+      width: 4.8rem;
+    }
+
+    .copy {
+      img {
+        width: 2.4rem;
+        height: 2.4rem;
+      }
+    }
+  }
+
+  .balances {
+    position: relative;
+    margin: 0.8rem;
+    border-radius: 0.8rem;
+    box-shadow: inset 0 0 0.8rem 0 rgba(255, 248, 248, 0.75),
+      0 0.4rem 0.4rem 0 rgba(0, 0, 0, 0.25);
+
+    background-image: url("./assets/images/bg-login-01.jpeg");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+
+    cursor: default;
+
+    &:has(.balance-background:only-child) {
+      display: none;
+    }
+
+    .balance-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+
+      border-radius: inherit;
+
+      background-image: url("./assets/images/bg-login-01.jpeg");
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+
+      filter: blur(0.2rem) grayscale(60%) brightness(61%);
+      -webkit-filter: blur(0.2rem) grayscale(60%) brightness(61%);
+      -moz-filter: blur(0.2rem) grayscale(60%) brightness(61%);
+    }
+
+    .balance-index {
+      padding: 0.8rem 1.6rem;
+      margin: 0;
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+      z-index: 1;
+
+      @include txt-m-semibold;
+      transition: text-shadow 0.2s;
+
+      text-shadow: 0 0 0 #ffffff;
+
+      &:hover {
+        text-shadow: 0 0 2rem #ffffff;
+      }
+
+      + .balance-index {
+        border-top: 0.1rem solid #ffffff20;
+      }
+
+      &.free-balance {
+        color: #bfeb87;
+      }
+      &.depositing-balance {
+        color: #38effe;
+      }
+      &.withdrawing-balance {
+        color: #ffcd8d;
+      }
+    }
+  }
+
+  .sidebar-menu {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      padding: 1.6rem;
+      gap: 1.6rem;
+
+      border-radius: 0.8rem;
+      border-top: solid 0.1rem rgba(255, 255, 255, 0.08);
+
+      cursor: pointer;
+
+      opacity: 0.8;
+
+      position: relative;
+      transition: 0.2s;
+
+      &:hover {
+        opacity: 1;
+      }
+
+      > .icon {
+        width: 2.4rem;
+      }
+
+      &.sign-out {
+        color: #d0302f;
+      }
+
+      &:before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(105deg, #d7eded15 0%, #ccebeb00 130%);
+        opacity: 0;
+        transition: 0.2s;
+      }
+
+      &:hover:before {
+        opacity: 1;
+      }
+
+      + .sidebar-item {
+        margin: 0.8rem 0 0;
+      }
+    }
+  }
+
+  .sidebar-control {
+    align-self: center;
+    opacity: 0.4;
+    transition: opacity 0.2s;
+    width: 100%;
+
+    > .icon {
+      margin: 0 auto;
+      width: 2.4rem;
+      height: 2.4rem;
+    }
+
+    &:hover {
+      opacity: 1;
+      &::before {
+        opacity: 0;
+      }
+    }
+  }
+
+  &.collapsed {
+    width: 7.2rem;
+
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    &:hover {
+      opacity: 1;
+    }
+
+    header {
+      padding: 0.4rem;
+      .address,
+      .copy {
+        display: none;
+      }
+    }
+
+    .balances {
+      display: none;
+    }
+
+    .sidebar-menu {
+      .sidebar-item {
+        .text {
+          display: none;
+        }
+        &.sign-out {
+          display: none;
+        }
+      }
+    }
+
+    .sidebar-control {
+      margin: 0 0 0.4rem 0;
+      .icon {
+        transform: rotate(180deg);
+      }
+    }
+  }
+}
+
+.auth--screen {
+  height: 100%;
+
+  .transfer-form,
+  .deposit-form {
+    padding: 0.8rem;
+
+    .form-header {
+      display: flex;
+      gap: 0.8rem;
+      margin: 0 0 3.6rem;
+
+      h3 {
+        margin: 0;
+
+        .highlight-txt {
+          @include txt-l-bold;
+        }
+        span:not(.highlight-txt) {
+          display: block;
+          @include txt-l-medium;
+        }
+      }
+    }
+
+    .form-field {
+      width: 100%;
+      box-sizing: border-box;
+
+      + .form-field {
+        margin: 1.6rem 0 0;
+      }
+    }
+
+    button.submit {
+      margin: 1.6rem 0 0;
+      width: 100%;
+      @include txt-l-semibold;
+      text-align: center;
+    }
+  }
+}
+
+// ZOOMIN - ZOOMOUT
+
+body:has(aside.batching) .react-transform-component {
+  @media (min-width: 1024px) {
+    padding: 7.2rem 35.2rem 7.2rem !important;
+  }
+  @media (max-width: 1024px) {
+    padding: 31.2rem 7.2rem 7.2rem !important;
+  }
+}
+
+body:not(:has(aside.batching)) .react-transform-component {
+  padding: 7.2rem !important;
+}
+
+.react-transform-wrapper {
+  box-sizing: border-box;
+  width: 100svw !important;
+  height: 100svh !important;
+
+  .react-transform-component {
+    box-sizing: border-box;
+    height: 100%;
+    min-width: 100%;
+    justify-content: center;
+
+    .cell-diagram {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      height: 100%;
+      width: max-content;
+    }
+  }
+}
+
+#userinputpane {
+  overflow: hidden;
+
+  > div {
+    padding: 7.2rem !important;
+    box-sizing: border-box;
+    height: 100%;
+    min-width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .cell-diagram {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    height: 100%;
+    width: max-content;
+  }
+}
+
+// EMPTY SCREEN
+.no-deposit-message {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6rem;
+  text-align: center;
+
+  h2 {
+    font-size: 2.8rem;
+    font-weight: bold;
+    line-height: 3.6rem;
+  }
+
+  button {
+    border-radius: 99rem;
+    font-family: inherit;
+    font-size: 1.6rem;
+    line-height: 2.4rem;
+    font-weight: 500;
+  }
+}
+
+// MODAL STYLES
+
+.ReactModal__Overlay {
+  background-color: rgba(18, 19, 24, 0.7) !important;
+}
+
+.ReactModal__Content {
+  border-radius: 1.6rem !important;
+  border: none !important;
+  background: rgba(26, 29, 33, 0.96) !important;
+  inset: 50% 0 0 50% !important;
+  box-shadow: -0.4rem -0.8rem 3.2rem 0.4rem rgba(0, 153, 81, 0.5),
+    0.4rem 0.8rem 3.2rem 0.4rem rgba(207, 247, 211, 0.7),
+    inset 0 0.8rem 1.2rem 0 rgba(255, 255, 255, 0.1),
+    inset 1.6rem 2.4rem 6.4rem -2.4rem rgba(255, 255, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: fadeIntro 0.5s ease-in-out;
+  width: fit-content;
+  height: fit-content;
+  transform: translate(-50%, -50%);
+  padding: 2.4rem !important;
+}
+
+.modal-loading-overlay {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+
+  .tx-confirmation-message {
+    margin-top: 2rem;
+    font-size: 1.6rem;
+    font-weight: bold;
+    color: transparent;
+  }
+
+  .modal-loading-circle {
+    animation: spin 0.6s linear infinite;
+    width: 6.4rem;
+    height: 6.4rem;
+    flex-grow: 0;
+    border-radius: 3.2rem;
+    background-image: conic-gradient(
+      from 0turn,
+      #82dbf700 0.25turn,
+      #a8eab5 0.75turn,
+      rgba(182, 240, 156, 1) 1turn
+    );
+    mask-image: radial-gradient(
+      circle 2.4rem at center,
+      transparent 2.4rem,
+      black 2.4rem
+    );
+    -webkit-mask-image: radial-gradient(
+      circle 2.4rem at center,
+      transparent 2.4rem,
+      black 2.4rem
+    );
+  }
+}
+
+.deposit-circular-progress-bar {
+  width: 30rem;
+  margin: 0 0 2.4rem 0;
+
+  .dao-transition-message {
+    margin: 0;
+    @include txt-m-semibold;
+    color: transparent;
+    background: $gradient-green;
+    background-clip: text;
+
+    + .dao-transition-message {
+      margin-top: 1.2rem;
+    }
+  }
+}
+
+.deposit-confirmation-modal {
+  text-align: center;
+  width: 20rem;
+  margin: 0 2.4rem;
+
+  h2 {
+    margin: 0 0 2.4rem;
+    @include txt-l-bold;
+  }
+  .description {
+    margin: 0 0 2.4rem;
+    color: #cdcecf;
+    font-size: 1.2rem;
+    line-height: 1.6rem;
+    letter-spacing: 0.015rem;
+    font-weight: 500;
+
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+
+    p {
+      margin: 0;
+    }
+  }
+}
+
+.modal-btns {
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.2rem;
+
+  button {
+    border: none;
+    height: 3.6rem;
+    border-radius: 2.4rem;
+    padding: 1rem 2rem;
+    font-size: 1.4rem;
+    font-weight: 600;
+    flex: 1;
+    color: transparent;
+    background: linear-gradient(75deg, #82dbf7 0%, #b6f09c 100%);
+    background-clip: text;
+
+    cursor: pointer;
+
+    align-self: stretch;
+
+    transition: 0.2s;
+
+    &.proceed {
+      box-shadow: inset 0 0.8rem 1.2rem 0 rgba(255, 255, 255, 0.08),
+        0 2.4rem 2.4rem -1.6rem rgba(0, 0, 0, 0.12),
+        inset 1.6rem 2.4rem 6.4rem -2.4rem rgba(255, 255, 255, 0.08);
+      &:hover {
+        background: #b6f09c;
+        color: #0c1132;
+        font-weight: 800;
+      }
+    }
+
+    &.cancel {
+      &:hover {
+        box-shadow: inset 0 0.8rem 1.2rem 0 rgba(255, 255, 255, 0.08),
+          0 2.4rem 2.4rem -1.6rem rgba(0, 0, 0, 0.12),
+          inset 1.6rem 2.4rem 6.4rem -2.4rem rgba(255, 255, 255, 0.08);
+      }
+    }
+  }
+}
+
+// TOAST MESSAGE
+.notistack-Snackbar {
+  min-width: unset;
+}
+
+.notif {
+  padding: 1.2rem 1.6rem;
+  font-size: 1.3rem;
+  font-weight: 500;
+  line-height: 1.8rem;
+  border-radius: 0.8rem;
+  word-break: break-all;
+
+  &[class*="success"] {
+    background-color: #242c32;
+    background-image: radial-gradient(
+      circle at 0 50%,
+      #b6f09ca0,
+      rgba(0, 237, 123, 0) 100%
+    );
+    box-shadow: 0 0.8rem 1rem 0 rgba(0, 0, 0, 0.2),
+      0 0.6rem 3rem 0 rgba(0, 0, 0, 0.12), 0 1.6rem 2.4rem 0 rgba(0, 0, 0, 0.14);
+  }
+
+  &[class*="error"] {
+    background-color: #242c32;
+    background-image: radial-gradient(
+      circle at 0 50%,
+      #fd414860,
+      rgba(240, 66, 72, 0) 100%
+    );
+    box-shadow: 0 0.8rem 1rem 0 rgba(0, 0, 0, 0.2),
+      0 0.6rem 3rem 0 rgba(0, 0, 0, 0.12), 0 1.6rem 2.4rem 0 rgba(0, 0, 0, 0.14);
+  }
+
+  &[class*="info"] {
+    background-color: #4b6070;
+    background-image: radial-gradient(
+      circle at 0 50%,
+      #2196f370,
+      rgba(240, 66, 72, 0) 100%
+    );
+    box-shadow: 0 0.8rem 1rem 0 rgba(0, 0, 0, 0.2),
+      0 0.6rem 3rem 0 rgba(0, 0, 0, 0.12), 0 1.6rem 2.4rem 0 rgba(0, 0, 0, 0.14);
+  }
+
+  > div {
+    padding: 0;
+  }
+
+  svg {
+    width: 2rem !important;
+    margin: 0 1.6rem 0 0;
+  }
+}
+
+// LOGIN MODAL
+
+ccc-connector {
+  transform: scale(1.5);
+}
+
+
+================================================
+File: src/index.tsx
+================================================
+import React from "react";
+import ReactDOM from "react-dom/client";
+import "./index.css";
+import "./styles/globals.scss";
+import App from "./App";
+import reportWebVitals from "./reportWebVitals";
+
+const root = ReactDOM.createRoot(
+  document.getElementById("root") as HTMLElement
+);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
+
+
+================================================
+File: src/react-app-env.d.ts
+================================================
+/// <reference types="react-scripts" />
+
+
+================================================
+File: src/reportWebVitals.ts
+================================================
+import { ReportHandler } from 'web-vitals';
+
+const reportWebVitals = (onPerfEntry?: ReportHandler) => {
+  if (onPerfEntry && onPerfEntry instanceof Function) {
+    import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+      getCLS(onPerfEntry);
+      getFID(onPerfEntry);
+      getFCP(onPerfEntry);
+      getLCP(onPerfEntry);
+      getTTFB(onPerfEntry);
+    });
+  }
+};
+
+export default reportWebVitals;
+
+
+================================================
+File: src/setupTests.ts
+================================================
+// jest-dom adds custom jest matchers for asserting on DOM nodes.
+// allows you to do things like:
+// expect(element).toHaveTextContent(/react/i)
+// learn more: https://github.com/testing-library/jest-dom
+import '@testing-library/jest-dom';
+
+
+================================================
+File: src/.d.ts
+================================================
+declare module "*.mp4" {
+  const src: string;
+  export default src;
+}
+
+
+================================================
+File: src/components/index.ts
+================================================
+import Button from "./Button";
+import Input from "./Input";
+
+export { Button, Input };
+
+
+================================================
+File: src/components/Button/Button.module.scss
+================================================
+@import "/src/styles/variables.scss";
+@import "/src/styles/typography.scss";
+
+.baseBtn {
+  width: fit-content;
+  padding: 0.8rem 2.4rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.2rem;
+
+  border-radius: 1.2rem;
+
+  font-size: 1.6rem;
+  line-height: 2.4rem;
+  letter-spacing: 0.015rem;
+
+  &:not(:disabled) {
+    cursor: pointer;
+  }
+  &:disabled {
+    cursor: not-allowed;
+  }
+
+  &:global {
+    &.primary-type {
+      border: none;
+      background-color: $stem-green;
+      color: $dark-primary;
+    }
+
+    &.ghost-type {
+      border: none;
+      background-color: transparent;
+      position: relative;
+
+      &::before {
+        content: "";
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        background: linear-gradient(135deg, #d7eded50 -50%, #ccebeb00 100%);
+        opacity: 0;
+        transition: 0.3s;
+
+        border-radius: inherit;
+      }
+
+      &:not(:disabled):hover::before {
+        opacity: 1;
+      }
+    }
+
+    &.glass-type {
+      background: linear-gradient(
+        180deg,
+        #d7eded70 -50%,
+        rgba(204, 235, 235, 0) 110%
+      );
+      border: none;
+      border-radius: 1.2rem;
+      height: 4.8rem;
+      color: #9b9c9e;
+
+      &:not(:disabled):hover {
+        color: #0c1132;
+        background: #b6f09c;
+      }
+    }
+
+    &:has(.icon:only-child) {
+      padding: 1.2rem;
+      border-radius: 0.8rem;
+    }
+  }
+}
+
+
+================================================
+File: src/components/Button/Button.tsx
+================================================
+import React from "react";
+import styles from "./Button.module.scss";
+import { cx } from "../../utils/classname";
+
+const Button: React.FC<ButtonProps> = ({
+  children,
+  icon,
+  className,
+  type = "primary",
+  disabled = false,
+  ...rest
+}) => {
+  return (
+    <button
+      className={cx([styles.baseBtn, className, `${type}-type`])}
+      disabled={disabled}
+      {...rest}
+    >
+      {children && <div className="inside">{children}</div>}
+      {icon && (
+        <img src={icon} alt="btn-action" draggable="false" className="icon" />
+      )}
+    </button>
+  );
+};
+
+type ButtonProps = React.HTMLAttributes<HTMLButtonElement> & {
+  icon?: string;
+  type?: "primary" | "secondary" | "tertiary" | "ghost" | "glass";
+  disabled?: boolean;
+};
+export default Button;
+
+
+================================================
+File: src/components/Button/index.ts
+================================================
+import Button from "./Button";
+
+export default Button;
+
+
+================================================
+File: src/components/Cell/Cell.module.scss
+================================================
+@import "/src/styles/typography.scss";
+
+.daoCell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIntro 0.5s ease-in-out;
+  font-size: 1.2rem;
+  position: relative;
+  background-color: rgba(26, 29, 33, 0.5);
+
+  &:global {
+    &.ripe {
+      animation: shake 2s;
+      animation-iteration-count: infinite;
+      animation-delay: var(--animationDelay);
+    }
+
+    > .amount {
+      display: flex;
+      align-items: center;
+      color: transparent;
+      font-weight: bold;
+      margin-bottom: var(--vertical-spacing);
+    }
+
+    > .dao-cell-btn {
+      border-radius: 2.4rem;
+      padding: 0.8rem;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 1/1;
+      transition: 0.2s;
+
+      cursor: pointer;
+
+      position: relative;
+
+      &::before {
+        content: "";
+        display: block;
+        width: calc(100% + var(--progress-width));
+        height: calc(100% + var(--progress-width));
+        border-radius: 99rem;
+        position: absolute;
+        background: conic-gradient(
+          var(--progress-color) calc(var(--progress) - 0.01deg),
+          transparent var(--progress)
+        );
+        z-index: -1;
+      }
+
+      .btn-text {
+        max-width: 0;
+        overflow: hidden;
+        transition: 0.2s;
+        color: transparent;
+
+        @include txt-l-semibold;
+      }
+    }
+
+    > .explore-transaction {
+      background-color: transparent;
+      border: none;
+      margin-bottom: 0;
+      padding: 0;
+
+      transition: 0.4s;
+
+      cursor: pointer;
+
+      > img {
+        width: var(--globe-size);
+        aspect-ratio: 1/1;
+        max-height: 0;
+        transition: 0.4s;
+      }
+      &:hover {
+        filter: drop-shadow(0 0 0.4rem var(--globe-shadow-color));
+        transform: scale(1.1);
+      }
+    }
+
+    &.selected {
+      box-shadow: inset 0 0 0.4rem 0.4rem #38effe, 0 0 0.4rem 0 #00ebff,
+        inset 0 0 6.4rem 0 #00ebff;
+
+      &::after {
+        --checkbox-size: 5rem;
+        content: "";
+        position: absolute;
+        top: -1rem;
+        right: -1rem;
+        display: block;
+        width: var(--checkbox-size);
+        height: var(--checkbox-size);
+        z-index: 1;
+        background: url("../../assets/icons/selected-deposit.svg")
+          center/var(--checkbox-size) var(--checkbox-size) no-repeat;
+      }
+    }
+
+    &:hover {
+      > .explore-transaction {
+        margin-bottom: var(--vertical-spacing);
+
+        img {
+          max-height: 3.6rem;
+        }
+      }
+    }
+
+    &:not(.small-size):hover {
+      .dao-cell-btn {
+        padding: 0.8rem 2.4rem;
+        gap: 1.2rem;
+      }
+      .btn-text {
+        transition: 0.3s;
+        max-width: 100%;
+      }
+    }
+
+    &.small-size:hover {
+      .dao-cell-btn {
+        padding: 0.6rem 1rem;
+        gap: 0.4rem;
+      }
+      .btn-text {
+        font-size: 1.2rem;
+        transition: 0.3s;
+        max-width: 100%;
+      }
+    }
+
+    &.large-size {
+      width: 25.6rem;
+      height: 25.6rem;
+      border-radius: 3.6rem;
+      transition: box-shadow 0.5s;
+
+      --vertical-spacing: 1.8rem;
+
+      &:hover {
+        transition: box-shadow 0.3s;
+      }
+
+      .amount-icon {
+        width: 3rem;
+      }
+      .amount {
+        gap: 0.8rem;
+        margin-bottom: 3.6rem;
+        font-size: 3.2rem;
+      }
+      .dao-cell-btn {
+        height: 4.8rem;
+      }
+      .btn-icon {
+        height: 2rem;
+      }
+      .explore-transaction {
+        --globe-size: 3.6rem;
+      }
+    }
+
+    &.medium-size {
+      width: 19.6rem;
+      height: 19.6rem;
+      border-radius: 2.4rem;
+      transition: box-shadow 0.4s;
+
+      --vertical-spacing: 1.2rem;
+
+      &:hover {
+        transition: box-shadow 0.4s;
+      }
+
+      .amount-icon {
+        width: 2.4rem;
+      }
+      .amount {
+        gap: 0.6rem;
+        font-size: 2.8rem;
+      }
+      .dao-cell-btn {
+        height: 4.2rem;
+      }
+      .btn-icon {
+        height: 1.8rem;
+      }
+      .explore-transaction {
+        --globe-size: 2.8rem;
+      }
+    }
+
+    &.small-size {
+      width: 12.2rem;
+      height: 12.2rem;
+      border-radius: 1.2rem;
+      transition: box-shadow 0.3s;
+
+      --vertical-spacing: 0.6rem;
+
+      &:hover {
+        transition: box-shadow 0.3s;
+      }
+
+      .amount-icon {
+        width: 1.8rem;
+      }
+      .amount {
+        gap: 0.4rem;
+        margin-bottom: 1.2rem;
+        font-size: 1.6rem;
+      }
+      .dao-cell-btn {
+        height: 2.8rem;
+      }
+      .btn-icon {
+        height: 1.2rem;
+      }
+      .explore-transaction {
+        --globe-size: 2rem;
+      }
+    }
+
+    &.deposit-type {
+      background: url("../../assets/icons/chip-deposit.svg") center/contain
+        no-repeat;
+
+      .amount,
+      .btn-text {
+        background: linear-gradient(75deg, #82dbf7 0%, #b6f09c 100%);
+        background-clip: text;
+      }
+
+      .dao-cell-btn {
+        @media (min-width: 1024px) {
+          box-shadow: inset 0.4rem 0.4rem 0.8rem 0 rgba(0, 153, 81, 0.4),
+            inset -0.2rem -0.2rem 0.8rem 0 rgba(207, 247, 211, 0.4);
+        }
+
+        @media (max-width: 1440px) {
+          border: 1px solid #505050;
+        }
+
+        background-color: #263520;
+        --progress-color: #b6f09c;
+      }
+
+      > .explore-transaction {
+        &:hover {
+          --globe-shadow-color: #b6f09c;
+        }
+      }
+
+      &::after {
+        ::after {
+          --checkmark-size: 7.2rem;
+        }
+      }
+
+      &.large-size {
+        .dao-cell-btn {
+          --progress-width: 0.6rem;
+        }
+
+        &:not(.selected) {
+          @media (min-width: 1024px) {
+            box-shadow: inset 1rem 1rem 3.2rem 0 rgba(56, 239, 254, 0.5),
+              0.4rem 0.4rem 3.2rem 0 rgba(56, 239, 254, 0.25),
+              inset -0.2rem -0.2rem 1.6rem 0 #38effe;
+          }
+
+          @media (max-width: 1440px) {
+            border: 1px solid #505050;
+          }
+
+          &:hover {
+            box-shadow: inset 1rem 1rem 3.2rem 0 rgba(56, 239, 254, 0.5),
+              0.4rem 0.4rem 3.2rem 0 rgba(56, 239, 254, 0.25),
+              inset -0.2rem -0.2rem 12.8rem 0 #38effe;
+          }
+        }
+      }
+      &.medium-size {
+        .dao-cell-btn {
+          --progress-width: 0.5rem;
+        }
+
+        &:not(.selected) {
+          @media (min-width: 1024px) {
+            box-shadow: inset 0.8rem 0.8rem 2.8rem 0 rgba(56, 239, 254, 0.5),
+              0.4rem 0.4rem 3.2rem 0 rgba(56, 239, 254, 0.25),
+              inset -0.2rem -0.2rem 0.8rem 0 rgba(56, 239, 254, 0.25);
+          }
+
+          @media (max-width: 1440px) {
+            border: 1px solid #505050;
+          }
+
+          &:hover {
+            box-shadow: inset 0.8rem 0.8rem 6.4rem 0 rgba(56, 239, 254, 0.5),
+              0.4rem 0.4rem 3.2rem 0 rgba(56, 239, 254, 0.25),
+              inset -0.2rem -0.2rem 6.4rem 0 rgba(56, 239, 254, 0.5);
+          }
+        }
+      }
+      &.small-size {
+        .dao-cell-btn {
+          --progress-width: 0.4rem;
+        }
+
+        &:not(.selected) {
+          @media (min-width: 1024px) {
+            box-shadow: inset 0.4rem 0.4rem 1.6rem 0 rgba(56, 239, 254, 0.7),
+              0.2rem 0.2rem 1.6rem 0 rgba(56, 239, 254, 0.5),
+              inset 0 0 0.8rem 0 rgba(56, 239, 254, 0.25);
+          }
+
+          @media (max-width: 1440px) {
+            border: 1px solid #505050;
+          }
+
+          &:hover {
+            box-shadow: inset 0.4rem 0.4rem 2.8rem 0 rgba(56, 239, 254, 0.7),
+              0.2rem 0.2rem 1.6rem 0 rgba(56, 239, 254, 0.5),
+              inset 0 0 9.2rem 0 rgba(56, 239, 254, 0.25);
+          }
+        }
+      }
+    }
+
+    &.withdraw-type {
+      background: url("../../assets/icons/chip-withdraw.svg") center/contain
+        no-repeat;
+
+      .amount,
+      .btn-text {
+        background: linear-gradient(75deg, #ca6100 0%, #f90 100%);
+        background-clip: text;
+      }
+
+      .dao-cell-btn {
+        @media (min-width: 1024px) {
+          box-shadow: inset 0.4rem 0.4rem 0.8rem 0 rgba(153, 115, 0, 0.4),
+            inset -0.2rem -0.2rem 0.8rem 0 rgba(247, 247, 207, 0.4);
+        }
+
+        @media (max-width: 1440px) {
+          border: 1px solid #505050;
+        }
+
+        background-color: #352520;
+        --progress-color: #d46c00;
+      }
+
+      > .explore-transaction {
+        &:hover {
+          --globe-shadow-color: #d46c00;
+        }
+      }
+
+      &.large-size {
+        .dao-cell-btn {
+          --progress-width: 0.6rem;
+        }
+
+        @media (min-width: 1024px) {
+          box-shadow: inset 1rem 1rem 3.2rem 0 rgba(255, 205, 141, 0.5),
+            0.4rem 0.4rem 3.2rem 0 rgba(255, 205, 141, 0.25),
+            inset -0.2rem -0.2rem 1.6rem 0 #ffcd8d;
+        }
+
+        @media (max-width: 1440px) {
+          border: 1px solid #505050;
+        }
+
+        &:hover {
+          box-shadow: inset 1rem 1rem 3.2rem 0 #ffcd8d,
+            0.4rem 0.4rem 3.2rem 0 rgba(255, 205, 141, 0.25),
+            inset -0.2rem -0.2rem 12.8rem 0 #ffcd8d;
+          transition: 0.2s;
+        }
+      }
+      &.medium-size {
+        .dao-cell-btn {
+          --progress-width: 0.5rem;
+        }
+
+        @media (min-width: 1024px) {
+          box-shadow: inset 0.8rem 0.8rem 2.8rem 0 rgba(255, 205, 141, 0.5),
+            0.4rem 0.4rem 3.2rem 0 rgba(255, 205, 141, 0.25),
+            inset -0.2rem -0.2rem 0.8rem 0 rgba(255, 205, 141, 0.25);
+        }
+
+        @media (max-width: 1440px) {
+          border: 1px solid #505050;
+        }
+
+        &:hover {
+          box-shadow: inset 0.8rem 0.8rem 6.4rem 0 rgba(255, 205, 141, 0.5),
+            0.4rem 0.4rem 3.2rem 0 rgba(255, 205, 141, 0.25),
+            inset -0.2rem -0.2rem 6.4rem 0 rgba(255, 205, 141, 0.5);
+        }
+      }
+      &.small-size {
+        .dao-cell-btn {
+          --progress-width: 0.4rem;
+        }
+
+        @media (min-width: 1024px) {
+          box-shadow: inset 0.4rem 0.4rem 1.6rem 0 rgba(255, 205, 141, 0.7),
+            0.2rem 0.2rem 1.6rem 0 rgba(255, 205, 141, 0.5),
+            inset 0 0 0.8rem 0 rgba(255, 205, 141, 0.25);
+        }
+
+        @media (max-width: 1440px) {
+          border: 1px solid #505050;
+        }
+
+        &:hover {
+          box-shadow: inset 0.4rem 0.4rem 2.8rem 0 rgba(255, 205, 141, 0.7),
+            0.2rem 0.2rem 1.6rem 0 rgba(255, 205, 141, 0.5),
+            inset 0 0 9.2rem 0 rgba(255, 205, 141, 0.25);
+        }
+      }
+    }
+  }
+}
+
+@keyframes rotateShadow {
+  0% {
+    box-shadow: inset 1rem 1rem 3.2rem 0 rgba(56, 239, 254, 0.5),
+      0.4rem 0.4rem 3.2rem 0 rgba(56, 239, 254, 0.25),
+      inset -0.2rem -0.2rem 12.8rem 0 #38effe;
+  }
+  100% {
+    box-shadow: inset -1rem -1rem 2.4rem 0 rgba(56, 239, 254, 0.5),
+      -0.4rem -0.4rem 2.4rem 0 rgba(56, 239, 254, 0.25),
+      inset 0.2rem 0.2rem 9.6rem 0 #38effe;
+  }
+}
+
+@keyframes rotateCellProgress {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+================================================
+File: src/components/Cell/Cell.tsx
+================================================
+import React, { CSSProperties, MouseEventHandler } from "react";
+import styles from "./Cell.module.scss";
+import { cx } from "../../utils/classname";
+import { useMemo } from "react";
+
+const VALUE_THRESHOLD_1 = 50000;
+const VALUE_THRESHOLD_2 = 500000;
+
+const Cell: React.FC<CellProps> = ({
+  className,
+  type,
+  value,
+  selected = false,
+  progress,
+  isRipe = false,
+  animationDelay = 0,
+  onClick,
+  onCellAction,
+  onSelectCell,
+  onExploringTransaction,
+  ...rest
+}) => {
+  const size = useMemo(() => {
+    // if (window.innerWidth <= 1024) {
+    //   return "small";
+    // }
+    
+    switch (true) {
+      case value < VALUE_THRESHOLD_1: {
+        return "small";
+      }
+      case value < VALUE_THRESHOLD_2: {
+        return "medium";
+      }
+      default: {
+        return "large";
+      }
+    }
+  }, [value]);
+
+  const isDeposit = useMemo(() => type === "deposit", [type]);
+
+  return (
+    <div
+      className={cx([
+        styles.daoCell,
+        className,
+        `${type}-type`,
+        `${size}-size`,
+        selected && "selected",
+        isRipe && "ripe",
+      ])}
+      onClick={onSelectCell}
+      style={
+        {
+          "--progress": `${progress * 3.6}deg`,
+          "--animationDelay": `${animationDelay}s`,
+        } as CSSProperties
+      }
+    >
+      <button className="explore-transaction" onClick={onExploringTransaction}>
+        <img
+          src={
+            isDeposit
+              ? require("../../assets/icons/globe-deposit.svg").default
+              : require("../../assets/icons/globe-withdraw.svg").default
+          }
+          draggable="false"
+          alt="globe"
+        />
+      </button>
+
+      <div className="amount">
+        <span>
+          {value.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")} CKB
+        </span>
+      </div>
+      <button className="dao-cell-btn" onClick={onCellAction}>
+        <span className="btn-text">
+          {isRipe ? "Completed" : isDeposit ? "Withdraw" : "Processing"}
+        </span>
+        <img
+          src={
+            isRipe
+              ? isDeposit
+                ? require("../../assets/icons/selected-deposit.svg").default
+                : require("../../assets/icons/selected-withdraw.svg").default
+              : isDeposit
+              ? require("../../assets/icons/getout-deposit.svg").default
+              : require("../../assets/icons/withdraw-processing.svg").default
+          }
+          className="btn-icon"
+          draggable="false"
+          alt="mine"
+        />
+      </button>
+    </div>
+  );
+};
+
+type CellProps = React.HTMLAttributes<HTMLDivElement> & {
+  type: "deposit" | "withdraw";
+  progress: number;
+  value: number;
+  selected?: boolean;
+  isRipe?: boolean;
+  animationDelay?: number;
+  onCellAction: MouseEventHandler<HTMLButtonElement>;
+  onSelectCell: MouseEventHandler<HTMLDivElement>;
+  onExploringTransaction: MouseEventHandler<HTMLButtonElement>;
+};
+
+export default React.memo(Cell);
+
+
+================================================
+File: src/components/Cell/index.ts
+================================================
+import Cell from "./Cell";
+
+export default Cell;
+
+
+================================================
+File: src/components/Input/Input.module.scss
+================================================
+@import "/src/styles/typography.scss";
+
+.inputWrapper {
+  border-radius: 0.8rem;
+  border: solid 0.1rem #363a3d;
+  padding: 0.8rem;
+
+  display: flex;
+  align-items: center;
+
+  @include txt-l-semibold;
+
+  .baseInput {
+    background-color: transparent;
+    color: inherit;
+    border: none;
+    padding: 0.3rem 0.8rem;
+    border-radius: inherit;
+    width: 100%;
+    box-sizing: border-box;
+
+    @include txt-l-medium;
+
+    &:focus {
+      outline: none;
+    }
+    &::-webkit-search-cancel-button {
+      /* Hide the close button in the input field has type = "search" */
+      -webkit-appearance: none;
+    }
+  }
+}
+
+
+================================================
+File: src/components/Input/Input.tsx
+================================================
+import React, { HTMLInputTypeAttribute } from "react";
+import styles from "./Input.module.scss";
+import { cx } from "../../utils/classname";
+
+const Input: React.FC<InputProps> = ({
+  leadIcon,
+  trailText,
+  htmlType,
+  className,
+  value,
+  ...rest
+}) => {
+  return (
+    <div
+      className={cx([
+        styles.inputWrapper,
+        className,
+        trailText && "has-trail_text",
+        leadIcon && "has-lead-icon",
+      ])}
+    >
+      {leadIcon && (
+        <img
+          src={leadIcon}
+          alt="NervDAO"
+          draggable={false}
+          className="lead_icon"
+        />
+      )}
+      <input className={styles.baseInput} type={htmlType} {...rest} />
+      {trailText && <span className="trail_text">{trailText}</span>}
+    </div>
+  );
+};
+
+type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
+  leadIcon?: string;
+  trailText?: string;
+  htmlType?: HTMLInputTypeAttribute;
+};
+
+export default Input;
+
+
+================================================
+File: src/components/Input/index.ts
+================================================
+import Input from "./Input";
+
+export default Input;
+
+
+================================================
+File: src/dao/index.ts
+================================================
+import { CKBTransaction } from "@joyid/ckb";
+import { Indexer } from "@ckb-lumos/ckb-indexer";
+import { predefined } from "@ckb-lumos/config-manager";
+import { dao, common } from "@ckb-lumos/common-scripts";
+import { Address, Cell, Transaction } from "@ckb-lumos/base";
+import { unlock } from "./lumos-patcher"; // TODO to be replaced
+import { generateDefaultScriptInfos } from "@ckb-ccc/lumos-patches";
+import {
+  INDEXER_URL,
+  DAO_MINIMUM_CAPACITY,
+  FEE_RATE,
+  ISMAINNET,
+} from "../config";
+import { registerCustomLockScriptInfos, LockScriptInfo } from "@ckb-lumos/common-scripts/lib/common";
+
+import {
+  TransactionSkeleton,
+  createTransactionFromSkeleton,
+} from "@ckb-lumos/helpers";
+import {
+  ckbytesToShannons,
+  insertJoyIdWithnessPlaceHolder,
+  getFee,
+  hexToInt,
+  isJoyIdAddress,
+} from "./lib/helpers";
+
+const indexer = new Indexer(INDEXER_URL);
+registerCustomLockScriptInfos(generateDefaultScriptInfos());
+
+/**
+ * Fetch DAO deposits.
+ *
+ * @param ckbAddress - The ckb address from which deposit cells are queried.
+ * @returns An array of deposit cells.
+ */
+export const collectDeposits = async (ckbAddress: Address): Promise<Cell[]> => {
+  let depositCells: Cell[] = [];
+  const daoCellCollector = new dao.CellCollector(
+    ckbAddress,
+    indexer,
+    "deposit"
+  );
+  for await (const inputCell of daoCellCollector.collect()) {
+    depositCells.push(inputCell);
+  }
+  return depositCells;
+};
+
+/**
+ * Fetch DAO withdrawals.
+ *
+ * @param ckbAddress - The ckb address from which withdrawal cells are queried.
+ * @returns An array of withdrawal cells.
+ */
+export const collectWithdrawals = async (
+  ckbAddress: Address
+): Promise<Cell[]> => {
+  let depositCells: Cell[] = [];
+  const daoCellCollector = new dao.CellCollector(
+    ckbAddress,
+    indexer,
+    "withdraw"
+  );
+  for await (const inputCell of daoCellCollector.collect()) {
+    depositCells.push(inputCell);
+  }
+  return depositCells;
+};
+
+/**
+ * Buid DAO deposit transaction.
+ *
+ * @param ckbAddress - The ckb address that will holds the deposit
+ * @param amount - The amount to deposit.
+ * @returns A CKB raw transaction.
+ */
+export const buildDepositTransaction = async (
+  ckbAddress: Address,
+  amount: bigint
+): Promise<{ tx: CKBTransaction; fee: number }> => {
+  amount = ckbytesToShannons(amount);
+  if (amount < ckbytesToShannons(BigInt(DAO_MINIMUM_CAPACITY)))
+    throw new Error("Minimum DAO deposit is 104 CKB.");
+
+  const configuration = ISMAINNET ? predefined.LINA : predefined.AGGRON4;
+  let txSkeleton = new TransactionSkeleton({ cellProvider: indexer });
+
+  txSkeleton = await dao.deposit(txSkeleton, ckbAddress, ckbAddress, amount, {
+    config: configuration,
+    enableNonSystemScript: true,
+  });
+
+  // patching joyID tx fee and lumos::common-script::dao::unlock
+  if (isJoyIdAddress(ckbAddress))
+    txSkeleton = insertJoyIdWithnessPlaceHolder(txSkeleton);
+
+  txSkeleton = await common.payFeeByFeeRate(
+    txSkeleton,
+    [ckbAddress],
+    BigInt(FEE_RATE),
+    undefined,
+    {
+      config: configuration,
+    }
+  );
+
+  const txFee = getFee(txSkeleton);
+  const daoDepositTx: Transaction = createTransactionFromSkeleton(txSkeleton);
+  return { tx: daoDepositTx as CKBTransaction, fee: txFee };
+};
+
+/**
+ * Buid DAO withdraw raw transaction.
+ *
+ * @param ckbAddress - The ckb address that owns the cell to be withdrawn.
+ * @param daoDepositCell - The deposit cell.
+ * @returns A CKB raw transaction.
+ */
+export const buildWithdrawTransaction = async (
+  ckbAddress: Address,
+  daoDepositCell: Cell
+): Promise<{ tx: CKBTransaction; fee: number }> => {
+  const configuration = ISMAINNET ? predefined.LINA : predefined.AGGRON4;
+  let txSkeleton = new TransactionSkeleton({ cellProvider: indexer });
+
+  txSkeleton = await dao.withdraw(txSkeleton, daoDepositCell, ckbAddress, {
+    config: configuration,
+    enableNonSystemScript: true,
+  });
+
+  // patching joyID tx fee and lumos::common-script::dao::unlock
+  if (isJoyIdAddress(ckbAddress))
+    txSkeleton = insertJoyIdWithnessPlaceHolder(txSkeleton);
+
+  txSkeleton = await common.payFeeByFeeRate(
+    txSkeleton,
+    [ckbAddress],
+    BigInt(FEE_RATE),
+    undefined,
+    {
+      config: configuration,
+    }
+  );
+
+  const txFee = getFee(txSkeleton);
+  const daoWithdrawTx: Transaction = createTransactionFromSkeleton(txSkeleton);
+  return { tx: daoWithdrawTx as CKBTransaction, fee: txFee };
+};
+
+/**
+ * Buid DAO unlock raw transaction.
+ *
+ * @param ckbAddress - The ckb address that owns the cell to be unlocked.
+ * @param daoWithdrawalCell - The withdrawal cell.
+ * @returns A CKB raw transaction.
+ */
+export const buildUnlockTransaction = async (
+  ckbAddress: Address,
+  daoWithdrawalCell: Cell
+): Promise<{ tx: CKBTransaction; fee: number }> => {
+  const configuration = ISMAINNET ? predefined.LINA : predefined.AGGRON4;
+  let txSkeleton = TransactionSkeleton({ cellProvider: indexer });
+
+  txSkeleton = await unlock(txSkeleton, ckbAddress, daoWithdrawalCell);
+
+  // patching joyID tx fee and lumos::common-script::dao::unlock
+  if (isJoyIdAddress(ckbAddress))
+    txSkeleton = insertJoyIdWithnessPlaceHolder(txSkeleton);
+
+  const inputCapacity = txSkeleton.inputs
+    .toArray()
+    .reduce((a, c) => a + hexToInt(c.cellOutput.capacity), BigInt(0));
+  const outputCapacity = txSkeleton.outputs
+    .toArray()
+    .reduce((a, c) => a + hexToInt(c.cellOutput.capacity), BigInt(0));
+  const reward = outputCapacity - inputCapacity;
+
+  txSkeleton = await common.payFeeByFeeRate(
+    txSkeleton,
+    [ckbAddress],
+    BigInt(FEE_RATE),
+    undefined,
+    {
+      config: configuration,
+    }
+  );
+
+  const txFee = getFee(txSkeleton, reward);
+  const daoUnlockTx: Transaction = createTransactionFromSkeleton(txSkeleton);
+  return { tx: daoUnlockTx as CKBTransaction, fee: txFee };
+};
+
+/**
+ * Batch deposits or/with cells to withdraw or/and unlock at once.
+ *
+ * @param ckbAddress - The ckb address that owns the cells to be batched.
+ * @param cells - An array of deposit cells or/with at-end-cycle withdrawal cells.
+ * @returns A CKB raw transaction.
+ */
+export const batchDaoCells = async (
+  ckbAddress: Address,
+  cells: Cell[]
+): Promise<{ tx: CKBTransaction; fee: number }> => {
+  let txSkeleton = TransactionSkeleton({ cellProvider: indexer });
+  const depositCells: Cell[] = cells.filter(
+    (cell) => cell.data == "0x0000000000000000"
+  );
+  const withdrawCells: Cell[] = cells.filter(
+    (cell) => cell.data != "0x0000000000000000"
+  );
+  const configuration = ISMAINNET ? predefined.LINA : predefined.AGGRON4;
+
+  // Batching deposit cells
+  for (const cell of depositCells) {
+    txSkeleton = await dao.withdraw(txSkeleton, cell as Cell, ckbAddress, {
+      config: configuration,
+      enableNonSystemScript: true,
+    });
+  }
+
+  // patching joyID tx fee and lumos::common-script::dao::unlock
+  if (isJoyIdAddress(ckbAddress))
+    txSkeleton = insertJoyIdWithnessPlaceHolder(txSkeleton);
+
+  // Batching withdrawal cells
+  for (const cell of withdrawCells) {
+    //TODO replace when lumos supports joyID for dao unlocking
+    txSkeleton = await unlock(txSkeleton, ckbAddress, cell as Cell);
+  }
+
+  // patching joyID tx fee and lumos::common-script::dao::unlock
+  if (isJoyIdAddress(ckbAddress))
+    txSkeleton = insertJoyIdWithnessPlaceHolder(txSkeleton);
+
+  txSkeleton = await common.payFeeByFeeRate(
+    txSkeleton,
+    [ckbAddress],
+    BigInt(FEE_RATE),
+    undefined,
+    {
+      config: configuration,
+    }
+  );
+
+  const txFee = getFee(txSkeleton);
+  const daoWithdrawTx: Transaction = createTransactionFromSkeleton(txSkeleton);
+  return { tx: daoWithdrawTx as CKBTransaction, fee: txFee };
+};
+
+
+================================================
+File: src/dao/lumos-patcher.ts
+================================================
+//////////////////////////////////////////////////////////////////////////////////////////
+// This is a temporary code since lumos::common-script::unlock doesn't work with joyID
+//////////////////////////////////////////////////////////////////////////////////////////
+import {
+  CellDep,
+  DepType,
+  HexString,
+  PackedSince,
+  blockchain,
+  values,
+} from "@ckb-lumos/base";
+import { RPC } from "@ckb-lumos/rpc";
+import { BI, BIish } from "@ckb-lumos/bi";
+import { getBlockHash } from "./lib/helpers";
+import { dao } from "@ckb-lumos/common-scripts";
+import { bytes, number } from "@ckb-lumos/codec";
+import { findDepositCellWith } from "./lib/helpers";
+import { getConfig } from "@ckb-lumos/config-manager";
+import { Address, Cell, WitnessArgs } from "@ckb-lumos/base";
+import { NODE_URL, JOYID_CELLDEP, OMNILOCK_CELLDEP } from "../config";
+import { addressToScript, TransactionSkeletonType } from "@ckb-lumos/helpers";
+
+const DAO_LOCK_PERIOD_EPOCHS_COMPATIBLE = BI.from(180);
+const rpc = new RPC(NODE_URL);
+
+/**
+ * Add celldep to transaction.
+ */
+function _addCellDep(
+  txSkeleton: TransactionSkeletonType,
+  newCellDep: CellDep
+): TransactionSkeletonType {
+  const cellDep = txSkeleton.get("cellDeps").find((cellDep) => {
+    return (
+      cellDep.depType === newCellDep.depType &&
+      new values.OutPointValue(cellDep.outPoint, { validate: false }).equals(
+        new values.OutPointValue(newCellDep.outPoint, { validate: false })
+      )
+    );
+  });
+
+  if (!cellDep) {
+    txSkeleton = txSkeleton.update("cellDeps", (cellDeps) => {
+      return cellDeps.push({
+        outPoint: newCellDep.outPoint,
+        depType: newCellDep.depType,
+      });
+    });
+  }
+
+  return txSkeleton;
+}
+
+/**
+ * unlock helper
+ */
+function _epochSinceCompatible({
+  length,
+  index,
+  number,
+}: {
+  length: BIish;
+  index: BIish;
+  number: BIish;
+}): BI {
+  const _length = BI.from(length);
+  const _index = BI.from(index);
+  const _number = BI.from(number);
+  return BI.from(0x20)
+    .shl(56)
+    .add(_length.shl(40))
+    .add(_index.shl(24))
+    .add(_number);
+}
+
+/**
+ * unlock helper
+ */
+function _parseEpochCompatible(epoch: BIish): {
+  length: BI;
+  index: BI;
+  number: BI;
+} {
+  const _epoch = BI.from(epoch);
+  return {
+    length: _epoch.shr(40).and(0xfff),
+    index: _epoch.shr(24).and(0xfff),
+    number: _epoch.and(0xffffff),
+  };
+}
+
+/**
+ * Generate DAO unlock transaction structure with zero fee added.
+ * This is a modified version and a temporary replacement for
+ * lumos::common-script::unlock function
+ */
+export const unlock = async (
+  txSkeleton: TransactionSkeletonType,
+  fromAddress: Address,
+  daoWithdrawalCell: Cell
+): Promise<TransactionSkeletonType> => {
+  const config = getConfig();
+  const DAO_SCRIPT = config.SCRIPTS.DAO;
+  if (!DAO_SCRIPT)
+    throw new Error("Provided config does not have DAO script setup!");
+
+  // add celldeps
+  const template = config.SCRIPTS.DAO!;
+  const daoCellDep = {
+    outPoint: {
+      txHash: template.TX_HASH,
+      index: template.INDEX,
+    },
+    depType: template.DEP_TYPE,
+  };
+
+  txSkeleton = _addCellDep(txSkeleton, daoCellDep);
+
+  const fromScript = addressToScript(fromAddress, { config });
+  if (fromScript.codeHash == JOYID_CELLDEP.codeHash) {
+    txSkeleton = _addCellDep(txSkeleton, {
+      outPoint: JOYID_CELLDEP.outPoint,
+      depType: JOYID_CELLDEP.depType as DepType,
+    });
+  } else if (fromScript.codeHash == OMNILOCK_CELLDEP.codeHash) {
+    txSkeleton = _addCellDep(txSkeleton, {
+      outPoint: OMNILOCK_CELLDEP.outPoint,
+      depType: OMNILOCK_CELLDEP.depType as DepType,
+    });
+
+    txSkeleton = _addCellDep(txSkeleton, {
+      outPoint: {
+        txHash: config.SCRIPTS.SECP256K1_BLAKE160!.TX_HASH,
+        index: config.SCRIPTS.SECP256K1_BLAKE160!.INDEX,
+      },
+      depType: config.SCRIPTS.SECP256K1_BLAKE160?.DEP_TYPE as DepType,
+    });
+  } else {
+    throw new Error("Only joyId and omnilock addresses are supported");
+  }
+
+  // find the deposit cell and
+  // enrich DAO withdrawal cell data with block hash info
+  const [daoDepositCell, withdrawBlkHash] = await Promise.all([
+    findDepositCellWith(daoWithdrawalCell),
+    getBlockHash(daoWithdrawalCell.blockNumber!),
+  ]);
+  daoWithdrawalCell.blockHash = withdrawBlkHash;
+
+  // calculate since & capacity (interest)
+  const [depositBlockHeader, withdrawBlockHeader] = await Promise.all([
+    rpc.getHeader(daoDepositCell.blockHash!),
+    rpc.getHeader(daoWithdrawalCell.blockHash!),
+  ]);
+  const depositEpoch = _parseEpochCompatible(depositBlockHeader!.epoch);
+  const withdrawEpoch = _parseEpochCompatible(withdrawBlockHeader!.epoch);
+
+  const withdrawFraction = withdrawEpoch.index.mul(depositEpoch.length);
+  const depositFraction = depositEpoch.index.mul(withdrawEpoch.length);
+  let depositedEpochs = withdrawEpoch.number.sub(depositEpoch.number);
+
+  if (withdrawFraction.gt(depositFraction)) {
+    depositedEpochs = depositedEpochs.add(1);
+  }
+
+  const lockEpochs = depositedEpochs
+    .add(DAO_LOCK_PERIOD_EPOCHS_COMPATIBLE)
+    .sub(1)
+    .div(DAO_LOCK_PERIOD_EPOCHS_COMPATIBLE)
+    .mul(DAO_LOCK_PERIOD_EPOCHS_COMPATIBLE);
+  const minimalSinceEpoch = {
+    number: BI.from(depositEpoch.number.add(lockEpochs)),
+    index: BI.from(depositEpoch.index),
+    length: BI.from(depositEpoch.length),
+  };
+  const minimalSince = _epochSinceCompatible(minimalSinceEpoch);
+  const since: PackedSince = "0x" + minimalSince.toString(16);
+
+  // adding dao withdrawal cell as the first input
+  txSkeleton = txSkeleton.update("inputs", (i) => i.push(daoWithdrawalCell));
+  if (since) {
+    txSkeleton = txSkeleton.update("inputSinces", (inputSinces) => {
+      return inputSinces.set(txSkeleton.get("inputs").size - 1, since);
+    });
+  }
+
+  // add dao unlock header deps
+  let headerDeps = txSkeleton.get("headerDeps");
+  if (!headerDeps.contains(daoDepositCell.blockHash!)) {
+    txSkeleton = txSkeleton.update("headerDeps", (headerDeps) => {
+      return headerDeps.push(daoDepositCell.blockHash!);
+    });
+  }
+
+  if (!headerDeps.contains(daoWithdrawalCell.blockHash!)) {
+    txSkeleton = txSkeleton.update("headerDeps", (headerDeps) => {
+      return headerDeps.push(daoWithdrawalCell.blockHash!);
+    });
+  }
+
+  // add dao unlock witness
+  headerDeps = txSkeleton.get("headerDeps");
+  const depositHeaderDepIndex = headerDeps.indexOf(daoDepositCell.blockHash!);
+  const defaultWitnessArgs: WitnessArgs = {
+    inputType: bytes.hexify(number.Uint64LE.pack(depositHeaderDepIndex)),
+  };
+  const defaultWitness: HexString = bytes.hexify(
+    blockchain.WitnessArgs.pack(defaultWitnessArgs)
+  );
+  txSkeleton = txSkeleton.update("witnesses", (witnesses) => {
+    return witnesses.push(defaultWitness);
+  });
+
+  // adding output
+  const outputCapacity: HexString =
+    "0x" +
+    dao
+      .calculateMaximumWithdrawCompatible(
+        daoWithdrawalCell,
+        depositBlockHeader!.dao,
+        withdrawBlockHeader!.dao
+      )
+      .toString(16);
+
+  txSkeleton = txSkeleton.update("outputs", (outputs) => {
+    return outputs.push({
+      cellOutput: {
+        capacity: outputCapacity,
+        lock: addressToScript(fromAddress),
+        type: undefined,
+      },
+      data: "0x",
+      outPoint: undefined,
+      blockHash: undefined,
+    });
+  });
+
+  return txSkeleton;
+};
+
+export default {
+  unlock,
+};
+
+
+================================================
+File: src/dao/lib/helpers.ts
+================================================
+import { RPC } from "@ckb-lumos/lumos";
+import {
+  Address,
+  Cell,
+  since,
+  blockchain,
+  PackedDao,
+  WitnessArgs,
+} from "@ckb-lumos/base";
+const { parseSince } = since;
+import {
+  NODE_URL,
+  INDEXER_URL,
+  CKB_SHANNON_RATIO,
+  JOYID_CELLDEP,
+  OMNILOCK_CELLDEP,
+  JOYID_SIGNATURE_PLACEHOLDER_DEFAULT,
+  DAO_MINIMUM_CAPACITY,
+  NETWORK_CONFIG,
+} from "../../config";
+import { addressToScript, TransactionSkeletonType } from "@ckb-lumos/helpers";
+import { CKBIndexerQueryOptions } from "@ckb-lumos/ckb-indexer/src/type";
+import { CellCollector, Indexer } from "@ckb-lumos/ckb-indexer";
+import { getConfig } from "@ckb-lumos/config-manager";
+import { dao } from "@ckb-lumos/common-scripts";
+import { EpochSinceValue } from "@ckb-lumos/base/lib/since";
+import { BI, BIish } from "@ckb-lumos/bi";
+import { bytes, number } from "@ckb-lumos/codec";
+import { ccc } from "@ckb-ccc/connector-react";
+
+const INDEXER = new Indexer(INDEXER_URL);
+const rpc = new RPC(NODE_URL);
+
+export interface Balance {
+  available: string;
+  occupied: string;
+}
+
+export interface DaoCell extends Cell {
+  isDeposit: boolean; // deposit/withdraw
+  depositEpoch: number;
+  sinceEpoch: number;
+  maximumWithdraw: string;
+  ripe: boolean;
+  completedCycles: number;
+  currentCycleProgress: number;
+  cycleEndInterval: number; //epoch
+}
+
+/**
+ * Get block hash based on block number.
+ *
+ * @param blockNumber - CKB block number.
+ * @returns Block hash.
+ */
+export async function getBlockHash(blockNumber: string) {
+  const blockHash = await rpc.getBlockHash(blockNumber);
+  return blockHash;
+}
+
+/**
+ * Convert from CKB to Shannon.
+ *
+ * @param ckbytes - The CKB amount.
+ * @returns The shannon ammount.
+ */
+export function ckbytesToShannons(ckbytes: bigint) {
+  ckbytes = BigInt(ckbytes);
+
+  return ckbytes * BigInt(CKB_SHANNON_RATIO);
+}
+
+/**
+ * Convert integer to hex string.
+ *
+ * @param intValue - The integer number.
+ * @returns The converted hex string.
+ */
+export function intToHex(intValue: bigint): string {
+  if (typeof intValue !== "bigint") {
+    throw new Error("Input value must be a BigInt");
+  }
+
+  let hexString = (intValue >= 0 ? "" : "-") + intValue.toString(16);
+
+  if (intValue < 0) {
+    console.warn("Warning: A negative value was passed to intToHex()");
+  }
+
+  return "0x" + hexString;
+}
+
+/**
+ * Convert hex string to integer.
+ *
+ * @param intValue - The hex string.
+ * @returns The converted bigint.
+ */
+export function hexToInt(hex: string) {
+  hex = String(hex);
+  if (hex.substr(0, 2) !== "0x" && hex.substr(0, 3) !== "-0x")
+    throw new Error(`Invalid hex value: "${hex}"`);
+
+  const negative = hex[0] === "-";
+  const hexValue = hex.replace("-", "");
+  let bigInt = BigInt(hexValue);
+  if (negative) bigInt *= BigInt(-1);
+
+  if (negative)
+    console.warn("Warning: A negative value was passed to hexToInt()");
+
+  return bigInt;
+}
+
+/**
+ * Query balance and DAO status.
+ *
+ * @param ckbAddress - The ckb address.
+ * @returns An object typed Balance.
+ */
+export const queryBalance = async (ckbAddress: Address): Promise<Balance> => {
+  const ret: Balance = { available: "", occupied: "" };
+
+  // query available balance
+  let query: CKBIndexerQueryOptions = {
+    lock: addressToScript(ckbAddress),
+    type: "empty",
+  };
+  const cellCollector = new CellCollector(INDEXER, query);
+  let balance = BigInt(0);
+  for await (const cell of cellCollector.collect()) {
+    balance += hexToInt(cell.cellOutput.capacity);
+  }
+  ret.available = balance.toString();
+
+  // query dao capacity locked in
+  const config = getConfig();
+  const DAO_SCRIPT = config.SCRIPTS.DAO;
+  if (!DAO_SCRIPT) {
+    throw new Error("Provided config does not have DAO script setup!");
+  }
+  const daoQuery: CKBIndexerQueryOptions = {
+    lock: addressToScript(ckbAddress),
+    type: {
+      codeHash: DAO_SCRIPT.CODE_HASH,
+      hashType: DAO_SCRIPT.HASH_TYPE,
+      args: "0x",
+    },
+  };
+
+  const daoCellCollector = new CellCollector(INDEXER, daoQuery);
+  balance = BigInt(0);
+  for await (const cell of daoCellCollector.collect()) {
+    balance += hexToInt(cell.cellOutput.capacity);
+  }
+  ret.occupied = balance.toString();
+
+  return ret;
+};
+
+/**
+ * Find deposit cell based on a withdrawal cell.
+ *
+ * @param withdrawalCell - The Withdrawal cell based on which the deposit cell is searched.
+ * @returns The trace of the deposit cell.
+ */
+export const findDepositCellWith = async (
+  withdrawalCell: Cell
+): Promise<Cell> => {
+  const withdrawPhase1TxRecord: any = await rpc.getTransaction(
+    withdrawalCell.outPoint!.txHash
+  );
+  const depositCellTrace =
+    withdrawPhase1TxRecord.transaction.inputs[
+      parseInt(withdrawalCell.outPoint!.index, 16)
+    ];
+
+  const depositTxRecord: any = await rpc.getTransaction(
+    depositCellTrace.previousOutput.txHash
+  );
+  const depositCellOutput: any =
+    depositTxRecord.transaction.outputs[
+      parseInt(depositCellTrace.previousOutput.index, 16)
+    ];
+
+  let retCell: Cell = {
+    cellOutput: {
+      capacity: depositCellOutput.capacity,
+      lock: depositCellOutput.lock,
+      type: depositCellOutput.type,
+    },
+    data: depositTxRecord.transaction.outputsData[
+      parseInt(depositCellTrace.previousOutput.index, 16)
+    ],
+    blockHash: depositTxRecord.txStatus.blockHash,
+    outPoint: depositCellTrace.previousOutput,
+  };
+
+  return retCell;
+};
+
+/**
+ * Query transaction and check status.
+ */
+async function waitForConfirmation(
+  txid: string,
+  updateProgress = (_status: any) => {},
+  options: any
+) {
+  const defaults = {
+    timeoutMs: 300_000,
+    recheckMs: 250,
+    throwOnNotFound: true,
+  };
+  options = { ...defaults, ...options };
+
+  return new Promise<void>(async (resolve, reject) => {
+    let timedOut = false;
+    const timeoutTimer =
+      options.timeoutMs !== 0
+        ? setTimeout(() => {
+            timedOut = true;
+          }, options.timeoutMs)
+        : false;
+
+    while (true) {
+      if (timedOut) return reject(Error("Transaction timeout."));
+
+      const transaction = await rpc.getTransaction(txid);
+
+      if (!!transaction) {
+        const status = transaction.txStatus.status;
+
+        updateProgress(status);
+
+        if (status === "committed") {
+          if (timeoutTimer) clearTimeout(timeoutTimer);
+
+          break;
+        }
+      } else if (transaction === null) {
+        if (options.throwOnNotFound)
+          return reject(Error("Transaction was not found."));
+        else updateProgress("not_found");
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, options.recheckMs));
+    }
+
+    return resolve();
+  });
+}
+
+/**
+ * Wait for transaction confirmation.
+ *
+ * @param txid - The transaction id / transaction hash.
+ * @returns none.
+ */
+export async function waitForTransactionConfirmation(txid: string) {
+  console.log("Waiting for transaction to confirm.");
+  await waitForConfirmation(txid, (_status) => console.log("."), {
+    recheckMs: 3_000,
+  });
+}
+
+/**
+ * Decode epoch into a readable object.
+ */
+function parseEpochCompatible(epoch: BIish): {
+  length: BI;
+  index: BI;
+  number: BI;
+} {
+  const _epoch = BI.from(epoch);
+  return {
+    length: _epoch.shr(40).and(0xfff),
+    index: _epoch.shr(24).and(0xfff),
+    number: _epoch.and(0xffffff),
+  };
+}
+
+/**
+ * Enrich deposit information for UI control.
+ *
+ * @param cell - The deposit/withdraw cell.
+ * @param isDeposit - Is this a deposit or a withdraw?
+ * @param tipEpoch - The CKB blockchain tip epoch
+ * @returns A CKB raw transaction.
+ */
+export const enrichDaoCellInfo = async (
+  cell: DaoCell,
+  isDeposit: boolean,
+  tipEpoch: number
+) => {
+  if (cell.isDeposit == null) {
+    cell.isDeposit = isDeposit;
+    cell.blockHash = await getBlockHash(cell.blockNumber!);
+
+    let depositBlockHeader;
+    if (isDeposit) {
+      depositBlockHeader = await rpc.getHeader(cell.blockHash!);
+      cell.depositEpoch = parseEpochCompatible(
+        depositBlockHeader.epoch
+      ).number.toNumber();
+
+      const mod = (tipEpoch - cell.depositEpoch) % 180;
+      // best interest + safest time (before the deposit enters another locking cycle)
+      // to make a withdraw is in epoch range (168,180]  of the current cycle which is
+      // about 12 epochs ~ 2 days
+      cell.ripe = mod >= 168 && mod < 180 ? true : false;
+    } else {
+      const daoDepositCell = await findDepositCellWith(cell);
+      const [depositBlockHeader, withdrawBlockHeader] = await Promise.all([
+        rpc.getHeader(daoDepositCell.blockHash!),
+        rpc.getHeader(cell.blockHash!),
+      ]);
+      cell.depositEpoch = parseEpochCompatible(
+        depositBlockHeader.epoch
+      ).number.toNumber();
+      const withdrawEpoch = parseEpochCompatible(
+        withdrawBlockHeader.epoch
+      ).number.toNumber();
+
+      // TODO ripe can also be calculated as Math.ceil( (w-d)/180 ) * 180 + d + 1
+      const earliestSince = dao.calculateDaoEarliestSince(
+        depositBlockHeader.epoch,
+        withdrawBlockHeader.epoch
+      );
+      const parsedSince = parseSince(earliestSince.toString());
+      cell.sinceEpoch = (parsedSince.value as EpochSinceValue).number;
+      cell.maximumWithdraw = dao
+        .calculateMaximumWithdraw(
+          cell,
+          depositBlockHeader.dao,
+          withdrawBlockHeader.dao
+        )
+        .toString();
+      cell.ripe = tipEpoch > cell.sinceEpoch;
+    }
+
+    // enrich deposit info
+    const step = tipEpoch - cell.depositEpoch;
+    cell.completedCycles = Math.floor(step / 180);
+    if (isDeposit == false && cell.ripe) {
+      // when unlocking period arrives, current cycle halt at 100%
+      cell.currentCycleProgress = 100;
+    } else {
+      cell.currentCycleProgress = Math.floor(((step % 180) * 100) / 180);
+    }
+    cell.cycleEndInterval = 180 - (step % 180);
+  }
+};
+
+/**
+ * Fetch tip epoch from CKB and return it
+ */
+export const getTipEpoch = async (): Promise<number> => {
+  const currentEpoch = await rpc.getCurrentEpoch();
+  return parseInt(currentEpoch.number, 16);
+};
+
+/**
+ * A seeded random object, used in controling UI
+ */
+export class SeededRandom {
+  private seed: number;
+
+  constructor(seed: number) {
+    this.seed = seed;
+  }
+
+  next(min: number, max: number): number {
+    // These numbers are constants used in the LCG algorithm.
+    this.seed = (this.seed * 9301 + 49297) % 233280;
+    const rnd = this.seed / 233280;
+    return min + rnd * (max - min);
+  }
+}
+
+/**
+ * Verify if an address is joyID address or not
+ */
+export const isJoyIdAddress = (address: string) => {
+  const config = getConfig();
+  const script = addressToScript(address, { config });
+  return (
+    script.codeHash == JOYID_CELLDEP.codeHash &&
+    script.hashType == JOYID_CELLDEP.hashType
+  );
+};
+
+/**
+ * Verify if an address is an omnilock address or not
+ */
+export const isOmnilockAddress = (address: string) => {
+  const config = getConfig();
+  const script = addressToScript(address, { config });
+  return (
+    script.codeHash == OMNILOCK_CELLDEP.codeHash &&
+    script.hashType == OMNILOCK_CELLDEP.hashType
+  );
+};
+
+/**
+ * Verify if an address is secp256k1 address or not
+ */
+export const isDefaultAddress = (address: string) => {
+  const config = getConfig();
+  const script = addressToScript(address, { config });
+  return (
+    script.codeHash == NETWORK_CONFIG.SCRIPTS.SECP256K1_BLAKE160.CODE_HASH &&
+    script.hashType == NETWORK_CONFIG.SCRIPTS.SECP256K1_BLAKE160.HASH_TYPE
+  );
+};
+
+/**
+ * A workardound for joyID transaction fee since
+ * joyID witness size varies + lumos doesn't support yet
+ *
+ * @param transaction - The transaction skeleton.
+ * @returns A regulated transaction.
+ */
+export const insertJoyIdWithnessPlaceHolder = (
+  transaction: TransactionSkeletonType
+) => {
+  let inputIndex = 0;
+  for (const input of transaction.inputs) {
+    const keyPath = ["witnesses", inputIndex];
+    let witnessRaw = transaction.getIn(keyPath);
+
+    const lockScriptWitness =
+      inputIndex == 0 ? JOYID_SIGNATURE_PLACEHOLDER_DEFAULT : "0x";
+    if (witnessRaw === undefined) {
+      witnessRaw = bytes.hexify(
+        blockchain.WitnessArgs.pack({
+          lock: lockScriptWitness,
+        })
+      );
+      transaction = transaction.setIn(keyPath, witnessRaw);
+    } else {
+      const withnessArgs: WitnessArgs = blockchain.WitnessArgs.unpack(
+        witnessRaw as ccc.BytesLike
+      );
+      withnessArgs.lock = lockScriptWitness;
+      witnessRaw = bytes.hexify(blockchain.WitnessArgs.pack(withnessArgs));
+      transaction = transaction.setIn(keyPath, witnessRaw);
+    }
+    inputIndex++;
+  }
+
+  return transaction;
+};
+
+/**
+ * Get transaction fee from a transaction
+ *
+ * @param transaction - The transaction skeleton.
+ * @param reward - Reward in case of a DAO unlock transaction.
+ * @returns A regulated transaction.
+ */
+export const getFee = (
+  transaction: TransactionSkeletonType,
+  reward: bigint | null = null
+): number => {
+  const inputCapacity = transaction.inputs
+    .toArray()
+    .reduce((a, c) => a + hexToInt(c.cellOutput.capacity), BigInt(0));
+
+  const outputCapacity = transaction.outputs
+    .toArray()
+    .reduce((a, c) => a + hexToInt(c.cellOutput.capacity), BigInt(0));
+
+  // dao unlocking
+  if (reward != null) return Number(inputCapacity + reward - outputCapacity);
+
+  return Number(inputCapacity - outputCapacity);
+};
+
+/**
+ * Decode dao data from block header dao
+ */
+function extractDaoDataCompatible(dao: PackedDao): {
+  [key: string]: BI;
+} {
+  if (!/^(0x)?([0-9a-fA-F]){64}$/.test(dao)) {
+    throw new Error("Invalid dao format!");
+  }
+
+  const len = 8 * 2;
+  const hex = dao.startsWith("0x") ? dao.slice(2) : dao;
+
+  return ["c", "ar", "s", "u"]
+    .map((key, i) => {
+      return {
+        [key]: number.Uint64LE.unpack("0x" + hex.slice(len * i, len * (i + 1))),
+      };
+    })
+    .reduce((result, c) => ({ ...result, ...c }), {});
+}
+
+/**
+ * Estimate reward when withdraw transaction is requested
+ *
+ * @param depositCell - The deposit cell being withdrawn.
+ * @param tipEpoch - The CKB blockchain tip epoch
+ * @returns Reward estimation.
+ */
+export const estimateReturn = async (
+  depositCell: DaoCell,
+  tipEpoch: number
+): Promise<number> => {
+  const c_o = DAO_MINIMUM_CAPACITY;
+  const c_t = parseInt(depositCell.cellOutput.capacity, 16) / CKB_SHANNON_RATIO;
+
+  const [depositHeader, tipHeader] = await Promise.all([
+    rpc.getHeader(depositCell.blockHash!),
+    rpc.getTipHeader(),
+  ]);
+
+  const depositDaoData = extractDaoDataCompatible(depositHeader.dao);
+  const tipDaoData = extractDaoDataCompatible(tipHeader.dao);
+  const result =
+    ((c_t - c_o) * BI.from(tipDaoData.ar).toNumber()) /
+      BI.from(depositDaoData.ar).toNumber() +
+    c_o;
+  return result;
+};
+
+
+================================================
+File: src/hooks/index.ts
+================================================
+import useOnClickOutside from "./useOnClickOutside";
+
+export { useOnClickOutside };
+
+
+================================================
+File: src/hooks/useOnClickOutside.ts
+================================================
+import { useEffect } from "react";
+
+type Event = MouseEvent | TouchEvent;
+
+const useOnClickOutside = (
+  ref: React.RefObject<HTMLElement>,
+  handler: (event: Event) => void
+): void => {
+  useEffect(() => {
+    const listener = (event: Event) => {
+      if (!ref.current || ref.current.contains(event.target as Node)) {
+        return;
+      }
+      handler(event);
+    };
+
+    document.addEventListener("mousedown", listener);
+    document.addEventListener("touchstart", listener);
+
+    return () => {
+      document.removeEventListener("mousedown", listener);
+      document.removeEventListener("touchstart", listener);
+    };
+  }, [ref, handler]);
+};
+
+export default useOnClickOutside;
+
+
+================================================
+File: src/services/basic-wallet.ts
+================================================
+import { ccc } from "@ckb-ccc/connector-react";
+import { CKBTransaction } from "@joyid/ckb";
+import { INDEXER_URL, FEE_RATE } from "../config";
+import { Indexer } from "@ckb-lumos/ckb-indexer";
+import { common } from "@ckb-lumos/common-scripts";
+import { predefined } from "@ckb-lumos/config-manager";
+import { Address, Transaction } from "@ckb-lumos/base";
+import { generateDefaultScriptInfos } from "@ckb-ccc/lumos-patches";
+import { registerCustomLockScriptInfos } from "@ckb-lumos/common-scripts/lib/common";
+import {
+  TransactionSkeleton,
+  createTransactionFromSkeleton,
+} from "@ckb-lumos/helpers";
+
+const indexer = new Indexer(INDEXER_URL);
+registerCustomLockScriptInfos(generateDefaultScriptInfos());
+
+// inherit from ccc demo
+type FixedPoint = bigint;
+type FixedPointLike = bigint | string | number;
+function fixedPointFrom(val: FixedPointLike, decimals = 8): FixedPoint {
+  if (typeof val === "bigint") {
+    return val;
+  }
+
+  const [l, r] = val.toString().split(".");
+  const lVal = BigInt(l.padEnd(l.length + decimals, "0"));
+  if (r === undefined) {
+    return lVal;
+  }
+
+  return lVal + BigInt(r.slice(0, decimals).padEnd(decimals, "0"));
+}
+
+// Only for non-joyid options
+export const buildTransfer = async (
+  signer: ccc.Signer,
+  to: Address,
+  amount: string
+): Promise<CKBTransaction> => {
+  if (!signer) throw new Error("Wallet disconnected. Reconnect!");
+
+  const prefix = await signer.client.addressPrefix;
+  const fromAddresses = await signer.getAddresses();
+  const configuration = prefix === "ckb" ? predefined.LINA : predefined.AGGRON4;
+
+  let txSkeleton = new TransactionSkeleton({ cellProvider: indexer });
+  txSkeleton = await common.transfer(
+    txSkeleton,
+    fromAddresses,
+    to,
+    fixedPointFrom(amount),
+    undefined,
+    undefined,
+    {
+      config: configuration,
+    }
+  );
+
+  txSkeleton = await common.payFeeByFeeRate(
+    txSkeleton,
+    fromAddresses,
+    BigInt(FEE_RATE),
+    undefined,
+    {
+      config: configuration,
+    }
+  );
+
+  const transferTx: Transaction = createTransactionFromSkeleton(txSkeleton);
+  return transferTx as CKBTransaction;
+};
+
+
+================================================
+File: src/services/helpers.ts
+================================================
+import { RPC } from "@ckb-lumos/lumos";
+import {
+  Address,
+  Cell,
+  since,
+  blockchain,
+  PackedDao,
+  WitnessArgs,
+} from "@ckb-lumos/base";
+const { parseSince } = since;
+import {
+  NODE_URL,
+  INDEXER_URL,
+  CKB_SHANNON_RATIO,
+  JOYID_CELLDEP,
+  OMNILOCK_CELLDEP,
+  JOYID_SIGNATURE_PLACEHOLDER_DEFAULT,
+  DAO_MINIMUM_CAPACITY,
+  NETWORK_CONFIG,
+} from "../config";
+import { addressToScript, TransactionSkeletonType } from "@ckb-lumos/helpers";
+import { CKBIndexerQueryOptions } from "@ckb-lumos/ckb-indexer/src/type";
+import { CellCollector, Indexer } from "@ckb-lumos/ckb-indexer";
+import { getConfig } from "@ckb-lumos/config-manager";
+import { dao } from "@ckb-lumos/common-scripts";
+import { EpochSinceValue } from "@ckb-lumos/base/lib/since";
+import { BI, BIish } from "@ckb-lumos/bi";
+import { bytes, number } from "@ckb-lumos/codec";
+import { ccc } from "@ckb-ccc/connector-react";
+
+const INDEXER = new Indexer(INDEXER_URL);
+const rpc = new RPC(NODE_URL);
+
+export interface Balance {
+  available: string;
+  occupied: string;
+}
+
+export interface DaoCell extends Cell {
+  isDeposit: boolean; // deposit/withdraw
+  depositEpoch: number;
+  sinceEpoch: number;
+  maximumWithdraw: string;
+  ripe: boolean;
+  completedCycles: number;
+  currentCycleProgress: number;
+  cycleEndInterval: number; //epoch
+}
+
+/**
+ * Get block hash based on block number.
+ *
+ * @param blockNumber - CKB block number.
+ * @returns Block hash.
+ */
+export async function getBlockHash(blockNumber: string) {
+  const blockHash = await rpc.getBlockHash(blockNumber);
+  return blockHash;
+}
+
+/**
+ * Convert from CKB to Shannon.
+ *
+ * @param ckbytes - The CKB amount.
+ * @returns The shannon ammount.
+ */
+export function ckbytesToShannons(ckbytes: bigint) {
+  ckbytes = BigInt(ckbytes);
+
+  return ckbytes * BigInt(CKB_SHANNON_RATIO);
+}
+
+/**
+ * Convert integer to hex string.
+ *
+ * @param intValue - The integer number.
+ * @returns The converted hex string.
+ */
+export function intToHex(intValue: bigint): string {
+  if (typeof intValue !== "bigint") {
+    throw new Error("Input value must be a BigInt");
+  }
+
+  let hexString = (intValue >= 0 ? "" : "-") + intValue.toString(16);
+
+  if (intValue < 0) {
+    console.warn("Warning: A negative value was passed to intToHex()");
+  }
+
+  return "0x" + hexString;
+}
+
+/**
+ * Convert hex string to integer.
+ *
+ * @param intValue - The hex string.
+ * @returns The converted bigint.
+ */
+export function hexToInt(hex: string) {
+  hex = String(hex);
+  if (hex.substr(0, 2) !== "0x" && hex.substr(0, 3) !== "-0x")
+    throw new Error(`Invalid hex value: "${hex}"`);
+
+  const negative = hex[0] === "-";
+  const hexValue = hex.replace("-", "");
+  let bigInt = BigInt(hexValue);
+  if (negative) bigInt *= BigInt(-1);
+
+  if (negative)
+    console.warn("Warning: A negative value was passed to hexToInt()");
+
+  return bigInt;
+}
+
+/**
+ * Query balance and DAO status.
+ *
+ * @param ckbAddress - The ckb address.
+ * @returns An object typed Balance.
+ */
+export const queryBalance = async (ckbAddress: Address): Promise<Balance> => {
+  const ret: Balance = { available: "", occupied: "" };
+
+  // query available balance
+  let query: CKBIndexerQueryOptions = {
+    lock: addressToScript(ckbAddress),
+    type: "empty",
+  };
+  const cellCollector = new CellCollector(INDEXER, query);
+  let balance = BigInt(0);
+  for await (const cell of cellCollector.collect()) {
+    balance += hexToInt(cell.cellOutput.capacity);
+  }
+  ret.available = balance.toString();
+
+  // query dao capacity locked in
+  const config = getConfig();
+  const DAO_SCRIPT = config.SCRIPTS.DAO;
+  if (!DAO_SCRIPT) {
+    throw new Error("Provided config does not have DAO script setup!");
+  }
+  const daoQuery: CKBIndexerQueryOptions = {
+    lock: addressToScript(ckbAddress),
+    type: {
+      codeHash: DAO_SCRIPT.CODE_HASH,
+      hashType: DAO_SCRIPT.HASH_TYPE,
+      args: "0x",
+    },
+  };
+
+  const daoCellCollector = new CellCollector(INDEXER, daoQuery);
+  balance = BigInt(0);
+  for await (const cell of daoCellCollector.collect()) {
+    balance += hexToInt(cell.cellOutput.capacity);
+  }
+  ret.occupied = balance.toString();
+
+  return ret;
+};
+
+/**
+ * Find deposit cell based on a withdrawal cell.
+ *
+ * @param withdrawalCell - The Withdrawal cell based on which the deposit cell is searched.
+ * @returns The trace of the deposit cell.
+ */
+export const findDepositCellWith = async (
+  withdrawalCell: Cell
+): Promise<Cell> => {
+  const withdrawPhase1TxRecord: any = await rpc.getTransaction(
+    withdrawalCell.outPoint!.txHash
+  );
+  const depositCellTrace =
+    withdrawPhase1TxRecord.transaction.inputs[
+      parseInt(withdrawalCell.outPoint!.index, 16)
+    ];
+
+  const depositTxRecord: any = await rpc.getTransaction(
+    depositCellTrace.previousOutput.txHash
+  );
+  const depositCellOutput: any =
+    depositTxRecord.transaction.outputs[
+      parseInt(depositCellTrace.previousOutput.index, 16)
+    ];
+
+  let retCell: Cell = {
+    cellOutput: {
+      capacity: depositCellOutput.capacity,
+      lock: depositCellOutput.lock,
+      type: depositCellOutput.type,
+    },
+    data: depositTxRecord.transaction.outputsData[
+      parseInt(depositCellTrace.previousOutput.index, 16)
+    ],
+    blockHash: depositTxRecord.txStatus.blockHash,
+    outPoint: depositCellTrace.previousOutput,
+  };
+
+  return retCell;
+};
+
+/**
+ * Query transaction and check status.
+ */
+async function waitForConfirmation(
+  txid: string,
+  updateProgress = (_status: any) => {},
+  options: any
+) {
+  const defaults = {
+    timeoutMs: 300_000,
+    recheckMs: 250,
+    throwOnNotFound: true,
+  };
+  options = { ...defaults, ...options };
+
+  return new Promise<void>(async (resolve, reject) => {
+    let timedOut = false;
+    const timeoutTimer =
+      options.timeoutMs !== 0
+        ? setTimeout(() => {
+            timedOut = true;
+          }, options.timeoutMs)
+        : false;
+
+    while (true) {
+      if (timedOut) return reject(Error("Transaction timeout."));
+
+      const transaction = await rpc.getTransaction(txid);
+
+      if (!!transaction) {
+        const status = transaction.txStatus.status;
+
+        updateProgress(status);
+
+        if (status === "committed") {
+          if (timeoutTimer) clearTimeout(timeoutTimer);
+
+          break;
+        }
+      } else if (transaction === null) {
+        if (options.throwOnNotFound)
+          return reject(Error("Transaction was not found."));
+        else updateProgress("not_found");
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, options.recheckMs));
+    }
+
+    return resolve();
+  });
+}
+
+/**
+ * Wait for transaction confirmation.
+ *
+ * @param txid - The transaction id / transaction hash.
+ * @returns none.
+ */
+export async function waitForTransactionConfirmation(txid: string) {
+  console.log("Waiting for transaction to confirm.");
+  await waitForConfirmation(txid, (_status) => console.log("."), {
+    recheckMs: 3_000,
+  });
+}
+
+/**
+ * Decode epoch into a readable object.
+ */
+function parseEpochCompatible(epoch: BIish): {
+  length: BI;
+  index: BI;
+  number: BI;
+} {
+  const _epoch = BI.from(epoch);
+  return {
+    length: _epoch.shr(40).and(0xfff),
+    index: _epoch.shr(24).and(0xfff),
+    number: _epoch.and(0xffffff),
+  };
+}
+
+/**
+ * Enrich deposit information for UI control.
+ *
+ * @param cell - The deposit/withdraw cell.
+ * @param isDeposit - Is this a deposit or a withdraw?
+ * @param tipEpoch - The CKB blockchain tip epoch
+ * @returns none.
+ */
+export const enrichDaoCellInfo = async (
+  cell: DaoCell,
+  isDeposit: boolean,
+  tipEpoch: number
+) => {
+  if (cell.isDeposit == null) {
+    cell.isDeposit = isDeposit;
+    cell.blockHash = await getBlockHash(cell.blockNumber!);
+
+    let depositBlockHeader;
+    if (isDeposit) {
+      depositBlockHeader = await rpc.getHeader(cell.blockHash!);
+      cell.depositEpoch = parseEpochCompatible(
+        depositBlockHeader.epoch
+      ).number.toNumber();
+
+      const mod = (tipEpoch - cell.depositEpoch) % 180;
+      // best interest + safest time (before the deposit enters another locking cycle)
+      // to make a withdraw is in epoch range (168,180]  of the current cycle which is
+      // about 12 epochs ~ 2 days
+      cell.ripe = mod >= 168 && mod < 180 ? true : false;
+    } else {
+      const daoDepositCell = await findDepositCellWith(cell);
+      const [depositBlockHeader, withdrawBlockHeader] = await Promise.all([
+        rpc.getHeader(daoDepositCell.blockHash!),
+        rpc.getHeader(cell.blockHash!),
+      ]);
+      cell.depositEpoch = parseEpochCompatible(
+        depositBlockHeader.epoch
+      ).number.toNumber();
+      const withdrawEpoch = parseEpochCompatible(
+        withdrawBlockHeader.epoch
+      ).number.toNumber();
+
+      // TODO ripe can also be calculated as Math.ceil( (w-d)/180 ) * 180 + d + 1
+      const earliestSince = dao.calculateDaoEarliestSince(
+        depositBlockHeader.epoch,
+        withdrawBlockHeader.epoch
+      );
+      const parsedSince = parseSince(earliestSince.toString());
+      cell.sinceEpoch = (parsedSince.value as EpochSinceValue).number;
+      cell.maximumWithdraw = dao
+        .calculateMaximumWithdraw(
+          cell,
+          depositBlockHeader.dao,
+          withdrawBlockHeader.dao
+        )
+        .toString();
+      cell.ripe = tipEpoch > cell.sinceEpoch;
+    }
+
+    // enrich deposit info
+    const step = tipEpoch - cell.depositEpoch;
+    cell.completedCycles = Math.floor(step / 180);
+    if (isDeposit == false && cell.ripe) {
+      // when unlocking period arrives, current cycle halt at 100%
+      cell.currentCycleProgress = 100;
+    } else {
+      cell.currentCycleProgress = Math.floor(((step % 180) * 100) / 180);
+    }
+    cell.cycleEndInterval = 180 - (step % 180);
+  }
+};
+
+/**
+ * Fetch tip epoch from CKB and return it
+ */
+export const getTipEpoch = async (): Promise<number> => {
+  const currentEpoch = await rpc.getCurrentEpoch();
+  return parseInt(currentEpoch.number, 16);
+};
+
+/**
+ * A seeded random object, used in controling UI
+ */
+export class SeededRandom {
+  private seed: number;
+
+  constructor(seed: number) {
+    this.seed = seed;
+  }
+
+  next(min: number, max: number): number {
+    // These numbers are constants used in the LCG algorithm.
+    this.seed = (this.seed * 9301 + 49297) % 233280;
+    const rnd = this.seed / 233280;
+    return min + rnd * (max - min);
+  }
+}
+
+/**
+ * Verify if an address is joyID address or not
+ */
+export const isJoyIdAddress = (address: string) => {
+  const config = getConfig();
+  const script = addressToScript(address, { config });
+  return (
+    script.codeHash == JOYID_CELLDEP.codeHash &&
+    script.hashType == JOYID_CELLDEP.hashType
+  );
+};
+
+/**
+ * Verify if an address is an omnilock address or not
+ */
+export const isOmnilockAddress = (address: string) => {
+  const config = getConfig();
+  const script = addressToScript(address, { config });
+  return (
+    script.codeHash == OMNILOCK_CELLDEP.codeHash &&
+    script.hashType == OMNILOCK_CELLDEP.hashType
+  );
+};
+
+/**
+ * Verify if an address is secp256k1 address or not
+ */
+export const isDefaultAddress = (address: string) => {
+  const config = getConfig();
+  const script = addressToScript(address, { config });
+  return (
+    script.codeHash == NETWORK_CONFIG.SCRIPTS.SECP256K1_BLAKE160.CODE_HASH &&
+    script.hashType == NETWORK_CONFIG.SCRIPTS.SECP256K1_BLAKE160.HASH_TYPE
+  );
+};
+
+/**
+ * A workardound for joyID transaction fee since
+ * joyID witness size varies + lumos doesn't support yet
+ *
+ * @param transaction - The transaction skeleton.
+ * @returns A regulated transaction.
+ */
+export const insertJoyIdWithnessPlaceHolder = (
+  transaction: TransactionSkeletonType
+) => {
+  let inputIndex = 0;
+  for (const input of transaction.inputs) {
+    const keyPath = ["witnesses", inputIndex];
+    let witnessRaw = transaction.getIn(keyPath);
+
+    const lockScriptWitness =
+      inputIndex == 0 ? JOYID_SIGNATURE_PLACEHOLDER_DEFAULT : "0x";
+    if (witnessRaw === undefined) {
+      witnessRaw = bytes.hexify(
+        blockchain.WitnessArgs.pack({
+          lock: lockScriptWitness,
+        })
+      );
+      transaction = transaction.setIn(keyPath, witnessRaw);
+    } else {
+      const withnessArgs: WitnessArgs = blockchain.WitnessArgs.unpack(
+        witnessRaw as ccc.BytesLike
+      );
+      withnessArgs.lock = lockScriptWitness;
+      witnessRaw = bytes.hexify(blockchain.WitnessArgs.pack(withnessArgs));
+      transaction = transaction.setIn(keyPath, witnessRaw);
+    }
+    inputIndex++;
+  }
+
+  return transaction;
+};
+
+/**
+ * Get transaction fee from a transaction
+ *
+ * @param transaction - The transaction skeleton.
+ * @param reward - Reward in case of a DAO unlock transaction.
+ * @returns A regulated transaction.
+ */
+export const getFee = (
+  transaction: TransactionSkeletonType,
+  reward: bigint | null = null
+): number => {
+  const inputCapacity = transaction.inputs
+    .toArray()
+    .reduce((a, c) => a + hexToInt(c.cellOutput.capacity), BigInt(0));
+
+  const outputCapacity = transaction.outputs
+    .toArray()
+    .reduce((a, c) => a + hexToInt(c.cellOutput.capacity), BigInt(0));
+
+  // dao unlocking
+  if (reward != null) return Number(inputCapacity + reward - outputCapacity);
+
+  return Number(inputCapacity - outputCapacity);
+};
+
+/**
+ * Decode dao data from block header dao
+ */
+function extractDaoDataCompatible(dao: PackedDao): {
+  [key: string]: BI;
+} {
+  if (!/^(0x)?([0-9a-fA-F]){64}$/.test(dao)) {
+    throw new Error("Invalid dao format!");
+  }
+
+  const len = 8 * 2;
+  const hex = dao.startsWith("0x") ? dao.slice(2) : dao;
+
+  return ["c", "ar", "s", "u"]
+    .map((key, i) => {
+      return {
+        [key]: number.Uint64LE.unpack("0x" + hex.slice(len * i, len * (i + 1))),
+      };
+    })
+    .reduce((result, c) => ({ ...result, ...c }), {});
+}
+
+/**
+ * Estimate reward when withdraw transaction is requested
+ *
+ * @param depositCell - The deposit cell being withdrawn.
+ * @param tipEpoch - The CKB blockchain tip epoch
+ * @returns Reward estimation.
+ */
+export const estimateReturn = async (
+  depositCell: DaoCell,
+  tipEpoch: number
+): Promise<number> => {
+  const c_o = DAO_MINIMUM_CAPACITY;
+  const c_t = parseInt(depositCell.cellOutput.capacity, 16) / CKB_SHANNON_RATIO;
+
+  const [depositHeader, tipHeader] = await Promise.all([
+    rpc.getHeader(depositCell.blockHash!),
+    rpc.getTipHeader(),
+  ]);
+
+  const depositDaoData = extractDaoDataCompatible(depositHeader.dao);
+  const tipDaoData = extractDaoDataCompatible(tipHeader.dao);
+  const result =
+    ((c_t - c_o) * BI.from(tipDaoData.ar).toNumber()) /
+      BI.from(depositDaoData.ar).toNumber() +
+    c_o;
+  return result;
+};
+
+
+================================================
+File: src/styles/globals.scss
+================================================
+@import "./variables.scss";
+
+html {
+  font-size: 62.5%;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  background-color: #060708;
+
+  @media (min-width: 1440px) {
+    font-size: calc(100vw / 144);
+  }
+
+  @media (max-width: 1440px) {
+    font-size: calc(100vw / 144);
+  }
+
+  @media (max-width: 1024px) {
+    font-size: calc(100vw / 102.4);
+  }
+
+  @media (max-width: 768px) {
+    font-size: calc(100vw / 76.8);
+  }
+  @media (max-width: 480px) {
+    font-size: calc(100vw / 48);
+  }
+}
+
+#root {
+  width: 100%;
+  height: 100svh;
+}
+
+.highlight-txt {
+  color: transparent;
+  background: $gradient-green;
+  background-clip: text;
+}
+
+
+================================================
+File: src/styles/typography.scss
+================================================
+@mixin txt-m-medium {
+  font-size: 1.4rem;
+  line-height: 2rem;
+  letter-spacing: 0.015rem;
+  font-weight: 500;
+}
+
+@mixin txt-m-semibold {
+  font-size: 1.4rem;
+  line-height: 2rem;
+  letter-spacing: 0.015rem;
+  font-weight: 600;
+}
+
+@mixin txt-l-medium {
+  font-size: 1.6rem;
+  line-height: 2.4rem;
+  letter-spacing: 0.015rem;
+  font-weight: 500;
+}
+
+@mixin txt-l-semibold {
+  font-size: 1.6rem;
+  line-height: 2.4rem;
+  letter-spacing: 0.015rem;
+  font-weight: 600;
+}
+
+@mixin txt-l-bold {
+  font-size: 1.6rem;
+  line-height: 2.4rem;
+  letter-spacing: 0.015rem;
+  font-weight: 700;
+}
+
+@mixin txt-xl-medium {
+  font-size: 1.8rem;
+  line-height: 2.8rem;
+  letter-spacing: 0.015rem;
+  font-weight: 500;
+}
+
+
+================================================
+File: src/styles/variables.scss
+================================================
+$gradient-green: linear-gradient(135deg, #82dbf7 0%, #b6f09c 100%);
+
+$dark-primary: #0c1132;
+$stem-green: #b6f09c;
+$nokia-black: #9b9c9e;
+
+
+================================================
+File: src/types/jpeg.d.ts
+================================================
+declare module "*.jpeg";
+
+
+================================================
+File: src/types/modules.scss.d.ts
+================================================
+declare module "*.module.scss";
+
+
+================================================
+File: src/types/mp4.d.ts
+================================================
+declare module "*.mp4";
+
+
+================================================
+File: src/types/scss.d.ts
+================================================
+declare module "*.scss";
+
+
+================================================
+File: src/utils/classname.ts
+================================================
+const cx = (classNames: (string | undefined | null | boolean)[]) =>
+  classNames.filter(Boolean).join(" ");
+
+export { cx };
+
+

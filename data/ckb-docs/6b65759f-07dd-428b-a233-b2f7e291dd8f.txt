@@ -1,0 +1,1480 @@
+Directory structure:
+└── utxostack-utxo-allocator/
+    ├── README.md
+    ├── env.ts
+    ├── package.json
+    ├── pnpm-lock.yaml
+    ├── tsconfig.json
+    ├── .env.example
+    └── src/
+        ├── prepare-utxo.ts
+        └── shared/
+            ├── btc-account.ts
+            └── utils.ts
+
+================================================
+File: README.md
+================================================
+# UTXO Allocator
+
+UTXO Allocator is a tool for batch generating and distributing UTXOs (Unspent Transaction Outputs). It allows users to create multiple UTXOs based on a specified Bitcoin address and amount, facilitating batch transactions or payments.
+
+## Features
+
+- **Batch UTXO Generation**: Quickly generate a specified number of UTXOs through simple configuration.
+- **Customizable Address and Amount**: Easily set the receiving Bitcoin address, the amount per UTXO, and the total number of UTXOs to generate.
+- **Simple Setup and Execution**: Configure with a `.env` file and run a single script to generate UTXOs.
+
+## Installation
+
+Install dependencies using PNPM:
+
+```bash
+pnpm install
+```
+
+## Usage
+
+### 1. Configure the `.env` File
+
+Create a `.env` file in the project root and add the following details:
+
+```bash
+VITE_SERVICE_URL=https://api.testnet.rgbpp.io    # URL of the service
+VITE_SERVICE_TOKEN=your_service_token            # JWT token to access the service
+VITE_SERVICE_ORIGIN=your_service_origin          # URL representing your token's domain
+VITE_BTC_PRIVATE_KEY=your_private_key            # The private key used for signing Bitcoin transactions
+```
+
+### 2. Set the Receiving Address, Amount per UTXO, and Number of UTXOs
+
+In the script, configure the receiving address, the amount per UTXO, and the total number of UTXOs to generate. For example:
+
+```javascript
+const btcAddress = 'tb1q9xlw92e2yh2at5takm5u56kj8xw8cuw96as5xc';  // The Bitcoin address to receive the UTXOs
+const amountPerUtxo = 546;  // The amount for each UTXO, in satoshis
+const numOfUtxos = 5;  // Number of UTXOs to generate
+```
+
+In this example, each UTXO will send 546 satoshis to the address `tb1q9xlw92e2yh2at5takm5u56kj8xw8cuw96as5xc`, generating 5 UTXOs in total.
+
+### 3. Run the UTXO Distribution Script
+
+Once everything is configured, run the following command to generate the specified number of UTXOs:
+
+```bash
+pnpm run prepare-utxo
+```
+
+This command will create and distribute UTXOs based on your configured parameters and output the results of the batch distribution.
+
+
+================================================
+File: env.ts
+================================================
+import {AddressType, bitcoin, DataSource, ECPair, ECPairInterface, NetworkType} from "@rgbpp-sdk/btc";
+import {BtcAssetsApi} from "@rgbpp-sdk/service";
+import dotenv from 'dotenv';
+import {createBtcAccount} from "./src/shared/btc-account";
+dotenv.config({ path: __dirname + '/.env' });
+
+export const isMainnet = false;
+
+export const BTC_PRIVATE_KEY = process.env.VITE_BTC_PRIVATE_KEY!;
+export const BTC_SERVICE_URL = process.env.VITE_SERVICE_URL!;
+export const BTC_SERVICE_TOKEN = process.env.VITE_SERVICE_TOKEN!;
+export const BTC_SERVICE_ORIGIN = process.env.VITE_SERVICE_ORIGIN!;
+
+const network = isMainnet ? bitcoin.networks.bitcoin : bitcoin.networks.testnet;
+export const btcKeyPair: ECPairInterface = ECPair.fromPrivateKey(Buffer.from(BTC_PRIVATE_KEY, 'hex'), { network });
+
+// Read more about the available address types:
+// - P2WPKH: https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#p2wpkh
+// - P2TR: https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki
+const addressType = AddressType.P2WPKH;
+const networkType = isMainnet ? NetworkType.MAINNET : NetworkType.TESTNET;
+export const btcAccount = createBtcAccount(BTC_PRIVATE_KEY, addressType, networkType);
+
+export const btcService = BtcAssetsApi.fromToken(BTC_SERVICE_URL, BTC_SERVICE_TOKEN, BTC_SERVICE_ORIGIN);
+export const btcDataSource = new DataSource(btcService, networkType);
+
+
+================================================
+File: package.json
+================================================
+{
+  "name": "utxo-allocator",
+  "version": "1.0.0",
+  "description": "For bulk distribution of utxo",
+  "scripts": {
+    "format": "prettier --write '**/*.{js,ts}'",
+    "lint": "tsc && eslint . && prettier --check '**/*.{js,ts}'",
+    "lint:fix": "tsc && eslint --fix --ext .js,.ts . && prettier --write '**/*.{js,ts}'",
+    "prepare-utxo": "ts-node src/prepare-utxo.ts"
+  },
+  "dependencies": {
+    "@nervosnetwork/ckb-sdk-utils": "0.109.3",
+    "@rgbpp-sdk/btc": "^0.6.0",
+    "@rgbpp-sdk/ckb": "^0.6.0",
+    "zx": "^8.0.2"
+  },
+  "devDependencies": {
+    "@types/dotenv": "^8.2.0",
+    "@types/node": "^22.7.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
+
+
+================================================
+File: pnpm-lock.yaml
+================================================
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      '@nervosnetwork/ckb-sdk-utils':
+        specifier: 0.109.3
+        version: 0.109.3
+      '@rgbpp-sdk/btc':
+        specifier: ^0.6.0
+        version: 0.6.0(@ckb-lumos/lumos@0.23.0)
+      '@rgbpp-sdk/ckb':
+        specifier: ^0.6.0
+        version: 0.6.0(@ckb-lumos/lumos@0.23.0)(lodash@4.17.21)
+      zx:
+        specifier: ^8.0.2
+        version: 8.1.9
+    devDependencies:
+      '@types/dotenv':
+        specifier: ^8.2.0
+        version: 8.2.0
+      '@types/node':
+        specifier: ^22.7.5
+        version: 22.7.6
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@types/node@22.7.6)(typescript@5.6.3)
+      typescript:
+        specifier: ^5.6.3
+        version: 5.6.3
+
+packages:
+
+  '@bitcoinerlab/secp256k1@1.1.1':
+    resolution: {integrity: sha512-uhjW51WfVLpnHN7+G0saDcM/k9IqcyTbZ+bDgLF3AX8V/a3KXSE9vn7UPBrcdU72tp0J4YPR7BHp2m7MLAZ/1Q==}
+
+  '@ckb-lumos/base@0.22.2':
+    resolution: {integrity: sha512-nosUCSa5rTV2IzxbEpqzrvUeQNXB66mgA0h40+QEdnE/gV/s4ke83AScrTAxWkErJy1G/sToIHCc2kWwO95DfQ==}
+    engines: {node: '>=12.0.0'}
+
+  '@ckb-lumos/base@0.23.0':
+    resolution: {integrity: sha512-8aLFsUyWIK0rT7GQlYFuXyiG5lQ2bLRK2GvUsxv5G7I3nJ1UyxjwvVOdtlsR/cwhzOam3ujwqASqBIayBL6GLA==}
+    engines: {node: '>=12.0.0'}
+
+  '@ckb-lumos/bi@0.22.2':
+    resolution: {integrity: sha512-F+dLC/tE+xdtNuGgJxlDqbgX/f8azg1tvIFTR5mu7Vhz08nkFgnA+Z+yC0t/I3fDwwH4p/SlGP/yducrsfVTqw==}
+    engines: {node: '>=12.0.0'}
+
+  '@ckb-lumos/bi@0.23.0':
+    resolution: {integrity: sha512-KAy+lyVpL+Al4XD+c9tHrA9DSpHkMusyXtTS81aNZi5MyL6F9jrVmFcqLorhfyfl8Fsv2sEjMe5Neo2Y+w/RJQ==}
+    engines: {node: '>=12.0.0'}
+
+  '@ckb-lumos/ckb-indexer@0.23.0':
+    resolution: {integrity: sha512-yLODLJzvtz4M6W6OJR4iRbBTUGrKReV2dhVePPjbH/HRkRY6f6J6cEM9+qM2I3QABmaCXeAM3hWvnWU9hjalQQ==}
+    engines: {node: '>=12.0.0'}
+
+  '@ckb-lumos/codec@0.22.2':
+    resolution: {integrity: sha512-P5SyhT2qkJwCwcHF3yMLInE0z3wWHDkqJNbSM2Q9oyu0+9kjMQfexNia3T+atBl2M7ELFzN5WvttojYr6DrCwQ==}
+    engines: {node: '>=12.0.0'}
+
+  '@ckb-lumos/codec@0.23.0':
+    resolution: {integrity: sha512-FwYooXnsFDjlHHnlFnCTB1UbBzV72I0VjkRpeauFk5nQ4+/75xl28ywK3J14M+0aHTnYU9msXUTRDAGqC0CaNQ==}
+    engines: {node: '>=12.0.0'}
+
+  '@ckb-lumos/common-scripts@0.23.0':
+    resolution: {integrity: sha512-Dwic0Al94afdGNu+TGAMmZiU5OVF/zvXbzhCvNmkFS25t8BxPdFjGEc0MlWBI4ZSEoGRrC0O+BOxjzfl5VxSYg==}
+    engines: {node: '>=12.0.0'}
+
+  '@ckb-lumos/config-manager@0.23.0':
+    resolution: {integrity: sha512-MvNyzGIJTmIpEf5WJB3TkE4icZyZ2HZhFIfJB2SXDRAC84E02jxENPelCnqRbM1rlFHnxjh/5a/oCi5LcXefag==}
+    engines: {node: '>=12.0.0'}
+
+  '@ckb-lumos/hd@0.23.0':
+    resolution: {integrity: sha512-z7EsR/GeX54hq4ukqwW3nrqLCsYrTWIFAjZLR1Ao8xycqQp0IBjCWZLLjRrZY6krbUQpVOoiKo3NBLpPW36LXg==}
+    engines: {node: '>=12.0.0'}
+
+  '@ckb-lumos/helpers@0.23.0':
+    resolution: {integrity: sha512-yfD28vSn1BBk8BA+/ivL7pF3rMsx4OPQ+UUJjsQiR1zGdkNR3zhJOecgICeddJGYDTBBDVgwHcuyoekLxQzmGg==}
+    engines: {node: '>=12.0.0'}
+
+  '@ckb-lumos/light-client@0.23.0':
+    resolution: {integrity: sha512-O+dbfubDjl0iODiQ8Q+RVJLfuXYNCN6c0am8xEv4vvazLwfw1y/vn6fG/pFu9Mc1GahZ58y9o6fkUgs8ujH3Mg==}
+    engines: {node: '>=12.0.0'}
+
+  '@ckb-lumos/lumos@0.23.0':
+    resolution: {integrity: sha512-ocsmzgTgevVwyQeQkUZrg4PLJCfX48D5MEBNYTMoGh5b1g0f1iEBHcAgw4WBGOKgMJQmGRmWB5P6tPDZ3OZBwQ==}
+    engines: {node: '>=12.0.0'}
+
+  '@ckb-lumos/rpc@0.23.0':
+    resolution: {integrity: sha512-NEY1Wb2cNMYdHwcZYtd8XZ3CP6WGPd25hcsudoDAFlAt9vjHsPlNiwSS7tcZCZfg1XiJy3taViVgG8pFemgpbA==}
+    engines: {node: '>=12.0.0'}
+
+  '@ckb-lumos/toolkit@0.22.2':
+    resolution: {integrity: sha512-HmKz2dGQeaW2XDqkvjJfLv50VQWGKbthg2RDfIxGsZyjveluRROTyuHP1akypy4pqF8TApGLsXci2MaHCRau+w==}
+    engines: {node: '>=12.0.0'}
+
+  '@ckb-lumos/toolkit@0.23.0':
+    resolution: {integrity: sha512-7LTsUFfoNCBWJLgh+V/QFnemjGw+y4mmLeQvubwYuJqIPIhIpwKUuKRzkvVG8snA8xVQSfjSSQOs5m3mKp66Kg==}
+    engines: {node: '>=12.0.0'}
+
+  '@ckb-lumos/transaction-manager@0.23.0':
+    resolution: {integrity: sha512-sfwt2g8JlYxr5jRx5r/UZNffTpkwn3sh4dD2THzKmX0S1CsSgww2D1ZD7yruWwSu05ZLKlDPFVKyJ50tNc3LuQ==}
+    engines: {node: '>=12.0.0'}
+
+  '@cspotcode/source-map-support@0.8.1':
+    resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
+    engines: {node: '>=12'}
+
+  '@exact-realty/multipart-parser@1.0.14':
+    resolution: {integrity: sha512-ln1+s1XOvRY9NRof3lpjWJZfSoV5XOWdVgK7sYeE3TAt0brtB+pIPJpSbxaol/490re2rcMEo24VZXeffKm8Aw==}
+    engines: {node: '>=16.0.0', npm: '>=8.0.0'}
+    deprecated: Package has moved to @apeleghq/multipart-parser
+
+  '@jridgewell/resolve-uri@3.1.2':
+    resolution: {integrity: sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==}
+    engines: {node: '>=6.0.0'}
+
+  '@jridgewell/sourcemap-codec@1.5.0':
+    resolution: {integrity: sha512-gv3ZRaISU3fjPAgNsriBRqGWQL6quFx04YMPW/zD8XMLsU32mhCCbfbO6KZFLjvYpCZ8zyDEgqsgf+PwPaM7GQ==}
+
+  '@jridgewell/trace-mapping@0.3.9':
+    resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
+
+  '@nervosnetwork/ckb-sdk-core@0.109.3':
+    resolution: {integrity: sha512-YASdkmfvw6eu/q+7X2OTrnshhWb5bVtPPkzaryEfvGrRAhHzh45Q/umyvX3GOBxU5wncdTuptNsWI5A/T2ZjVw==}
+
+  '@nervosnetwork/ckb-sdk-rpc@0.109.3':
+    resolution: {integrity: sha512-7CHY8S78IvwyawqVaBwTrqUjiNQ31GdovPRuUommtxv6JYetoZEWQuzdcIMipqEGXZT6jIfuAYeKS2mZJWQmCw==}
+
+  '@nervosnetwork/ckb-sdk-utils@0.109.3':
+    resolution: {integrity: sha512-sV3WXlZmd765qtFsXpwl0Bl3hOgGev15Og810acO6iC0cVHEVvv/Uiabd8a2xkqyfziRDI0tfWC0DewOJB28rg==}
+
+  '@nervosnetwork/ckb-types@0.109.3':
+    resolution: {integrity: sha512-i9EVTXCT0bTLpAQXAoF5zHGLWYCXNE5AP4Zl0Niwl3ZplaVAZHNU6ygsh2O3EGmCFv5qlkoY2DuLmsjysEaNLA==}
+
+  '@noble/hashes@1.5.0':
+    resolution: {integrity: sha512-1j6kQFb7QRru7eKN3ZDvRcP13rugwdxZqCjbiAVZfIJwgj2A65UmT4TgARXGlXgnRkORLTDTrO19ZErt7+QXgA==}
+    engines: {node: ^14.21.3 || >=16}
+
+  '@noble/secp256k1@1.7.1':
+    resolution: {integrity: sha512-hOUk6AyBFmqVrv7k5WAw/LpszxVbj9gGN4JRkIX52fdFAj1UA61KXmZDvqVEm+pOyec3+fIeZB02LYa/pWOArw==}
+
+  '@rgbpp-sdk/btc@0.6.0':
+    resolution: {integrity: sha512-hnbEo9Hbba8vcVrqINnfnf8+XulRvvwn3Iq9xMEwA3b1WMsuZDSfRujp6rtbCiIKOMbBTOX1DgsC07RyvCZ7VQ==}
+
+  '@rgbpp-sdk/ckb@0.6.0':
+    resolution: {integrity: sha512-SCR3vtw7nizqKTl53VqWGLX4KkpqOu1ujP3LXmWsBE07RJ2d0hTiQDVO2Y4wYsFT2RCl2cOfEMeAx2/VAvk4Fg==}
+
+  '@rgbpp-sdk/service@0.6.0':
+    resolution: {integrity: sha512-R+5VyzxvfwtCYEibhV+UjBXSJDL7IfxuBSgjd6M4tN9sg5ScpCTlrrJJAjjWb/euiV1Qnd/tFsX4fTZBeWnXRQ==}
+
+  '@scure/base@1.1.9':
+    resolution: {integrity: sha512-8YKhl8GHiNI/pU2VMaofa2Tor7PJRAjwQLBBuilkJ9L5+13yVbC7JO/wS7piioAvPSwR3JKM1IJ/u4xQzbcXKg==}
+
+  '@spore-sdk/core@0.2.1':
+    resolution: {integrity: sha512-mNUxoQu4h6H4DIEwBxUzntFf6HFG5xXOsSwnN9jF0+oL+fIjOTNt4erwZeeJo1H7H6AS4S9OkDFikykYVIzZSg==}
+    peerDependencies:
+      '@ckb-lumos/lumos': 0.22.0-next.5
+      lodash: ^4.17.21
+
+  '@tsconfig/node10@1.0.11':
+    resolution: {integrity: sha512-DcRjDCujK/kCk/cUe8Xz8ZSpm8mS3mNNpta+jGCA6USEDfktlNvm1+IuZ9eTcDbNk41BHwpHHeW+N1lKCz4zOw==}
+
+  '@tsconfig/node12@1.0.11':
+    resolution: {integrity: sha512-cqefuRsh12pWyGsIoBKJA9luFu3mRxCA+ORZvA4ktLSzIuCUtWVxGIuXigEwO5/ywWFMZ2QEGKWvkZG1zDMTag==}
+
+  '@tsconfig/node14@1.0.3':
+    resolution: {integrity: sha512-ysT8mhdixWK6Hw3i1V2AeRqZ5WfXg1G43mqoYlM2nc6388Fq5jcXyr5mRsqViLx/GJYdoL0bfXD8nmF+Zn/Iow==}
+
+  '@tsconfig/node16@1.0.4':
+    resolution: {integrity: sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==}
+
+  '@types/blake2b@2.1.3':
+    resolution: {integrity: sha512-MFCdX0MNxFBP/xEILO5Td0kv6nI7+Q2iRWZbTL/yzH2/eDVZS5Wd1LHdsmXClvsCyzqaZfHFzZaN6BUeUCfSDA==}
+
+  '@types/deep-freeze-strict@1.1.2':
+    resolution: {integrity: sha512-VvMETBojHvhX4f+ocYTySQlXMZfxKV3Jyb7iCWlWaC+exbedkv6Iv2bZZqI736qXjVguH6IH7bzwMBMfTT+zuQ==}
+
+  '@types/dotenv@8.2.0':
+    resolution: {integrity: sha512-ylSC9GhfRH7m1EUXBXofhgx4lUWmFeQDINW5oLuS+gxWdfUeW4zJdeVTYVkexEW+e2VUvlZR2kGnGGipAWR7kw==}
+    deprecated: This is a stub types definition. dotenv provides its own type definitions, so you do not need this installed.
+
+  '@types/fs-extra@11.0.4':
+    resolution: {integrity: sha512-yTbItCNreRooED33qjunPthRcSjERP1r4MqCZc7wv0u2sUkzTFp45tgUfS5+r7FrZPdmCCNflLhVSP/o+SemsQ==}
+
+  '@types/jsonfile@6.1.4':
+    resolution: {integrity: sha512-D5qGUYwjvnNNextdU59/+fI+spnwtTFmyQP0h+PfIOSkNfpU6AOICUOkm4i0OnSk+NyjdPJrxCDro0sJsWlRpQ==}
+
+  '@types/lodash.isequal@4.5.8':
+    resolution: {integrity: sha512-uput6pg4E/tj2LGxCZo9+y27JNyB2OZuuI/T5F+ylVDYuqICLG2/ktjxx0v6GvVntAf8TvEzeQLcV0ffRirXuA==}
+
+  '@types/lodash@4.17.10':
+    resolution: {integrity: sha512-YpS0zzoduEhuOWjAotS6A5AVCva7X4lVlYLF0FYHAY9sdraBfnatttHItlWeZdGhuEkf+OzMNg2ZYAx8t+52uQ==}
+
+  '@types/node@22.7.6':
+    resolution: {integrity: sha512-/d7Rnj0/ExXDMcioS78/kf1lMzYk4BZV8MZGTBKzTGZ6/406ukkbYlIsZmMPhcR5KlkunDHQLrtAVmSq7r+mSw==}
+
+  abort-controller@3.0.0:
+    resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}
+    engines: {node: '>=6.5'}
+
+  acorn-walk@8.3.4:
+    resolution: {integrity: sha512-ueEepnujpqee2o5aIYnvHU6C0A42MNdsIDeqy5BydrkuC5R1ZuUFnm27EeFJGoEHJQgn3uleRvmTXaJgfXbt4g==}
+    engines: {node: '>=0.4.0'}
+
+  acorn@8.13.0:
+    resolution: {integrity: sha512-8zSiw54Oxrdym50NlZ9sUusyO1Z1ZchgRLWRaK6c86XJFClyCgFKetdowBg5bKxyp/u+CDBJG4Mpp0m3HLZl9w==}
+    engines: {node: '>=0.4.0'}
+    hasBin: true
+
+  arg@4.1.3:
+    resolution: {integrity: sha512-58S9QDqG0Xx27YwPSt9fJxivjYl432YCwfDMfZ+71RAqUrZef7LrKQZ3LHLOwCS4FLNBplP533Zx895SeOCHvA==}
+
+  asynckit@0.4.0:
+    resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
+
+  axios@1.6.7:
+    resolution: {integrity: sha512-/hDJGff6/c7u0hDkvkGxR/oy6CbCs8ziCsC7SqmhjfozqiJGc8Z11wrv9z9lYfY4K8l+H9TpjcMDX0xOZmx+RA==}
+
+  axios@1.7.7:
+    resolution: {integrity: sha512-S4kL7XrjgBmvdGut0sN3yJxqYzrDOnivkBiN0OFs6hLiUam3UPvswUo0kqGyhqUZGEOytHyumEdXsAkgCOUf3Q==}
+
+  b4a@1.6.7:
+    resolution: {integrity: sha512-OnAYlL5b7LEkALw87fUVafQw5rVR9RjwGd4KUwNQ6DrrNmaVaUCgLipfVlzrPQ4tWOR9P0IXGNOx50jYCCdSJg==}
+
+  base-x@3.0.10:
+    resolution: {integrity: sha512-7d0s06rR9rYaIWHkpfLIFICM/tkSVdoPC9qYAQRpxn9DdKNWNsKC0uk++akckyLq16Tx2WIinnZ6WRriAt6njQ==}
+
+  base-x@4.0.0:
+    resolution: {integrity: sha512-FuwxlW4H5kh37X/oW59pwTzzTKRzfrrQwhmyspRM7swOEZcHtDZSCt45U6oKgtuFE+WYPblePMVIPR4RZrh/hw==}
+
+  base64-js@1.5.1:
+    resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
+
+  bech32@2.0.0:
+    resolution: {integrity: sha512-LcknSilhIGatDAsY1ak2I8VtGaHNhgMSYVxFrGLXv+xLHytaKZKcaUJJUE7qmBr7h33o5YQwP55pMI0xmkpJwg==}
+
+  bip174@2.1.1:
+    resolution: {integrity: sha512-mdFV5+/v0XyNYXjBS6CQPLo9ekCx4gtKZFnJm5PMto7Fs9hTTDpkkzOB7/FtluRI6JbUUAu+snTYfJRgHLZbZQ==}
+    engines: {node: '>=8.0.0'}
+
+  bip32@4.0.0:
+    resolution: {integrity: sha512-aOGy88DDlVUhspIXJN+dVEtclhIsfAUppD43V0j40cPTld3pv/0X/MlrZSZ6jowIaQQzFwP8M6rFU2z2mVYjDQ==}
+    engines: {node: '>=6.0.0'}
+
+  bitcoinjs-lib@6.1.6:
+    resolution: {integrity: sha512-Fk8+Vc+e2rMoDU5gXkW9tD+313rhkm5h6N9HfZxXvYU9LedttVvmXKTgd9k5rsQJjkSfsv6XRM8uhJv94SrvcA==}
+    engines: {node: '>=8.0.0'}
+
+  blake2b-wasm@2.4.0:
+    resolution: {integrity: sha512-S1kwmW2ZhZFFFOghcx73+ZajEfKBqhP82JMssxtLVMxlaPea1p9uoLiUZ5WYyHn0KddwbLc+0vh4wR0KBNoT5w==}
+
+  blake2b@2.1.4:
+    resolution: {integrity: sha512-AyBuuJNI64gIvwx13qiICz6H6hpmjvYS5DGkG6jbXMOT8Z3WUJ3V1X0FlhIoT1b/5JtHE3ki+xjtMvu1nn+t9A==}
+
+  bn.js@4.12.0:
+    resolution: {integrity: sha512-c98Bf3tPniI+scsdk237ku1Dc3ujXQTSgyiPUDEOe7tRkhrqridvh8klBv0HCEso1OLOYcHuCv/cS6DNxKH+ZA==}
+
+  bn.js@5.2.1:
+    resolution: {integrity: sha512-eXRvHzWyYPBuB4NBy0cmYQjGitUrtqwbvlzP3G6VFnNRbsZQIxQ10PbKKHt8gZ/HW/D/747aDl+QkDqg3KQLMQ==}
+
+  brorand@1.1.0:
+    resolution: {integrity: sha512-cKV8tMCEpQs4hK/ik71d6LrPOnpkpGBR0wzxqr68g2m/LB2GxVYQroAjMJZRVM1Y4BCjCKc3vAamxSzOY2RP+w==}
+
+  bs58@4.0.1:
+    resolution: {integrity: sha512-Ok3Wdf5vOIlBrgCvTq96gBkJw+JUEzdBgyaza5HLtPm7yTHkjRy8+JzNyHF7BHa0bNWOQIp3m5YF0nnFcOIKLw==}
+
+  bs58@5.0.0:
+    resolution: {integrity: sha512-r+ihvQJvahgYT50JD05dyJNKlmmSlMoOGwn1lCcEzanPglg7TxYjioQUYehQ9mAR/+hOSd2jRc/Z2y5UxBymvQ==}
+
+  bs58check@2.1.2:
+    resolution: {integrity: sha512-0TS1jicxdU09dwJMNZtVAfzPi6Q6QeN0pM1Fkzrjn+XYHvzMKPU3pHVpva+769iNVSfIYWf7LJ6WR+BuuMf8cA==}
+
+  bs58check@3.0.1:
+    resolution: {integrity: sha512-hjuuJvoWEybo7Hn/0xOrczQKKEKD63WguEjlhLExYs2wUBcebDC1jDNK17eEAD2lYfw82d5ASC1d7K3SWszjaQ==}
+
+  buffer@6.0.3:
+    resolution: {integrity: sha512-FTiCpNxtwiZZHEZbcbTIcZjERVICn9yq/pDFkTl95/AxzD1naBctN7YO68riM/gLSDY7sdrMby8hofADYuuqOA==}
+
+  camelcase-keys@7.0.2:
+    resolution: {integrity: sha512-Rjs1H+A9R+Ig+4E/9oyB66UC5Mj9Xq3N//vcLf2WzgdTi/3gUu3Z9KoqmlrEG4VuuLK8wJHofxzdQXz/knhiYg==}
+    engines: {node: '>=12'}
+
+  camelcase@6.3.0:
+    resolution: {integrity: sha512-Gmy6FhYlCY7uOElZUSbxo2UCDH8owEk996gkbrpsgGtrJLM3J7jGxl9Ic7Qwwj4ivOE5AWZWRMecDdF7hqGjFA==}
+    engines: {node: '>=10'}
+
+  cipher-base@1.0.4:
+    resolution: {integrity: sha512-Kkht5ye6ZGmwv40uUDZztayT2ThLQGfnj/T71N/XzeZeo3nf8foyW7zGTsPYkEya3m5f3cAypH+qe7YOrM1U2Q==}
+
+  combined-stream@1.0.8:
+    resolution: {integrity: sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==}
+    engines: {node: '>= 0.8'}
+
+  create-hash@1.2.0:
+    resolution: {integrity: sha512-z00bCGNHDG8mHAkP7CtT1qVu+bFQUPjYq/4Iv3C3kWjTFV10zIjfSoeqXo9Asws8gwSHDGj/hl2u4OGIjapeCg==}
+
+  create-require@1.1.1:
+    resolution: {integrity: sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==}
+
+  cross-fetch@3.1.8:
+    resolution: {integrity: sha512-cvA+JwZoU0Xq+h6WkMvAUqPEYy92Obet6UdKLfW60qn99ftItKjB5T+BkyWOFWe2pUyfQ+IJHmpOTznqk1M6Kg==}
+
+  deep-freeze-strict@1.1.1:
+    resolution: {integrity: sha512-QemROZMM2IvhAcCFvahdX2Vbm4S/txeq5rFYU9fh4mQP79WTMW5c/HkQ2ICl1zuzcDZdPZ6zarDxQeQMsVYoNA==}
+
+  delayed-stream@1.0.0:
+    resolution: {integrity: sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ==}
+    engines: {node: '>=0.4.0'}
+
+  diff@4.0.2:
+    resolution: {integrity: sha512-58lmxKSA4BNyLz+HHMUzlOEpg09FV+ev6ZMe3vJihgdxzgcwZ8VoEEPmALCZG9LmqfVoNMMKpttIYTVG6uDY7A==}
+    engines: {node: '>=0.3.1'}
+
+  dotenv@16.4.5:
+    resolution: {integrity: sha512-ZmdL2rui+eB2YwhsWzjInR8LldtZHGDoQ1ugH85ppHKwpUHL7j7rN0Ti9NCnGiQbhaZ11FpR+7ao1dNsmduNUg==}
+    engines: {node: '>=12'}
+
+  ecpair@2.1.0:
+    resolution: {integrity: sha512-cL/mh3MtJutFOvFc27GPZE2pWL3a3k4YvzUWEOvilnfZVlH3Jwgx/7d6tlD7/75tNk8TG2m+7Kgtz0SI1tWcqw==}
+    engines: {node: '>=8.0.0'}
+
+  elliptic@6.5.4:
+    resolution: {integrity: sha512-iLhC6ULemrljPZb+QutR5TQGB+pdW6KGD5RSegS+8sorOZT+rdQFbsQFJgvN3eRqNALqJer4oQ16YvJHlU8hzQ==}
+
+  elliptic@6.5.7:
+    resolution: {integrity: sha512-ESVCtTwiA+XhY3wyh24QqRGBoP3rEdDUl3EDUUo9tft074fi19IrdpH7hLCMMP3CIj7jb3W96rn8lt/BqIlt5Q==}
+
+  event-target-shim@5.0.1:
+    resolution: {integrity: sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==}
+    engines: {node: '>=6'}
+
+  events@3.3.0:
+    resolution: {integrity: sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==}
+    engines: {node: '>=0.8.x'}
+
+  follow-redirects@1.15.9:
+    resolution: {integrity: sha512-gew4GsXizNgdoRyqmyfMHyAmXsZDk6mHkSxZFCzW9gwlbtOW44CDtYavM+y+72qD/Vq2l550kMF52DT8fOLJqQ==}
+    engines: {node: '>=4.0'}
+    peerDependencies:
+      debug: '*'
+    peerDependenciesMeta:
+      debug:
+        optional: true
+
+  form-data@4.0.1:
+    resolution: {integrity: sha512-tzN8e4TX8+kkxGPK8D5u0FNmjPUjw3lwC9lSLxxoB/+GtsJG91CO8bSWy73APlgAZzZbXEYZJuxjkHH2w+Ezhw==}
+    engines: {node: '>= 6'}
+
+  hash-base@3.1.0:
+    resolution: {integrity: sha512-1nmYp/rhMDiE7AYkDw+lLwlAzz0AntGIe51F3RfFfEqyQ3feY2eI/NcwC6umIQVOASPMsWJLJScWKSSvzL9IVA==}
+    engines: {node: '>=4'}
+
+  hash.js@1.1.7:
+    resolution: {integrity: sha512-taOaskGt4z4SOANNseOviYDvjEJinIkRgmp7LbKP2YTTmVxWBl87s/uzK9r+44BclBSp2X7K1hqeNfz9JbBeXA==}
+
+  hmac-drbg@1.0.1:
+    resolution: {integrity: sha512-Tti3gMqLdZfhOQY1Mzf/AanLiqh1WTiJgEj26ZuYQ9fbkLomzGchCws4FyrSd4VkpBfiNhaE1On+lOz894jvXg==}
+
+  ieee754@1.2.1:
+    resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
+
+  immutable@4.3.7:
+    resolution: {integrity: sha512-1hqclzwYwjRDFLjcFxOM5AYkkG0rpFPpr1RLPMEuGczoS7YA8gLhy8SWXYRAA/XwfEHpfo3cw5JGioS32fnMRw==}
+
+  inherits@2.0.4:
+    resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
+
+  js-sha256@0.11.0:
+    resolution: {integrity: sha512-6xNlKayMZvds9h1Y1VWc0fQHQ82BxTXizWPEtEeGvmOUYpBRy4gbWroHLpzowe6xiQhHpelCQiE7HEdznyBL9Q==}
+
+  js-xxhash@1.0.4:
+    resolution: {integrity: sha512-S/6Oo7ruxx5k8m4qlMnbpwQdJjRsvvfcIhIk1dA9c5y5GNhYHKYKu9krEK3QgBax6CxJuf4gRL2opgLkdzWIKg==}
+    engines: {node: '>=8.0.0'}
+
+  jsbi@3.1.3:
+    resolution: {integrity: sha512-nBJqA0C6Qns+ZxurbEoIR56wyjiUszpNy70FHvxO5ervMoCbZVE3z3kxr5nKGhlxr/9MhKTSUBs7cAwwuf3g9w==}
+
+  jsbi@4.3.0:
+    resolution: {integrity: sha512-SnZNcinB4RIcnEyZqFPdGPVgrg2AcnykiBy0sHVJQKHYeaLUvi3Exj+iaPpLnFVkDPZIV4U0yvgC9/R4uEAZ9g==}
+
+  lodash.isequal@4.5.0:
+    resolution: {integrity: sha512-pDo3lu8Jhfjqls6GkMgpahsF9kCyayhgykjyLMNFTKWrpVdAQtYyB4muAMWozBB4ig/dtWAmsMxLEI8wuz+DYQ==}
+
+  lodash@4.17.21:
+    resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
+
+  make-error@1.3.6:
+    resolution: {integrity: sha512-s8UhlNe7vPKomQhC1qFelMokr/Sc3AgNbso3n74mVPA5LTZwkB9NlXf4XPamLxJE8h0gh73rM94xvwRT2CVInw==}
+
+  map-obj@4.3.0:
+    resolution: {integrity: sha512-hdN1wVrZbb29eBGiGjJbeP8JbKjq1urkHJ/LIP/NY48MZ1QVXUsQBV1G1zvYFHn1XE06cwjBsOI2K3Ulnj1YXQ==}
+    engines: {node: '>=8'}
+
+  md5.js@1.3.5:
+    resolution: {integrity: sha512-xitP+WxNPcTTOgnTJcrhM0xvdPepipPSf3I8EIpGKeFLjt3PlJLIDG3u8EX53ZIubkb+5U2+3rELYpEhHhzdkg==}
+
+  mime-db@1.52.0:
+    resolution: {integrity: sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg==}
+    engines: {node: '>= 0.6'}
+
+  mime-types@2.1.35:
+    resolution: {integrity: sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw==}
+    engines: {node: '>= 0.6'}
+
+  minimalistic-assert@1.0.1:
+    resolution: {integrity: sha512-UtJcAD4yEaGtjPezWuO9wC4nwUnVH/8/Im3yEHQP4b67cXlD/Qr9hdITCU1xDbSEXg2XKNaP8jsReV7vQd00/A==}
+
+  minimalistic-crypto-utils@1.0.1:
+    resolution: {integrity: sha512-JIYlbt6g8i5jKfJ3xz7rF0LXmv2TkDxBLUkiBeZ7bAx4GnnNMr8xFpGnOxn6GhTEHx3SjRrZEoU+j04prX1ktg==}
+
+  nanoassert@2.0.0:
+    resolution: {integrity: sha512-7vO7n28+aYO4J+8w96AzhmU8G+Y/xpPDJz/se19ICsqj/momRbb9mh9ZUtkoJ5X3nTnPdhEJyc0qnM6yAsHBaA==}
+
+  node-fetch@2.7.0:
+    resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
+    engines: {node: 4.x || >=6.0.0}
+    peerDependencies:
+      encoding: ^0.1.0
+    peerDependenciesMeta:
+      encoding:
+        optional: true
+
+  p-limit@3.1.0:
+    resolution: {integrity: sha512-TYOanM3wGwNGsZN2cVTYPArw454xnXj5qmWF1bEoAc4+cU/ol7GVh7odevjp1FNHduHc3KZMcFduxU5Xc6uJRQ==}
+    engines: {node: '>=10'}
+
+  proxy-from-env@1.1.0:
+    resolution: {integrity: sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg==}
+
+  quick-lru@5.1.1:
+    resolution: {integrity: sha512-WuyALRjWPDGtt/wzJiadO5AXY+8hZ80hVpe6MyivgraREW751X3SbhRvG3eLKOYN+8VEvqLcf3wdnt44Z4S4SA==}
+    engines: {node: '>=10'}
+
+  randombytes@2.1.0:
+    resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}
+
+  readable-stream@3.6.2:
+    resolution: {integrity: sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==}
+    engines: {node: '>= 6'}
+
+  ripemd160@2.0.2:
+    resolution: {integrity: sha512-ii4iagi25WusVoiC4B4lq7pbXfAp3D9v5CwfkY33vffw2+pkDjY1D8GaN7spsxvCSx8dkPqOZCEZyfxcmJG2IA==}
+
+  safe-buffer@5.2.1:
+    resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==}
+
+  scrypt-js@3.0.1:
+    resolution: {integrity: sha512-cdwTTnqPu0Hyvf5in5asVdZocVDTNRmR7XEcJuIzMjJeSHybHl7vpB66AzwTaIg6CLSbtjcxc8fqcySfnTkccA==}
+
+  sha.js@2.4.11:
+    resolution: {integrity: sha512-QMEp5B7cftE7APOjk5Y6xgrbWu+WkLVQwk8JNjZ8nKRciZaByEW6MubieAiToS7+dwvrjGhH8jRXz3MVd0AYqQ==}
+    hasBin: true
+
+  sha3@2.1.4:
+    resolution: {integrity: sha512-S8cNxbyb0UGUM2VhRD4Poe5N58gJnJsLJ5vC7FYWGUmGhcsj4++WaIOBFVDxlG0W3To6xBuiRh+i0Qp2oNCOtg==}
+
+  string_decoder@1.3.0:
+    resolution: {integrity: sha512-hkRX8U1WjJFd8LsDJ2yQ/wWWxaopEsABU1XfkM8A+j0+85JAGppt16cr1Whg6KIbb4okU6Mql6BOj+uup/wKeA==}
+
+  tr46@0.0.3:
+    resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
+
+  ts-node@10.9.2:
+    resolution: {integrity: sha512-f0FFpIdcHgn8zcPSbf1dRevwt047YMnaiJM3u2w2RewrB+fob/zePZcrOyQoLMMO7aBIddLcQIEK5dYjkLnGrQ==}
+    hasBin: true
+    peerDependencies:
+      '@swc/core': '>=1.2.50'
+      '@swc/wasm': '>=1.2.50'
+      '@types/node': '*'
+      typescript: '>=2.7'
+    peerDependenciesMeta:
+      '@swc/core':
+        optional: true
+      '@swc/wasm':
+        optional: true
+
+  tslib@2.3.1:
+    resolution: {integrity: sha512-77EbyPPpMz+FRFRuAFlWMtmgUWGe9UOG2Z25NqCwiIjRhOf5iKGuzSe5P2w1laq+FkRy4p+PCuVkJSGkzTEKVw==}
+
+  type-fest@1.4.0:
+    resolution: {integrity: sha512-yGSza74xk0UG8k+pLh5oeoYirvIiWo5t0/o3zHHAO2tRDiZcxWP7fywNlXhqb6/r6sWvwi+RsyQMWhVLe4BVuA==}
+    engines: {node: '>=10'}
+
+  typeforce@1.18.0:
+    resolution: {integrity: sha512-7uc1O8h1M1g0rArakJdf0uLRSSgFcYexrVoKo+bzJd32gd4gDy2L/Z+8/FjPnU9ydY3pEnVPtr9FyscYY60K1g==}
+
+  typescript@5.6.3:
+    resolution: {integrity: sha512-hjcS1mhfuyi4WW8IWtjP7brDrG2cuDZukyrYrSauoXGNgx0S7zceP07adYkJycEr56BOUTNPzbInooiN3fn1qw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
+  undici-types@6.19.8:
+    resolution: {integrity: sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw==}
+
+  util-deprecate@1.0.2:
+    resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
+
+  uuid@8.3.2:
+    resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
+    hasBin: true
+
+  v8-compile-cache-lib@3.0.1:
+    resolution: {integrity: sha512-wa7YjyUGfNZngI/vtK0UHAN+lgDCxBPCylVXGp0zu59Fz5aiGtNXaq3DhIov063MorB+VfufLh3JlF2KdTK3xg==}
+
+  varuint-bitcoin@1.1.2:
+    resolution: {integrity: sha512-4EVb+w4rx+YfVM32HQX42AbbT7/1f5zwAYhIujKXKk8NQK+JfRVl3pqT3hjNn/L+RstigmGGKVwHA/P0wgITZw==}
+
+  webidl-conversions@3.0.1:
+    resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
+
+  whatwg-url@5.0.0:
+    resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
+
+  wif@2.0.6:
+    resolution: {integrity: sha512-HIanZn1zmduSF+BQhkE+YXIbEiH0xPr1012QbFEGB0xsKqJii0/SqJjyn8dFv6y36kOznMgMB+LGcbZTJ1xACQ==}
+
+  yn@3.1.1:
+    resolution: {integrity: sha512-Ux4ygGWsu2c7isFWe8Yu1YluJmqVhxqK2cLXNQA5AcC3QfbGNpM7fu0Y8b/z16pXLnFxZYvWhd3fhBY9DLmC6Q==}
+    engines: {node: '>=6'}
+
+  yocto-queue@0.1.0:
+    resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
+    engines: {node: '>=10'}
+
+  zx@8.1.9:
+    resolution: {integrity: sha512-UHuLHphHmsBYKkAchkSrEN4nzDyagafqC9HUxtc1J7eopaScW6H9dsLJ1lmkAntnLtDTGoM8fa+jrJrXiIfKFA==}
+    engines: {node: '>= 12.17.0'}
+    hasBin: true
+
+snapshots:
+
+  '@bitcoinerlab/secp256k1@1.1.1':
+    dependencies:
+      '@noble/hashes': 1.5.0
+      '@noble/secp256k1': 1.7.1
+
+  '@ckb-lumos/base@0.22.2':
+    dependencies:
+      '@ckb-lumos/bi': 0.22.2
+      '@ckb-lumos/codec': 0.22.2
+      '@ckb-lumos/toolkit': 0.22.2
+      '@types/blake2b': 2.1.3
+      '@types/lodash.isequal': 4.5.8
+      blake2b: 2.1.4
+      js-xxhash: 1.0.4
+      lodash.isequal: 4.5.0
+
+  '@ckb-lumos/base@0.23.0':
+    dependencies:
+      '@ckb-lumos/bi': 0.23.0
+      '@ckb-lumos/codec': 0.23.0
+      '@ckb-lumos/toolkit': 0.23.0
+      '@types/blake2b': 2.1.3
+      '@types/lodash.isequal': 4.5.8
+      blake2b: 2.1.4
+      js-xxhash: 1.0.4
+      lodash.isequal: 4.5.0
+
+  '@ckb-lumos/bi@0.22.2':
+    dependencies:
+      jsbi: 4.3.0
+
+  '@ckb-lumos/bi@0.23.0':
+    dependencies:
+      jsbi: 4.3.0
+
+  '@ckb-lumos/ckb-indexer@0.23.0':
+    dependencies:
+      '@ckb-lumos/base': 0.23.0
+      '@ckb-lumos/bi': 0.23.0
+      '@ckb-lumos/codec': 0.23.0
+      '@ckb-lumos/rpc': 0.23.0
+      '@ckb-lumos/toolkit': 0.23.0
+      cross-fetch: 3.1.8
+      events: 3.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@ckb-lumos/codec@0.22.2':
+    dependencies:
+      '@ckb-lumos/bi': 0.22.2
+
+  '@ckb-lumos/codec@0.23.0':
+    dependencies:
+      '@ckb-lumos/bi': 0.23.0
+
+  '@ckb-lumos/common-scripts@0.23.0':
+    dependencies:
+      '@ckb-lumos/base': 0.23.0
+      '@ckb-lumos/bi': 0.23.0
+      '@ckb-lumos/codec': 0.23.0
+      '@ckb-lumos/config-manager': 0.23.0
+      '@ckb-lumos/helpers': 0.23.0
+      '@ckb-lumos/rpc': 0.23.0
+      '@ckb-lumos/toolkit': 0.23.0
+      bech32: 2.0.0
+      bs58: 5.0.0
+      immutable: 4.3.7
+    transitivePeerDependencies:
+      - encoding
+
+  '@ckb-lumos/config-manager@0.23.0':
+    dependencies:
+      '@ckb-lumos/base': 0.23.0
+      '@ckb-lumos/bi': 0.23.0
+      '@ckb-lumos/codec': 0.23.0
+      '@ckb-lumos/rpc': 0.23.0
+      '@types/deep-freeze-strict': 1.1.2
+      deep-freeze-strict: 1.1.1
+    transitivePeerDependencies:
+      - encoding
+
+  '@ckb-lumos/hd@0.23.0':
+    dependencies:
+      '@ckb-lumos/base': 0.23.0
+      '@ckb-lumos/bi': 0.23.0
+      bn.js: 5.2.1
+      elliptic: 6.5.7
+      scrypt-js: 3.0.1
+      sha3: 2.1.4
+      uuid: 8.3.2
+
+  '@ckb-lumos/helpers@0.23.0':
+    dependencies:
+      '@ckb-lumos/base': 0.23.0
+      '@ckb-lumos/bi': 0.23.0
+      '@ckb-lumos/codec': 0.23.0
+      '@ckb-lumos/config-manager': 0.23.0
+      '@ckb-lumos/toolkit': 0.23.0
+      bech32: 2.0.0
+      immutable: 4.3.7
+    transitivePeerDependencies:
+      - encoding
+
+  '@ckb-lumos/light-client@0.23.0':
+    dependencies:
+      '@ckb-lumos/base': 0.23.0
+      '@ckb-lumos/ckb-indexer': 0.23.0
+      '@ckb-lumos/rpc': 0.23.0
+      cross-fetch: 3.1.8
+      events: 3.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@ckb-lumos/lumos@0.23.0':
+    dependencies:
+      '@ckb-lumos/base': 0.23.0
+      '@ckb-lumos/bi': 0.23.0
+      '@ckb-lumos/ckb-indexer': 0.23.0
+      '@ckb-lumos/codec': 0.23.0
+      '@ckb-lumos/common-scripts': 0.23.0
+      '@ckb-lumos/config-manager': 0.23.0
+      '@ckb-lumos/hd': 0.23.0
+      '@ckb-lumos/helpers': 0.23.0
+      '@ckb-lumos/light-client': 0.23.0
+      '@ckb-lumos/rpc': 0.23.0
+      '@ckb-lumos/toolkit': 0.23.0
+      '@ckb-lumos/transaction-manager': 0.23.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@ckb-lumos/rpc@0.23.0':
+    dependencies:
+      '@ckb-lumos/base': 0.23.0
+      '@ckb-lumos/bi': 0.23.0
+      abort-controller: 3.0.0
+      cross-fetch: 3.1.8
+    transitivePeerDependencies:
+      - encoding
+
+  '@ckb-lumos/toolkit@0.22.2':
+    dependencies:
+      '@ckb-lumos/bi': 0.22.2
+
+  '@ckb-lumos/toolkit@0.23.0':
+    dependencies:
+      '@ckb-lumos/bi': 0.23.0
+
+  '@ckb-lumos/transaction-manager@0.23.0':
+    dependencies:
+      '@ckb-lumos/base': 0.23.0
+      '@ckb-lumos/ckb-indexer': 0.23.0
+      '@ckb-lumos/codec': 0.23.0
+      '@ckb-lumos/rpc': 0.23.0
+      '@ckb-lumos/toolkit': 0.23.0
+      immutable: 4.3.7
+    transitivePeerDependencies:
+      - encoding
+
+  '@cspotcode/source-map-support@0.8.1':
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.9
+
+  '@exact-realty/multipart-parser@1.0.14': {}
+
+  '@jridgewell/resolve-uri@3.1.2': {}
+
+  '@jridgewell/sourcemap-codec@1.5.0': {}
+
+  '@jridgewell/trace-mapping@0.3.9':
+    dependencies:
+      '@jridgewell/resolve-uri': 3.1.2
+      '@jridgewell/sourcemap-codec': 1.5.0
+
+  '@nervosnetwork/ckb-sdk-core@0.109.3':
+    dependencies:
+      '@nervosnetwork/ckb-sdk-rpc': 0.109.3
+      '@nervosnetwork/ckb-sdk-utils': 0.109.3
+      '@nervosnetwork/ckb-types': 0.109.3
+      tslib: 2.3.1
+    transitivePeerDependencies:
+      - debug
+
+  '@nervosnetwork/ckb-sdk-rpc@0.109.3':
+    dependencies:
+      '@nervosnetwork/ckb-sdk-utils': 0.109.3
+      axios: 1.6.7
+      tslib: 2.3.1
+    transitivePeerDependencies:
+      - debug
+
+  '@nervosnetwork/ckb-sdk-utils@0.109.3':
+    dependencies:
+      '@nervosnetwork/ckb-types': 0.109.3
+      bech32: 2.0.0
+      elliptic: 6.5.4
+      jsbi: 3.1.3
+      tslib: 2.3.1
+
+  '@nervosnetwork/ckb-types@0.109.3': {}
+
+  '@noble/hashes@1.5.0': {}
+
+  '@noble/secp256k1@1.7.1': {}
+
+  '@rgbpp-sdk/btc@0.6.0(@ckb-lumos/lumos@0.23.0)':
+    dependencies:
+      '@bitcoinerlab/secp256k1': 1.1.1
+      '@ckb-lumos/codec': 0.22.2
+      '@nervosnetwork/ckb-types': 0.109.3
+      '@rgbpp-sdk/ckb': 0.6.0(@ckb-lumos/lumos@0.23.0)(lodash@4.17.21)
+      '@rgbpp-sdk/service': 0.6.0
+      bip32: 4.0.0
+      bitcoinjs-lib: 6.1.6
+      ecpair: 2.1.0
+      lodash: 4.17.21
+      p-limit: 3.1.0
+    transitivePeerDependencies:
+      - '@ckb-lumos/lumos'
+      - debug
+
+  '@rgbpp-sdk/ckb@0.6.0(@ckb-lumos/lumos@0.23.0)(lodash@4.17.21)':
+    dependencies:
+      '@ckb-lumos/base': 0.22.2
+      '@ckb-lumos/codec': 0.22.2
+      '@exact-realty/multipart-parser': 1.0.14
+      '@nervosnetwork/ckb-sdk-core': 0.109.3
+      '@nervosnetwork/ckb-sdk-utils': 0.109.3
+      '@nervosnetwork/ckb-types': 0.109.3
+      '@rgbpp-sdk/service': 0.6.0
+      '@spore-sdk/core': 0.2.1(@ckb-lumos/lumos@0.23.0)(lodash@4.17.21)
+      axios: 1.7.7
+      camelcase-keys: 7.0.2
+      js-sha256: 0.11.0
+    transitivePeerDependencies:
+      - '@ckb-lumos/lumos'
+      - debug
+      - lodash
+
+  '@rgbpp-sdk/service@0.6.0':
+    dependencies:
+      '@ckb-lumos/base': 0.22.2
+      '@ckb-lumos/codec': 0.22.2
+      '@nervosnetwork/ckb-types': 0.109.3
+      lodash: 4.17.21
+
+  '@scure/base@1.1.9': {}
+
+  '@spore-sdk/core@0.2.1(@ckb-lumos/lumos@0.23.0)(lodash@4.17.21)':
+    dependencies:
+      '@ckb-lumos/lumos': 0.23.0
+      lodash: 4.17.21
+
+  '@tsconfig/node10@1.0.11': {}
+
+  '@tsconfig/node12@1.0.11': {}
+
+  '@tsconfig/node14@1.0.3': {}
+
+  '@tsconfig/node16@1.0.4': {}
+
+  '@types/blake2b@2.1.3': {}
+
+  '@types/deep-freeze-strict@1.1.2': {}
+
+  '@types/dotenv@8.2.0':
+    dependencies:
+      dotenv: 16.4.5
+
+  '@types/fs-extra@11.0.4':
+    dependencies:
+      '@types/jsonfile': 6.1.4
+      '@types/node': 22.7.6
+    optional: true
+
+  '@types/jsonfile@6.1.4':
+    dependencies:
+      '@types/node': 22.7.6
+    optional: true
+
+  '@types/lodash.isequal@4.5.8':
+    dependencies:
+      '@types/lodash': 4.17.10
+
+  '@types/lodash@4.17.10': {}
+
+  '@types/node@22.7.6':
+    dependencies:
+      undici-types: 6.19.8
+
+  abort-controller@3.0.0:
+    dependencies:
+      event-target-shim: 5.0.1
+
+  acorn-walk@8.3.4:
+    dependencies:
+      acorn: 8.13.0
+
+  acorn@8.13.0: {}
+
+  arg@4.1.3: {}
+
+  asynckit@0.4.0: {}
+
+  axios@1.6.7:
+    dependencies:
+      follow-redirects: 1.15.9
+      form-data: 4.0.1
+      proxy-from-env: 1.1.0
+    transitivePeerDependencies:
+      - debug
+
+  axios@1.7.7:
+    dependencies:
+      follow-redirects: 1.15.9
+      form-data: 4.0.1
+      proxy-from-env: 1.1.0
+    transitivePeerDependencies:
+      - debug
+
+  b4a@1.6.7: {}
+
+  base-x@3.0.10:
+    dependencies:
+      safe-buffer: 5.2.1
+
+  base-x@4.0.0: {}
+
+  base64-js@1.5.1: {}
+
+  bech32@2.0.0: {}
+
+  bip174@2.1.1: {}
+
+  bip32@4.0.0:
+    dependencies:
+      '@noble/hashes': 1.5.0
+      '@scure/base': 1.1.9
+      typeforce: 1.18.0
+      wif: 2.0.6
+
+  bitcoinjs-lib@6.1.6:
+    dependencies:
+      '@noble/hashes': 1.5.0
+      bech32: 2.0.0
+      bip174: 2.1.1
+      bs58check: 3.0.1
+      typeforce: 1.18.0
+      varuint-bitcoin: 1.1.2
+
+  blake2b-wasm@2.4.0:
+    dependencies:
+      b4a: 1.6.7
+      nanoassert: 2.0.0
+
+  blake2b@2.1.4:
+    dependencies:
+      blake2b-wasm: 2.4.0
+      nanoassert: 2.0.0
+
+  bn.js@4.12.0: {}
+
+  bn.js@5.2.1: {}
+
+  brorand@1.1.0: {}
+
+  bs58@4.0.1:
+    dependencies:
+      base-x: 3.0.10
+
+  bs58@5.0.0:
+    dependencies:
+      base-x: 4.0.0
+
+  bs58check@2.1.2:
+    dependencies:
+      bs58: 4.0.1
+      create-hash: 1.2.0
+      safe-buffer: 5.2.1
+
+  bs58check@3.0.1:
+    dependencies:
+      '@noble/hashes': 1.5.0
+      bs58: 5.0.0
+
+  buffer@6.0.3:
+    dependencies:
+      base64-js: 1.5.1
+      ieee754: 1.2.1
+
+  camelcase-keys@7.0.2:
+    dependencies:
+      camelcase: 6.3.0
+      map-obj: 4.3.0
+      quick-lru: 5.1.1
+      type-fest: 1.4.0
+
+  camelcase@6.3.0: {}
+
+  cipher-base@1.0.4:
+    dependencies:
+      inherits: 2.0.4
+      safe-buffer: 5.2.1
+
+  combined-stream@1.0.8:
+    dependencies:
+      delayed-stream: 1.0.0
+
+  create-hash@1.2.0:
+    dependencies:
+      cipher-base: 1.0.4
+      inherits: 2.0.4
+      md5.js: 1.3.5
+      ripemd160: 2.0.2
+      sha.js: 2.4.11
+
+  create-require@1.1.1: {}
+
+  cross-fetch@3.1.8:
+    dependencies:
+      node-fetch: 2.7.0
+    transitivePeerDependencies:
+      - encoding
+
+  deep-freeze-strict@1.1.1: {}
+
+  delayed-stream@1.0.0: {}
+
+  diff@4.0.2: {}
+
+  dotenv@16.4.5: {}
+
+  ecpair@2.1.0:
+    dependencies:
+      randombytes: 2.1.0
+      typeforce: 1.18.0
+      wif: 2.0.6
+
+  elliptic@6.5.4:
+    dependencies:
+      bn.js: 4.12.0
+      brorand: 1.1.0
+      hash.js: 1.1.7
+      hmac-drbg: 1.0.1
+      inherits: 2.0.4
+      minimalistic-assert: 1.0.1
+      minimalistic-crypto-utils: 1.0.1
+
+  elliptic@6.5.7:
+    dependencies:
+      bn.js: 4.12.0
+      brorand: 1.1.0
+      hash.js: 1.1.7
+      hmac-drbg: 1.0.1
+      inherits: 2.0.4
+      minimalistic-assert: 1.0.1
+      minimalistic-crypto-utils: 1.0.1
+
+  event-target-shim@5.0.1: {}
+
+  events@3.3.0: {}
+
+  follow-redirects@1.15.9: {}
+
+  form-data@4.0.1:
+    dependencies:
+      asynckit: 0.4.0
+      combined-stream: 1.0.8
+      mime-types: 2.1.35
+
+  hash-base@3.1.0:
+    dependencies:
+      inherits: 2.0.4
+      readable-stream: 3.6.2
+      safe-buffer: 5.2.1
+
+  hash.js@1.1.7:
+    dependencies:
+      inherits: 2.0.4
+      minimalistic-assert: 1.0.1
+
+  hmac-drbg@1.0.1:
+    dependencies:
+      hash.js: 1.1.7
+      minimalistic-assert: 1.0.1
+      minimalistic-crypto-utils: 1.0.1
+
+  ieee754@1.2.1: {}
+
+  immutable@4.3.7: {}
+
+  inherits@2.0.4: {}
+
+  js-sha256@0.11.0: {}
+
+  js-xxhash@1.0.4: {}
+
+  jsbi@3.1.3: {}
+
+  jsbi@4.3.0: {}
+
+  lodash.isequal@4.5.0: {}
+
+  lodash@4.17.21: {}
+
+  make-error@1.3.6: {}
+
+  map-obj@4.3.0: {}
+
+  md5.js@1.3.5:
+    dependencies:
+      hash-base: 3.1.0
+      inherits: 2.0.4
+      safe-buffer: 5.2.1
+
+  mime-db@1.52.0: {}
+
+  mime-types@2.1.35:
+    dependencies:
+      mime-db: 1.52.0
+
+  minimalistic-assert@1.0.1: {}
+
+  minimalistic-crypto-utils@1.0.1: {}
+
+  nanoassert@2.0.0: {}
+
+  node-fetch@2.7.0:
+    dependencies:
+      whatwg-url: 5.0.0
+
+  p-limit@3.1.0:
+    dependencies:
+      yocto-queue: 0.1.0
+
+  proxy-from-env@1.1.0: {}
+
+  quick-lru@5.1.1: {}
+
+  randombytes@2.1.0:
+    dependencies:
+      safe-buffer: 5.2.1
+
+  readable-stream@3.6.2:
+    dependencies:
+      inherits: 2.0.4
+      string_decoder: 1.3.0
+      util-deprecate: 1.0.2
+
+  ripemd160@2.0.2:
+    dependencies:
+      hash-base: 3.1.0
+      inherits: 2.0.4
+
+  safe-buffer@5.2.1: {}
+
+  scrypt-js@3.0.1: {}
+
+  sha.js@2.4.11:
+    dependencies:
+      inherits: 2.0.4
+      safe-buffer: 5.2.1
+
+  sha3@2.1.4:
+    dependencies:
+      buffer: 6.0.3
+
+  string_decoder@1.3.0:
+    dependencies:
+      safe-buffer: 5.2.1
+
+  tr46@0.0.3: {}
+
+  ts-node@10.9.2(@types/node@22.7.6)(typescript@5.6.3):
+    dependencies:
+      '@cspotcode/source-map-support': 0.8.1
+      '@tsconfig/node10': 1.0.11
+      '@tsconfig/node12': 1.0.11
+      '@tsconfig/node14': 1.0.3
+      '@tsconfig/node16': 1.0.4
+      '@types/node': 22.7.6
+      acorn: 8.13.0
+      acorn-walk: 8.3.4
+      arg: 4.1.3
+      create-require: 1.1.1
+      diff: 4.0.2
+      make-error: 1.3.6
+      typescript: 5.6.3
+      v8-compile-cache-lib: 3.0.1
+      yn: 3.1.1
+
+  tslib@2.3.1: {}
+
+  type-fest@1.4.0: {}
+
+  typeforce@1.18.0: {}
+
+  typescript@5.6.3: {}
+
+  undici-types@6.19.8: {}
+
+  util-deprecate@1.0.2: {}
+
+  uuid@8.3.2: {}
+
+  v8-compile-cache-lib@3.0.1: {}
+
+  varuint-bitcoin@1.1.2:
+    dependencies:
+      safe-buffer: 5.2.1
+
+  webidl-conversions@3.0.1: {}
+
+  whatwg-url@5.0.0:
+    dependencies:
+      tr46: 0.0.3
+      webidl-conversions: 3.0.1
+
+  wif@2.0.6:
+    dependencies:
+      bs58check: 2.1.2
+
+  yn@3.1.1: {}
+
+  yocto-queue@0.1.0: {}
+
+  zx@8.1.9:
+    optionalDependencies:
+      '@types/fs-extra': 11.0.4
+      '@types/node': 22.7.6
+
+
+================================================
+File: tsconfig.json
+================================================
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "declaration": true,
+    "outDir": "./lib",
+    "types": ["node","jest"],
+    "lib": ["es2020"],
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "stripInternal": true,
+    "declarationMap": true
+  },
+  "exclude": ["**/node_modules",  "**/lib"]
+}
+
+
+================================================
+File: .env.example
+================================================
+VITE_SERVICE_URL= https://api.testnet.rgbpp.io    # URL of the service
+VITE_SERVICE_TOKEN= # JWT token to access the service
+VITE_SERVICE_ORIGIN= # URL representing your token's domain
+VITE_BTC_PRIVATE_KEY= # The private key used for signing Bitcoin transactions
+
+================================================
+File: src/prepare-utxo.ts
+================================================
+import { sendBtc } from '@rgbpp-sdk/btc';
+import { BtcAssetsApiError } from '@rgbpp-sdk/service';
+import { btcAccount, btcDataSource, btcKeyPair, btcService } from "../env";
+import {generateTos, getFastestFeeRate} from "./shared/utils";
+
+
+const btcAddres = 'tb1q9xlw92e2yh2at5takm5u56kj8xw8cuw96as5xc';
+const amountPerUtxo = 546; // Number of satoshis per UTXO
+const numOfUtxos = 5; // Generate 5 UTXOs
+
+const prepareUtxo = async () => {
+    const tos = await generateTos(btcAddres, amountPerUtxo, numOfUtxos);
+    const feeRate = await getFastestFeeRate();
+    console.log('feeRate = ', feeRate);
+
+    // Send BTC tx
+    const psbt = await sendBtc({
+        from: btcAccount.from!,
+        tos: tos,
+        feeRate: feeRate,
+        source: btcDataSource,
+    });
+
+    // Sign & finalize inputs
+    psbt.signAllInputs(btcKeyPair);
+    psbt.finalizeAllInputs();
+
+    // Broadcast transaction
+    const tx = psbt.extractTransaction();
+    console.log(tx.toHex());
+
+    const { txid: btcTxId } = await btcService.sendBtcTransaction(tx.toHex());
+    console.log(`explorer: https://mempool.space/testnet/tx/${btcTxId}`);
+
+    const interval = setInterval(async () => {
+        try {
+            console.log('Waiting for BTC tx to be confirmed');
+            const tx = await btcService.getBtcTransaction(btcTxId);
+            if (tx.status.confirmed) {
+                clearInterval(interval);
+                console.info(`Utxo is confirmed ${btcTxId}:0`);
+            }
+        } catch (error) {
+            if (!(error instanceof BtcAssetsApiError)) {
+                console.error(error);
+            }
+        }
+    }, 20 * 1000);
+};
+
+// Call prepareUtxo function
+prepareUtxo().catch(console.error);
+
+
+================================================
+File: src/shared/btc-account.ts
+================================================
+import {
+  networkTypeToNetwork,
+  remove0x,
+  toXOnly,
+} from '@rgbpp-sdk/btc';
+import { AddressType, NetworkType, bitcoin, ECPair } from '@rgbpp-sdk/btc';
+
+export interface BtcAccount {
+  from: string;
+  fromPubkey?: string;
+  keyPair: bitcoin.Signer;
+  payment: bitcoin.Payment;
+  addressType: AddressType;
+  networkType: NetworkType;
+}
+
+export function createBtcAccount(privateKey: string, addressType: AddressType, networkType: NetworkType): BtcAccount {
+  const network = networkTypeToNetwork(networkType);
+
+  const key = Buffer.from(remove0x(privateKey), 'hex');
+  const keyPair = ECPair.fromPrivateKey(key, { network });
+
+  if (addressType === AddressType.P2WPKH) {
+    const p2wpkh = bitcoin.payments.p2wpkh({
+      pubkey: keyPair.publicKey,
+      network,
+    });
+    return {
+      from: p2wpkh.address!,
+      payment: p2wpkh,
+      keyPair,
+      addressType,
+      networkType,
+    };
+  } else if (addressType === AddressType.P2TR) {
+    const p2tr = bitcoin.payments.p2tr({
+      internalPubkey: toXOnly(keyPair.publicKey),
+      network,
+    });
+    return {
+      from: p2tr.address!,
+      fromPubkey: keyPair.publicKey.toString('hex'),
+      payment: p2tr,
+      keyPair,
+      addressType,
+      networkType,
+    };
+  } else {
+    throw new Error('Unsupported address type, only support P2WPKH and P2TR');
+  }
+}
+
+
+================================================
+File: src/shared/utils.ts
+================================================
+import 'dotenv/config';
+import {btcService} from "../../env";
+
+type InitOutput = {
+    address: string;
+    value: number;
+    minUtxoSatoshi: number;
+};
+
+// Generate an array of type InitOutput
+export async function generateTos(address: string, value: number, count: number): Promise<InitOutput[]> {
+    const tos: InitOutput[] = Array.from({ length: count }, () => ({
+        address: address,
+        value: value,
+        minUtxoSatoshi: value,
+    }));
+
+    return tos;
+}
+
+export async function getFastestFeeRate() {
+    try {
+        const fees = await btcService.getBtcRecommendedFeeRates();
+        console.log('Fees:', fees);
+        return fees.fastestFee + 5;
+    } catch (error) {
+        console.error('Error fetching fee rates:', error);
+        throw error;
+    }
+}
+

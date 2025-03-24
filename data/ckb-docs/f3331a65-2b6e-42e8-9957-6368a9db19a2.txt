@@ -1,0 +1,4826 @@
+Directory structure:
+└── ckb-devrel-ckb-dogecoin-spv-service/
+    ├── README.md
+    ├── Cargo.toml
+    ├── Dockerfile
+    ├── LICENSE
+    ├── Makefile
+    ├── src/
+    │   ├── main.rs
+    │   ├── prelude.rs
+    │   ├── result.rs
+    │   ├── cli/
+    │   │   ├── deploy.rs
+    │   │   ├── init.rs
+    │   │   ├── mod.rs
+    │   │   ├── serve.rs
+    │   │   ├── sync.rs
+    │   │   └── watch.rs
+    │   ├── components/
+    │   │   ├── bitcoin_client.rs
+    │   │   ├── ckb_client.rs
+    │   │   ├── mod.rs
+    │   │   ├── spv_service.rs
+    │   │   ├── api_service/
+    │   │   │   ├── error.rs
+    │   │   │   └── mod.rs
+    │   │   └── storage/
+    │   │       ├── mod.rs
+    │   │       ├── prelude.rs
+    │   │       ├── result.rs
+    │   │       ├── internal/
+    │   │       │   ├── cache.rs
+    │   │       │   ├── mmr.rs
+    │   │       │   ├── mod.rs
+    │   │       │   ├── reader.rs
+    │   │       │   └── writer.rs
+    │   │       └── schemas/
+    │   │           ├── columns.rs
+    │   │           ├── keys.rs
+    │   │           └── mod.rs
+    │   ├── constants/
+    │   │   ├── mainnet.rs
+    │   │   ├── mod.rs
+    │   │   └── testnet.rs
+    │   └── utilities/
+    │       ├── key.rs
+    │       ├── mod.rs
+    │       ├── platform.rs
+    │       ├── type_id.rs
+    │       └── value_parsers.rs
+    └── .github/
+        └── workflows/
+            ├── ci.yaml
+            └── docker.yml
+
+================================================
+File: README.md
+================================================
+# CKB Bitcoin SPV Service
+
+[![License]](#license)
+[![GitHub Actions]](https://github.com/yangby-cryptape/ckb-bitcoin-spv-service/actions)
+
+> [!WARNING]
+> This repository is still in the proof-of-concept stage.
+
+A service, which synchronizes [Bitcoin] headers to a [Bitcoin SPV on CKB]
+and provides an API to generate proofs for [Bitcoin] transactions so that
+they can be verified on [CKB].
+
+[License]: https://img.shields.io/badge/License-MIT-blue.svg
+[GitHub Actions]: https://github.com/yangby-cryptape/ckb-bitcoin-spv-service/workflows/CI/badge.svg
+
+## Usage
+
+With the command line option `-h`(alias of `--help`), help will be printed.
+
+### JSON-RPC API Reference
+
+- Method `getTxProof`
+
+  Arguments:
+
+  - `txid` (a hexadecimal string)
+
+    A bitcoin transaction id.
+
+    **No `0x`-prefix, as same as [the format in Bitcoin RPC APIs](https://developer.bitcoin.org/reference/rpc/gettxoutproof.html#argument-1-txids).**
+
+
+  - `tx-index` (an unsigned integer)
+
+    The index of a transaction in the block; starts from 0.
+
+    **Service doesn't check it, just pack it into the final proof.**
+
+  - `confirmations` (an unsigned integer)
+
+    Represents the required acceptance of the transaction by the bitcoin network.
+
+  Result:
+
+  - `spv_client` ([type: `OutPoint`])
+
+    An out point of a SPV client cell in CKB.
+
+  - `proof` ([type: `JsonBytes`])
+
+    The full proof of a bitcoin transaction, which could be verified with
+    above SPV client in CKB.
+
+  <details><summary>An example:</summary>
+
+
+  Request:
+
+  ```shell
+  curl -X POST -H "Content-Type: application/json" \
+      -d '{"jsonrpc": "2.0", "method":"getTxProof", "params": ["95231964950ce016b1333ecc1ec98bf4effc3d5d579c5c7232dddd7c2200f124", 9, 10], "id": 1}' \
+      http://127.0.0.1:8888
+  ```
+
+  Output:
+  ```json
+  {
+      "jsonrpc": "2.0",
+      "result": {
+          "proof": "0x3d03000014000000180000001c000000f90100000900000040bc0c00d9010000000018228d263ff4070e2fdb31b654704e99f850a4f31762155003000000000000000000f79ccd11440a9d383b1438ee60692fc7b78a4b8800faf6ec61ec5fc37a078387f998f265595a03175799484bca0700000c99f30ab6b29578c47b5e290383c73016dc51ceb8d8e4e4772b8914074d261cea95fae35702bd7842c06314b56f2fccf4f1e7a7a1e9316510eac47b8da580bd8c24f100227cdddd32725c9c575d3dfceff48bc91ecc3e33b116e00c95641923959c4eadf6c5194ce92e4af499234915ae16ef6ce925319ecdb782c15b7b79b8e0add7f560c4894d1a6373d3a0f0b2b7809de8c68881212e5804c973d810fac6ab81b4d8171567ed7b4c562cfd92f340f372d4d783ddaec72f4ae0898fa4f1a1609462a8aaa2c0038416074bef53effa98f61229bf5fba767cead3344362b1d9b440b1367c8597e5f42c52fb8b861ff7dd06ce2b6f8a1e7cb41197909a476e625c11f26490c00f5c00aa247fbe7b82cb4d42255596005d6aea0c313c425044da0155c1e3eb8cc65279a99de185af0c57f18f41ead7d93ba6dc6613f2ad338a0bc73d7c8c15eabf47c5de917babf44ce66982367ff38d9a586589fa525b72e6d8c7814386fdb76da0db6f786b020a558e7966dc94e5f75d9de94784297048c9c80103ff2e000800000041bc0c0041bc0c0083ccd2727719f195c487e165c7cebebabe280f08c4060100000000000000000042bc0c0043bc0c001e1ae1b8a976a99d3000d708b5cf41bd34a3610e18d33c7ea12090182c84fa7544bc0c0047bc0c0043bd45f3f7425544324bbdd6303adb92fe446555b5ec5548f4e481bdced123e748bc0c004fbc0c00bd692cd46c3fec36a58f2a963e8b88fb183b46848e2743dd3e599486c466bd7450bc0c005fbc0c000e8775e71c17af3afd9129e0b9cf76d1af0cc7cd49ef5e98d0c25a72b66349ac60bc0c007fbc0c001f8d8f32d7fd85ee07f5e5e9c280bab9ae9fe148bf2c03e45e786fc23024116280bc0c00bfbc0c0016b40a5455bd596f89b58207e272a8f333c03f1ec7e9dd9a1a47c20d4371eb63c0bc0c00c8bc0c006d3b9e55c56dd1fb5777bc115db1faca7a7f6e33cd9823f3a223581c740f833b",
+          "spv_client": {
+              "index": "0x1",
+              "tx_hash": "0xcaee4eac91a43642464ee2c6582a86835f2bc10d55b15fcd22083ae9d273a1dc"
+          }
+      },
+      "id": 1
+  }
+  ```
+
+  </details>
+
+## Related Projects
+
+- [The Core Library of CKB Bitcoin SPV][Bitcoin SPV on CKB]
+
+- [The CKB Bitcoin SPV Contracts](https://github.com/ckb-cell/ckb-bitcoin-spv-contracts)
+
+## License
+
+Licensed under [MIT License].
+
+[Bitcoin]: https://bitcoin.org
+[CKB]: https://github.com/nervosnetwork/ckb
+[Bitcoin SPV on CKB]: https://github.com/ckb-cell/ckb-bitcoin-spv
+
+[type: `OutPoint`]: https://github.com/nervosnetwork/ckb/tree/v0.114.0/rpc#type-outpoint
+[type: `JsonBytes`]: https://github.com/nervosnetwork/ckb/tree/v0.114.0/rpc#type-jsonbytes
+
+[MIT License]: LICENSE
+
+
+================================================
+File: Cargo.toml
+================================================
+[package]
+name = "ckb-bitcoin-spv-service"
+version = "0.1.0"
+authors = ["Boyu Yang <yangby@cryptape.com>"]
+edition = "2021"
+license = "MIT"
+description = "A Bitcoin SPV service which works on CKB."
+homepage = "https://github.com/yangby-cryptape/ckb-bitcoin-spv-service"
+repository = "https://github.com/yangby-cryptape/ckb-bitcoin-spv-service"
+
+[dependencies]
+thiserror = "1.0"
+anyhow = "1.0"
+log = "0.4"
+env_logger = "0.11"
+clap = { version = "4.5", features = ["derive"] }
+clap-verbosity-flag = "2.2"
+faster-hex = "0.9"
+zeroize = { version = "1.7", features = ["derive"] }
+url = "2.5"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+fdlimit = "0.3"
+
+reqwest = { version = "0.11", default-features = false, features = ["json", "blocking"] }
+jsonrpc-core         = "18.0"
+jsonrpc-derive       = "18.0"
+jsonrpc-http-server  = "18.0"
+jsonrpc-server-utils = "18.0"
+tokio = { version = "1.36", features = ["rt-multi-thread", "full"] }
+rocksdb = { package = "ckb-rocksdb", version ="=0.21.1", features = ["snappy"], default-features = false }
+secp256k1 = "0.24"
+
+bitcoin = { version = "0.31", features = ["serde"] }
+ckb-sdk = "3.1"
+ckb-types         = "0.115.0-rc2"
+ckb-jsonrpc-types = "0.115.0-rc2"
+ckb-hash          = "0.115.0-rc2"
+
+[dependencies.ckb-bitcoin-spv-verifier]
+version = "0.1.0"
+git = "https://github.com/ckb-cell/ckb-bitcoin-spv"
+rev = "6c3f3d1"
+
+[features]
+default = ["default-tls"]
+default-tls = ["ckb-sdk/default-tls", "reqwest/default-tls"]
+native-tls-vendored = ["ckb-sdk/native-tls-vendored", "reqwest/native-tls-vendored"]
+rustls-tls = ["ckb-sdk/rustls-tls", "reqwest/rustls-tls"]
+
+[profile.release]
+overflow-checks = true
+
+
+================================================
+File: Dockerfile
+================================================
+FROM rust:latest AS builder
+
+WORKDIR /app
+COPY . /app
+
+RUN apt-get update && apt-get install --no-install-recommends -y clang
+RUN cargo build --release
+
+FROM ubuntu:latest
+
+ARG DEBCONF_NOWARNINGS="yes"
+ARG DEBIAN_FRONTEND noninteractive
+ARG DEBCONF_NONINTERACTIVE_SEEN true
+
+RUN apt-get update \
+ && apt-get install --no-install-recommends -y \
+    ca-certificates \
+    tini \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+COPY --from=builder /app/target/release/ckb-bitcoin-spv-service /usr/local/bin/ckb-bitcoin-spv-service
+
+RUN chmod a+x /usr/local/bin/ckb-bitcoin-spv-service
+
+ENTRYPOINT [ "tini", "--"]
+CMD ["ckb-bitcoin-spv-service", "--help"]
+
+
+================================================
+File: LICENSE
+================================================
+Copyright (c) 2024 Boyu Yang <yangby@cryptape.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+================================================
+File: Makefile
+================================================
+CARGO := @cargo
+
+NEXTEST_RUN_ARGS := --no-fail-fast --success-output never --failure-output final
+
+#
+# Check
+#
+
+check:
+	${CARGO} check --workspace
+
+fmt:
+	${CARGO} fmt --all --check
+
+clippy:
+	${CARGO} clippy --locked --workspace --tests -- --deny warnings
+
+test:
+	${CARGO} nextest run ${NEXTEST_RUN_ARGS} --workspace
+
+#
+# Build
+#
+
+doc:
+	${CARGO} doc --workspace --no-deps
+
+build:
+	${CARGO} build --workspace
+
+release:
+	${CARGO} build --workspace --release
+
+
+================================================
+File: src/main.rs
+================================================
+pub(crate) mod cli;
+pub(crate) mod components;
+pub(crate) mod constants;
+pub(crate) mod prelude;
+pub(crate) mod result;
+pub(crate) mod utilities;
+
+fn main() -> anyhow::Result<()> {
+    cli::Cli::parse().execute()?;
+    Ok(())
+}
+
+
+================================================
+File: src/prelude.rs
+================================================
+pub(crate) use crate::components::storage::prelude::BitcoinSpvStorage;
+pub(crate) use crate::components::CkbRpcClientExtension;
+
+
+================================================
+File: src/result.rs
+================================================
+use std::fmt;
+
+use thiserror::Error;
+
+pub use crate::components::StorageError;
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("cli error: {0}")]
+    Cli(String),
+
+    #[error("btc rpc error: {0}")]
+    BitRpc(#[from] BtcRpcError),
+    #[error("ckb rpc error: {0}")]
+    CkbRpc(#[from] ckb_sdk::RpcError),
+    #[error("ckb error: {0}")]
+    CkbTx(#[from] ckb_sdk::tx_builder::TxBuilderError),
+    #[error("ckb error: {0}")]
+    CkbUnlock(#[from] ckb_sdk::unlock::UnlockError),
+    #[error("secp256k1 error: {0}")]
+    Secp256k1(#[from] secp256k1::Error),
+    #[error("storage error: {0}")]
+    Storage(#[from] StorageError),
+
+    #[error("error: {0}")]
+    Other(String),
+}
+
+pub type Result<T> = ::std::result::Result<T, Error>;
+
+impl Error {
+    pub fn cli<T: fmt::Display>(inner: T) -> Self {
+        Self::Cli(inner.to_string())
+    }
+
+    pub fn other<T: fmt::Display>(inner: T) -> Self {
+        Self::Other(inner.to_string())
+    }
+}
+
+#[derive(Error, Debug)]
+pub enum BtcRpcError {
+    #[error("parse json error: {0}")]
+    Json(#[from] serde_json::Error),
+    #[error("http error: {0}")]
+    Http(#[from] reqwest::Error),
+    #[error("jsonrpc error: {0}")]
+    Rpc(#[from] jsonrpc_core::Error),
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+}
+
+pub type BtcRpcResult<T> = ::std::result::Result<T, BtcRpcError>;
+
+
+================================================
+File: src/cli/deploy.rs
+================================================
+//! The `deploy` sub-command.
+
+use ckb_jsonrpc_types::TransactionView;
+use ckb_sdk::{
+    constants::TYPE_ID_CODE_HASH,
+    transaction::{
+        builder::{CkbTransactionBuilder, SimpleTransactionBuilder},
+        input::InputIterator,
+        signer::{SignContexts, TransactionSigner},
+        TransactionBuilderConfiguration,
+    },
+    types::{
+        Address as CkbAddress, AddressPayload as CkbAddressPayload, HumanCapacity, NetworkInfo,
+    },
+    ScriptId, SECP256K1,
+};
+use ckb_types::{bytes::Bytes, core::Capacity, packed, prelude::*};
+use clap::Parser;
+use secp256k1::SecretKey;
+
+use crate::{
+    prelude::*,
+    result::{Error, Result},
+    utilities::value_parsers,
+};
+
+#[derive(Parser)]
+pub struct Args {
+    #[clap(flatten)]
+    pub(crate) common: super::CommonArgs,
+
+    #[clap(flatten)]
+    pub(crate) ckb: super::CkbArgs,
+
+    /// A binary file, which should contain a contract that users want to deploy.
+    #[arg(
+        long = "contract-file", value_name = "CONTRACT_FILE", required = true,
+        value_parser = value_parsers::BinaryFileValueParser
+    )]
+    pub(crate) contract_data: Bytes,
+
+    /// Enable the type ID when deploy the contract.
+    #[arg(long)]
+    pub(crate) enable_type_id: bool,
+
+    /// The contract owner's address.
+    #[arg(long="contract-owner", value_parser = value_parsers::AddressValueParser)]
+    pub(crate) contract_owner: CkbAddress,
+
+    /// Perform all steps without sending.
+    #[arg(long, hide = true)]
+    pub(crate) dry_run: bool,
+}
+
+impl Args {
+    pub fn execute(&self) -> Result<()> {
+        log::info!("Try to deploy a contract on CKB");
+
+        if self.contract_owner.network() != self.ckb.network {
+            let msg = "The input addresses and the selected network are not matched";
+            return Err(Error::Cli(msg.to_owned()));
+        }
+
+        let contract_data_capacity = Capacity::bytes(self.contract_data.len()).map_err(|err| {
+            let msg = format!("failed to calculate the capacity for contract data since {err}");
+            Error::other(msg)
+        })?;
+        log::info!(
+            "The contract requires {} CKBytes for its data",
+            HumanCapacity::from(contract_data_capacity.as_u64())
+        );
+
+        let network_info =
+            NetworkInfo::new(self.ckb.network, self.ckb.ckb_endpoint.as_str().to_owned());
+        let configuration = {
+            let mut tmp = TransactionBuilderConfiguration::new_with_network(network_info.clone())?;
+            tmp.fee_rate = self.ckb.fee_rate()?;
+            tmp
+        };
+
+        let output_builder = packed::CellOutput::new_builder().lock((&self.contract_owner).into());
+
+        let output = if self.enable_type_id {
+            let type_script = ScriptId::new_type(TYPE_ID_CODE_HASH.clone()).dummy_type_id_script();
+            output_builder.type_(Some(type_script).pack())
+        } else {
+            output_builder
+        }
+        .build_exact_capacity(contract_data_capacity)
+        .map_err(|err| {
+            let msg = format!("failed to calculate the capacity for the output since {err}");
+            Error::other(msg)
+        })?;
+
+        let (deployer, deployer_key) = SecretKey::from_slice(&self.ckb.private_key.as_ref()[..])
+            .map(|sk| {
+                let pk = sk.public_key(&SECP256K1);
+                let payload = CkbAddressPayload::from_pubkey(&pk);
+                let address = CkbAddress::new(self.ckb.network, payload, true);
+                (address, sk)
+            })?;
+        log::info!("The contract deployer is {deployer}");
+
+        let iterator = InputIterator::new_with_address(&[deployer], &network_info);
+        let mut builder = SimpleTransactionBuilder::new(configuration, iterator);
+        builder.add_output_and_data(output, self.contract_data.pack());
+        let data_hash = packed::CellOutput::calc_data_hash(&self.contract_data);
+        log::info!("The contract data hash is {data_hash:#x}");
+
+        let mut tx_with_groups = builder.build(&Default::default())?;
+
+        TransactionSigner::new(&network_info).sign_transaction(
+            &mut tx_with_groups,
+            &SignContexts::new_sighash(vec![deployer_key]),
+        )?;
+
+        let tx_json = TransactionView::from(tx_with_groups.get_tx_view().clone());
+
+        if self.enable_type_id {
+            let type_script: packed::Script = tx_json
+                .inner
+                .outputs
+                .first()
+                .ok_or_else(|| {
+                    let msg = "at least one output should be existed";
+                    Error::other(msg)
+                })?
+                .type_
+                .as_ref()
+                .ok_or_else(|| {
+                    let msg = "the final output must contain a type script";
+                    Error::other(msg)
+                })?
+                .to_owned()
+                .into();
+            let type_hash = type_script.calc_script_hash();
+            log::info!("The contract type hash is {type_hash:#x}");
+        }
+
+        self.ckb
+            .client()
+            .send_transaction_ext(tx_json, self.dry_run)?;
+
+        Ok(())
+    }
+}
+
+
+================================================
+File: src/cli/init.rs
+================================================
+//! The `init` sub-command.
+
+use std::{collections::HashMap, path::PathBuf};
+
+use bitcoin::blockdata::constants::DIFFCHANGE_INTERVAL;
+use ckb_bitcoin_spv_verifier::{
+    constants::{FLAG_CHAIN_TYPE_MAINNET, FLAG_CHAIN_TYPE_SIGNET, FLAG_CHAIN_TYPE_TESTNET},
+    types::{core::Hash as BitcoinHash, packed, prelude::Pack as VPack},
+};
+use ckb_jsonrpc_types::TransactionView;
+use ckb_sdk::{
+    core::TransactionBuilder,
+    transaction::{
+        builder::{ChangeBuilder, DefaultChangeBuilder},
+        handler::HandlerContexts,
+        input::InputIterator,
+        signer::{SignContexts, TransactionSigner},
+        TransactionBuilderConfiguration,
+    },
+    types::{
+        Address as CkbAddress, AddressPayload as CkbAddressPayload, NetworkInfo, NetworkType,
+        ScriptGroup, TransactionWithScriptGroups,
+    },
+    SECP256K1,
+};
+use ckb_types::{
+    core::{Capacity, DepType, ScriptHashType},
+    packed::{
+        Byte32, Bytes as PackedBytes, BytesOpt, CellDep, CellOutput, OutPoint, Script, WitnessArgs,
+    },
+    prelude::*,
+    H256,
+};
+use clap::{Args as ClapArgs, Parser, ValueEnum};
+use secp256k1::SecretKey;
+
+use crate::{
+    components::Storage,
+    prelude::*,
+    result::{Error, Result},
+    utilities::{calculate_type_id, value_parsers},
+};
+
+#[derive(Parser)]
+pub struct Args {
+    #[clap(flatten)]
+    pub(crate) common: super::CommonArgs,
+
+    /// The directory, which stores all cached data.
+    #[arg(long)]
+    pub(crate) data_dir: PathBuf,
+
+    #[clap(flatten)]
+    pub(crate) ckb: super::CkbArgs,
+
+    #[clap(flatten)]
+    pub(crate) bitcoin: super::BitcoinArgs,
+
+    /// The start height of the new Bitcoin SPV instance.
+    ///
+    /// This height should be multiples of number 2016.
+    ///
+    // TODO Input hash rather than height.
+    #[arg(long, required = true)]
+    pub(crate) bitcoin_start_height: u32,
+
+    /// How many SPV clients will be created for the new Bitcoin SPV instance.
+    #[arg(long, required = true)]
+    pub(crate) spv_clients_count: u8,
+
+    #[clap(flatten)]
+    pub(crate) spv_contract_code_hash: CodeHash,
+
+    /// The out point of the Bitcoin SPV contract.
+    #[arg(long, value_parser = value_parsers::OutPointValueParser)]
+    pub(crate) spv_contract_out_point: OutPoint,
+
+    #[clap(flatten)]
+    pub(crate) spv_owner: super::SpvOwner,
+
+    /// Bitcoin chain type.
+    #[arg(long)]
+    pub(crate) bitcoin_chain_type: BitcoinChainType,
+
+    /// Perform all steps without sending.
+    #[arg(long, hide = true)]
+    pub(crate) dry_run: bool,
+}
+
+#[derive(ClapArgs)]
+#[group(required = true, multiple = false)]
+pub struct CodeHash {
+    /// The data hash of the Bitcoin SPV contract.
+    #[arg(long, value_parser = value_parsers::H256ValueParser)]
+    pub(crate) spv_contract_data_hash: Option<H256>,
+
+    /// The type hash of the Bitcoin SPV contract.
+    #[arg(long, value_parser = value_parsers::H256ValueParser)]
+    pub(crate) spv_contract_type_hash: Option<H256>,
+}
+
+#[derive(Clone, PartialEq, ValueEnum)]
+pub enum BitcoinChainType {
+    Mainnet,
+    Testnet,
+    Signet,
+}
+
+impl Args {
+    // TODO Split this method into several smaller methods.
+    pub fn execute(&self) -> Result<()> {
+        log::info!("Try to initialize a Bitcoin SPV instance on CKB");
+
+        if self.bitcoin_chain_type != BitcoinChainType::Mainnet
+            && self.ckb.network == NetworkType::Mainnet
+        {
+            let msg = "The Bitcoin chain type is not mainnet, but the CKB network is mainnet";
+            return Err(Error::other(msg));
+        }
+
+        self.check_inputs()?;
+        log::info!("The bitcoin start height is {}", self.bitcoin_start_height);
+
+        let btc_start_header = self
+            .bitcoin
+            .client()
+            .check_then_fetch_header(self.bitcoin_start_height)?;
+
+        let storage = Storage::new(&self.data_dir)?;
+        let spv_client = storage.initialize_with(self.bitcoin_start_height, btc_start_header)?;
+
+        let network_info =
+            NetworkInfo::new(self.ckb.network, self.ckb.ckb_endpoint.as_str().to_owned());
+        let configuration = {
+            let mut tmp = TransactionBuilderConfiguration::new_with_network(network_info.clone())?;
+            tmp.fee_rate = self.ckb.fee_rate()?;
+            tmp
+        };
+
+        let (deployer, deployer_key) = SecretKey::from_slice(&self.ckb.private_key.as_ref()[..])
+            .map(|sk| {
+                let pk = sk.public_key(&SECP256K1);
+                let payload = CkbAddressPayload::from_pubkey(&pk);
+                let address = CkbAddress::new(self.ckb.network, payload, true);
+                (address, sk)
+            })?;
+        log::info!("The contract deployer is {deployer}");
+
+        let spv_outputs_data = {
+            let spv_info = packed::SpvInfo::new_builder().build();
+            let mut outputs_data = vec![spv_info.as_bytes()];
+            let mut spv_client = spv_client.clone();
+            for id in 0..self.spv_clients_count {
+                spv_client.id = id;
+                let packed_client: packed::SpvClient = spv_client.pack();
+                outputs_data.push(packed_client.as_bytes());
+            }
+            outputs_data
+        };
+
+        let mut iterator = InputIterator::new_with_address(&[deployer.clone()], &network_info);
+        let mut tx_builder = TransactionBuilder::default();
+
+        let spv_contract_cell_dep = CellDep::new_builder()
+            .out_point(self.spv_contract_out_point.clone())
+            .dep_type(DepType::Code.into())
+            .build();
+        tx_builder.cell_dep(spv_contract_cell_dep.clone());
+
+        log::debug!("Try to find the first live cell for {deployer}");
+        let input0 = iterator
+            .next()
+            .transpose()
+            .map_err(|err| {
+                let msg = format!("failed to find any live cell for {deployer} since {err}");
+                Error::other(msg)
+            })?
+            .ok_or_else(|| {
+                let msg = format!("{deployer} has no live cell");
+                Error::other(msg)
+            })?;
+
+        let spv_type_script = {
+            let cells_count = usize::from(self.spv_clients_count) + 1;
+            let type_id_array = calculate_type_id(input0.cell_input(), cells_count);
+            let type_id = BitcoinHash::from_bytes_ref(&type_id_array);
+            let mut flags = 0u8;
+            match self.bitcoin_chain_type {
+                BitcoinChainType::Mainnet => flags |= FLAG_CHAIN_TYPE_MAINNET,
+                BitcoinChainType::Testnet => flags |= FLAG_CHAIN_TYPE_TESTNET,
+                BitcoinChainType::Signet => flags |= FLAG_CHAIN_TYPE_SIGNET,
+            }
+            let args = packed::SpvTypeArgs::new_builder()
+                .type_id(type_id.pack())
+                .clients_count(self.spv_clients_count.into())
+                .flags(flags.into())
+                .build();
+            match self.spv_contract_code_hash {
+                CodeHash {
+                    spv_contract_data_hash: Some(ref data_hash),
+                    spv_contract_type_hash: None,
+                } => Script::new_builder()
+                    .code_hash(data_hash.pack())
+                    .hash_type(ScriptHashType::Data1.into())
+                    .args(Pack::pack(&args.as_bytes()))
+                    .build(),
+                CodeHash {
+                    spv_contract_data_hash: None,
+                    spv_contract_type_hash: Some(ref type_hash),
+                } => Script::new_builder()
+                    .code_hash(type_hash.pack())
+                    .hash_type(ScriptHashType::Type.into())
+                    .args(Pack::pack(&args.as_bytes()))
+                    .build(),
+                _ => {
+                    let msg = "only one of data hash and type hash for SPV contract \
+                        should be input, and at least one should be input";
+                    return Err(Error::other(msg));
+                }
+            }
+        };
+
+        storage.save_cells_state(spv_type_script.clone(), spv_contract_cell_dep)?;
+
+        let spv_outputs = {
+            let spv_info_capacity = Capacity::bytes(spv_outputs_data[0].len()).map_err(|err| {
+                let msg = format!(
+                    "failed to calculate the capacity for Bitcoin SPV info cell since {err}"
+                );
+                Error::other(msg)
+            })?;
+            let spv_client_capacity =
+                Capacity::bytes(spv_outputs_data[1].len()).map_err(|err| {
+                    let msg = format!(
+                        "failed to calculate the capacity for Bitcoin SPV client cell since {err}"
+                    );
+                    Error::other(msg)
+                })?;
+            let spv_cell = CellOutput::new_builder()
+                .lock(self.spv_owner.lock_script())
+                .type_(Some(spv_type_script).pack())
+                .build();
+            let spv_info = spv_cell
+                .clone()
+                .as_builder()
+                .build_exact_capacity(spv_info_capacity)
+                .map_err(|err| {
+                    let msg = format!(
+                        "failed to sum the total capacity for Bitcoin SPV info cell since {err}"
+                    );
+                    Error::other(msg)
+                })?;
+            let spv_client = spv_cell
+                .as_builder()
+                .build_exact_capacity(spv_client_capacity)
+                .map_err(|err| {
+                    let msg = format!(
+                        "failed to sum the total capacity for Bitcoin SPV client cell since {err}"
+                    );
+                    Error::other(msg)
+                })?;
+            let mut outputs = vec![spv_client.clone(); usize::from(self.spv_clients_count) + 1];
+            outputs[0] = spv_info;
+            outputs
+        };
+
+        tx_builder.outputs(spv_outputs);
+        tx_builder.outputs_data(spv_outputs_data.iter().map(Pack::pack));
+
+        #[allow(clippy::mutable_key_type)]
+        let mut lock_groups: HashMap<Byte32, ScriptGroup> = HashMap::default();
+        #[allow(clippy::mutable_key_type)]
+        let mut type_groups: HashMap<Byte32, ScriptGroup> = HashMap::default();
+
+        for (output_idx, output) in tx_builder.get_outputs().clone().iter().enumerate() {
+            if let Some(type_script) = &output.type_().to_opt() {
+                type_groups
+                    .entry(type_script.calc_script_hash())
+                    .or_insert_with(|| ScriptGroup::from_type_script(type_script))
+                    .output_indices
+                    .push(output_idx);
+            }
+        }
+
+        let mut change_builder =
+            DefaultChangeBuilder::new(&configuration, input0.live_cell.output.lock(), Vec::new());
+        change_builder.init(&mut tx_builder);
+
+        tx_builder.input(input0.cell_input());
+        let previous_output0 = input0.previous_output();
+        let lock_script0 = previous_output0.lock();
+        lock_groups
+            .entry(lock_script0.calc_script_hash())
+            .or_insert_with(|| ScriptGroup::from_lock_script(&lock_script0))
+            .input_indices
+            .push(0);
+
+        let witness = {
+            let bootstrap = packed::SpvBootstrap::new_builder()
+                .height(VPack::pack(&self.bitcoin_start_height))
+                .header(btc_start_header.pack())
+                .build();
+            let type_args = BytesOpt::new_builder()
+                .set(Some(Pack::pack(bootstrap.as_slice())))
+                .build();
+            let witness_args = WitnessArgs::new_builder().output_type(type_args).build();
+            Pack::pack(&witness_args.as_bytes())
+        };
+        tx_builder.witness(witness);
+
+        let contexts = HandlerContexts::default();
+
+        let mut tx_with_groups = if change_builder.check_balance(input0, &mut tx_builder) {
+            let mut script_groups: Vec<ScriptGroup> = lock_groups
+                .into_values()
+                .chain(type_groups.into_values())
+                .collect();
+            for script_group in script_groups.iter_mut() {
+                for handler in configuration.get_script_handlers() {
+                    for context in &contexts.contexts {
+                        if handler.build_transaction(
+                            &mut tx_builder,
+                            script_group,
+                            context.as_ref(),
+                        )? {
+                            break;
+                        }
+                    }
+                }
+            }
+            let tx_view = change_builder.finalize(tx_builder);
+
+            Some(TransactionWithScriptGroups::new(tx_view, script_groups))
+        } else {
+            let mut check_result = None;
+            for (mut input_index, input) in iterator.enumerate() {
+                input_index += 1; // The first input has been handled.
+                log::debug!("Try to find the {input_index}-th live cell for {deployer}");
+                let input = input.map_err(|err| {
+                    let msg = format!(
+                        "failed to find {input_index}-th live cell for {deployer} since {err}"
+                    );
+                    Error::other(msg)
+                })?;
+                tx_builder.input(input.cell_input());
+                tx_builder.witness(PackedBytes::default());
+
+                let previous_output = input.previous_output();
+                let lock_script = previous_output.lock();
+                lock_groups
+                    .entry(lock_script.calc_script_hash())
+                    .or_insert_with(|| ScriptGroup::from_lock_script(&lock_script))
+                    .input_indices
+                    .push(input_index);
+
+                if change_builder.check_balance(input, &mut tx_builder) {
+                    let mut script_groups: Vec<ScriptGroup> = lock_groups
+                        .into_values()
+                        .chain(type_groups.into_values())
+                        .collect();
+                    for script_group in script_groups.iter_mut() {
+                        for handler in configuration.get_script_handlers() {
+                            for context in &contexts.contexts {
+                                if handler.build_transaction(
+                                    &mut tx_builder,
+                                    script_group,
+                                    context.as_ref(),
+                                )? {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    let tx_view = change_builder.finalize(tx_builder);
+
+                    check_result = Some(TransactionWithScriptGroups::new(tx_view, script_groups));
+                    break;
+                }
+            }
+            check_result
+        }
+        .ok_or_else(|| {
+            let msg = format!("{deployer}'s live cells are not enough");
+            Error::other(msg)
+        })?;
+
+        TransactionSigner::new(&network_info).sign_transaction(
+            &mut tx_with_groups,
+            &SignContexts::new_sighash(vec![deployer_key]),
+        )?;
+
+        let tx_json = TransactionView::from(tx_with_groups.get_tx_view().clone());
+        self.ckb
+            .client()
+            .send_transaction_ext(tx_json, self.dry_run)?;
+
+        Ok(())
+    }
+
+    fn check_inputs(&self) -> Result<()> {
+        self.spv_owner.check_network(self.ckb.network)?;
+
+        if self.spv_clients_count < 3 {
+            let msg = format!(
+                "The Bitcoint SPV clients count should be 3 at least but got {}",
+                self.spv_clients_count
+            );
+            return Err(Error::cli(msg));
+        }
+
+        if self.bitcoin_start_height % DIFFCHANGE_INTERVAL != 0 {
+            let msg = format!(
+                "invalid Bitcoint start height, expected multiples of \
+                {DIFFCHANGE_INTERVAL} but got {}",
+                self.bitcoin_start_height
+            );
+            return Err(Error::cli(msg));
+        }
+
+        Ok(())
+    }
+}
+
+
+================================================
+File: src/cli/mod.rs
+================================================
+//! The command line argument.
+
+use ckb_sdk::{
+    rpc::CkbRpcClient,
+    types::{Address, NetworkType},
+};
+use ckb_types::{core::FeeRate, packed::Script};
+use clap::{Args, Parser, Subcommand};
+use clap_verbosity_flag::{InfoLevel, Verbosity};
+use url::Url;
+
+use crate::{
+    components::BitcoinClient,
+    prelude::*,
+    result::{Error, Result},
+    utilities::{value_parsers, Key256Bits},
+};
+
+mod deploy;
+mod init;
+mod serve;
+mod sync;
+mod watch;
+
+#[derive(Parser)]
+#[command(author, version, about)]
+pub struct Cli {
+    #[command(subcommand)]
+    pub command: Commands,
+}
+
+#[allow(clippy::large_enum_variant)]
+#[derive(Subcommand)]
+pub enum Commands {
+    /// Deploy a contract on CKB.
+    ///
+    /// This command can be used to deploy any contract and;
+    /// also, users can deploy the contract in their own way.
+    Deploy(deploy::Args),
+    /// Initialize a new Bitcoin SPV instance on CKB, and initialize local storage.
+    Init(init::Args),
+    /// Run a service to update a Bitcoin SPV instance base on local storage,
+    /// and provide JSON-RPC APIs.
+    ///
+    /// If you don't want to update the Bitcoin SPV instance, try the subcommand `watch`.
+    Serve(serve::Args),
+    /// Run a read-only service to provide JSON-RPC APIs,
+    /// without updating for the Bitcoin SPV instance.
+    ///
+    /// If you want to update the Bitcoin SPV instance, try the subcommand `serve`.
+    Watch(watch::Args),
+    /// Sync data to rebuild local storage base on an existed on-chain Bitcoin SPV instance.
+    Sync(sync::Args),
+}
+
+#[derive(Parser)]
+pub struct CommonArgs {
+    #[command(flatten)]
+    pub(crate) verbose: Verbosity<InfoLevel>,
+}
+
+#[derive(Parser)]
+pub struct CkbArgs {
+    /// CKB JSON-RPC APIs endpoint.
+    #[arg(long)]
+    pub(crate) ckb_endpoint: Url,
+
+    /// The network type of the CKB chain which connected.
+    #[arg(
+        long = "network-type",
+        value_parser = value_parsers::NetworkTypeValueParser,
+        default_value = "testnet"
+    )]
+    pub(crate) network: NetworkType,
+
+    #[command(flatten)]
+    pub(crate) fee_rate: FeeRateArgs,
+
+    /// A binary file, which contains a secp256k1 private key.
+    /// This private key will be used to provide all CKBytes.
+    ///
+    /// Tip: After starting the service, this file should be deleted, for safety.
+    #[arg(long = "key-file", value_name = "KEY_FILE")]
+    pub(crate) private_key: Key256Bits,
+}
+
+#[derive(Parser)]
+pub struct CkbRoArgs {
+    /// CKB JSON-RPC APIs endpoint.
+    #[arg(long)]
+    pub(crate) ckb_endpoint: Url,
+
+    /// The network type of the CKB chain which connected.
+    #[arg(
+        long = "network-type",
+        value_parser = value_parsers::NetworkTypeValueParser,
+        default_value = "testnet"
+    )]
+    pub(crate) network: NetworkType,
+}
+
+#[derive(Parser)]
+pub struct SpvOwner {
+    /// The owner of Bitcoin SPV cells.
+    ///
+    /// ### Warnings
+    ///
+    /// The owner should be an address which uses a ACP-like script.
+    ///
+    /// Current standard ACP lock isn't satisfied, because it's has the
+    /// following limits:
+    ///
+    /// > if 2 input cells are using the same type script, or are both missing
+    ///   type scripts, the lock returns with an error state.
+    ///
+    /// > if 2 output cells are using the same type script, or are both missing
+    ///   type scripts, the lock returns with an error state.
+    ///
+    /// ### References
+    ///
+    /// - [Anyone-Can-Pay Lock (a.k.a ACP)](https://github.com/nervosnetwork/rfcs/blob/198fc90ab7582953ed85a6655e88e51346857475/rfcs/0026-anyone-can-pay/0026-anyone-can-pay.md)
+    #[arg(long, value_parser = value_parsers::AddressValueParser)]
+    pub(crate) spv_owner: Address,
+}
+
+#[derive(Parser)]
+pub struct SpvOwnerOpt {
+    /// The owner of Bitcoin SPV cells.
+    /// If no owner is provided, the previous owner will be kept.
+    ///
+    /// ### Warnings
+    ///
+    /// The owner should be an address which uses a ACP-like script.
+    ///
+    /// Current standard ACP lock isn't satisfied, because it's has the
+    /// following limits:
+    ///
+    /// > if 2 input cells are using the same type script, or are both missing
+    ///   type scripts, the lock returns with an error state.
+    ///
+    /// > if 2 output cells are using the same type script, or are both missing
+    ///   type scripts, the lock returns with an error state.
+    ///
+    /// ### References
+    ///
+    /// - [Anyone-Can-Pay Lock (a.k.a ACP)](https://github.com/nervosnetwork/rfcs/blob/198fc90ab7582953ed85a6655e88e51346857475/rfcs/0026-anyone-can-pay/0026-anyone-can-pay.md)
+    #[arg(long, value_parser = value_parsers::AddressValueParser)]
+    pub(crate) spv_owner: Option<Address>,
+}
+
+#[derive(Args)]
+#[group(multiple = false)]
+pub struct FeeRateArgs {
+    /// The fixed fee rate for CKB transactions.
+    #[arg(
+        group = "fixed-fee-rate",
+        conflicts_with = "dynamic-fee-rate",
+        long = "ckb-fee-rate",
+        default_value = "1000"
+    )]
+    fixed_value: u64,
+
+    /// [Experimental] Enable dynamic fee rate for CKB transactions.
+    ///
+    /// The actual fee rate will be the `median` fee rate which is fetched
+    /// through the CKB RPC method `get_fee_rate_statistics`.
+    ///
+    /// For security, a hard limit is required.
+    /// When the returned dynamic fee rate is larger than the hard limit, the
+    /// hard limit will be used.
+    ///
+    /// ### Warning
+    ///
+    /// Users have to make sure the remote CKB node they used are trustsed.
+    ///
+    /// ### References
+    ///
+    /// - [CKB JSON-RPC method `get_fee_rate_statistics`](https://github.com/nervosnetwork/ckb/tree/v0.114.0/rpc#method-get_fee_rate_statistics)
+    #[arg(
+        group = "dynamic-fee-rate",
+        conflicts_with = "fixed-fee-rate",
+        long = "enable-dynamic-ckb-fee-rate-with-limit"
+    )]
+    limit_for_dynamic: Option<u64>,
+}
+
+#[derive(Parser)]
+pub struct BitcoinArgs {
+    /// Bitcoin JSON-RPC APIs endpoint.
+    ///
+    /// Required Methods: `getbestblockhash`, `getblockhash`, `getblockstats`, `getblockheader` and `gettxoutproof`.
+    ///
+    /// Ref: <https://developer.bitcoin.org/reference/rpc/index.html>
+    #[arg(long = "bitcoin-endpoint", value_name = "BITCOIN_ENDPOINT")]
+    pub(crate) endpoint: Url,
+    /// Username for the Bitcoin JSON-RPC APIs endpoint.
+    #[arg(
+        long = "bitcoin-endpoint-username",
+        value_name = "BITCOIN_ENDPOINT_USERNAME"
+    )]
+    pub(crate) username: Option<String>,
+    /// Password for the Bitcoin JSON-RPC APIs endpoint.
+    #[arg(
+        long = "bitcoin-endpoint-password",
+        value_name = "BITCOIN_ENDPOINT_PASSWORD"
+    )]
+    pub(crate) password: Option<String>,
+}
+
+impl Cli {
+    pub fn parse() -> Self {
+        <Self as Parser>::parse()
+    }
+
+    pub fn execute(self) -> Result<()> {
+        self.configure_logger();
+        log::info!("Bitcoin SPV on CKB service is starting ...");
+        match self.command {
+            Commands::Deploy(args) => args.execute()?,
+            Commands::Init(args) => args.execute()?,
+            Commands::Serve(args) => args.execute()?,
+            Commands::Watch(args) => args.execute()?,
+            Commands::Sync(args) => args.execute()?,
+        }
+        log::info!("Bitcoin SPV on CKB service is stopped.");
+        Ok(())
+    }
+
+    pub fn configure_logger(&self) {
+        match self.command {
+            Commands::Deploy(ref args) => args.common.configure_logger(),
+            Commands::Init(ref args) => args.common.configure_logger(),
+            Commands::Serve(ref args) => args.common.configure_logger(),
+            Commands::Watch(ref args) => args.common.configure_logger(),
+            Commands::Sync(ref args) => args.common.configure_logger(),
+        }
+    }
+}
+
+impl CommonArgs {
+    pub fn configure_logger(&self) {
+        env_logger::Builder::new()
+            .filter_level(self.verbose.log_level_filter())
+            .init();
+    }
+}
+
+impl CkbArgs {
+    pub fn client(&self) -> CkbRpcClient {
+        CkbRpcClient::new(self.ckb_endpoint.as_str())
+    }
+
+    pub fn fee_rate(&self) -> Result<u64> {
+        let value = if let Some(limit) = self.fee_rate.limit_for_dynamic {
+            let dynamic = self.client().dynamic_fee_rate()?;
+            log::info!("CKB fee rate: {} (dynamic)", FeeRate(dynamic));
+            if dynamic > limit {
+                log::warn!(
+                    "dynamic CKB fee rate {} is too large, it seems unreasonable;\
+                    so the upper limit {} will be used",
+                    FeeRate(dynamic),
+                    FeeRate(limit)
+                );
+                limit
+            } else {
+                dynamic
+            }
+        } else {
+            let fixed = self.fee_rate.fixed_value;
+            log::info!("CKB fee rate: {} (fixed)", FeeRate(fixed));
+            fixed
+        };
+        Ok(value)
+    }
+}
+
+impl CkbRoArgs {
+    pub fn client(&self) -> CkbRpcClient {
+        CkbRpcClient::new(self.ckb_endpoint.as_str())
+    }
+}
+
+impl AsRef<Address> for SpvOwner {
+    fn as_ref(&self) -> &Address {
+        &self.spv_owner
+    }
+}
+
+impl SpvOwner {
+    pub fn check_network(&self, expected: NetworkType) -> Result<()> {
+        let actual = self.as_ref().network();
+        if actual == expected {
+            Ok(())
+        } else {
+            let msg = "The input addresses and the selected network are not matched";
+            Err(Error::cli(msg))
+        }
+    }
+
+    pub fn lock_script(&self) -> Script {
+        self.as_ref().into()
+    }
+}
+
+impl SpvOwnerOpt {
+    pub fn check_network(&self, expected: NetworkType) -> Result<()> {
+        let is_same_network = self
+            .spv_owner
+            .as_ref()
+            .map(|actual| actual.network() == expected)
+            .unwrap_or(true);
+        if is_same_network {
+            Ok(())
+        } else {
+            let msg = "The input addresses and the selected network are not matched";
+            Err(Error::cli(msg))
+        }
+    }
+
+    pub fn lock_script(&self) -> Option<Script> {
+        self.spv_owner.as_ref().map(Into::into)
+    }
+}
+
+impl BitcoinArgs {
+    pub fn client(&self) -> BitcoinClient {
+        BitcoinClient::new(
+            self.endpoint.clone(),
+            self.username.clone(),
+            self.password.clone(),
+        )
+    }
+}
+
+
+================================================
+File: src/cli/serve.rs
+================================================
+//! The `serve` sub-command.
+
+use std::{
+    cmp::Ordering,
+    collections::{HashMap, HashSet},
+    net::SocketAddr,
+    num::NonZeroU32,
+    path::PathBuf,
+    thread, time,
+};
+
+use ckb_bitcoin_spv_verifier::types::{
+    core::{BitcoinChainType, SpvClient},
+    packed,
+    prelude::Pack as VPack,
+};
+use ckb_jsonrpc_types::{Status, TransactionView};
+use ckb_sdk::{
+    core::TransactionBuilder,
+    transaction::{
+        builder::{ChangeBuilder, DefaultChangeBuilder},
+        handler::HandlerContexts,
+        input::{InputIterator, TransactionInput},
+        signer::{SignContexts, TransactionSigner},
+        TransactionBuilderConfiguration,
+    },
+    types::{
+        Address as CkbAddress, AddressPayload as CkbAddressPayload, NetworkInfo, NetworkType,
+        ScriptGroup, TransactionWithScriptGroups,
+    },
+    SECP256K1,
+};
+use ckb_types::{
+    core::{Capacity, DepType},
+    packed::{
+        Byte32, Bytes as PackedBytes, BytesOpt, CellDep, CellInput, CellOutput, OutPoint,
+        WitnessArgs,
+    },
+    prelude::*,
+    H256,
+};
+use clap::Parser;
+use secp256k1::SecretKey;
+
+use crate::{
+    components::{
+        ApiServiceConfig, SpvOperation, SpvReorgInput, SpvService, SpvUpdateInput, Storage,
+    },
+    constants,
+    prelude::*,
+    result::{Error, Result},
+    utilities::{try_raise_fd_limit, value_parsers},
+};
+
+const SPV_RESET_TIP_OFFSET: u32 = 1200;
+
+#[derive(Parser)]
+pub struct Args {
+    #[clap(flatten)]
+    pub(crate) common: super::CommonArgs,
+
+    /// The directory, which stores all cached data.
+    #[arg(long)]
+    pub(crate) data_dir: PathBuf,
+
+    #[clap(flatten)]
+    pub(crate) ckb: super::CkbArgs,
+
+    #[clap(flatten)]
+    pub(crate) bitcoin: super::BitcoinArgs,
+
+    /// The JSON-RPC server's listen address.
+    #[arg(long)]
+    pub(crate) listen_address: SocketAddr,
+
+    /// A interval in seconds.
+    ///
+    /// - When no better bitcoin blocks, waiting for several seconds.
+    /// - After a CKB transaction is sent, waiting for several seconds.
+    #[arg(long, default_value = "30")]
+    pub(crate) interval: u64,
+
+    /// Don't update all headers in one CKB transaction,
+    /// to avoid size limit or cycles limit.
+    #[arg(long, default_value = "10")]
+    pub(crate) spv_headers_update_limit: NonZeroU32,
+
+    /// The out point of the Bitcoin SPV contract.
+    ///
+    /// This parameter will override the value in the storage.
+    /// If this parameter is not provided, the value in the storage will be used.
+    #[arg(long, value_parser = value_parsers::OutPointValueParser)]
+    pub(crate) spv_contract_out_point: Option<OutPoint>,
+
+    /// The batch size that how many Bitcoin headers will be downloaded at once.
+    #[arg(long, default_value = "30")]
+    pub(crate) bitcoin_headers_download_batch_size: u32,
+
+    #[clap(flatten)]
+    pub(crate) spv_owner_opt: super::SpvOwnerOpt,
+
+    /// Perform all steps without sending.
+    #[arg(long, hide = true)]
+    pub(crate) dry_run: bool,
+}
+
+impl Args {
+    pub fn execute(&self) -> Result<()> {
+        log::info!("Starting the Bitcoin SPV service");
+
+        self.spv_owner_opt.check_network(self.ckb.network)?;
+
+        try_raise_fd_limit();
+
+        let storage = Storage::new(&self.data_dir)?;
+        if !storage.is_initialized()? {
+            let msg = format!(
+                "user-provided data directory \"{}\" is empty, please initialize it",
+                self.data_dir.display()
+            );
+            return Err(Error::other(msg));
+        }
+
+        if let Some(ref spv_contract_out_point) = self.spv_contract_out_point {
+            let spv_contract_cell_dep = CellDep::new_builder()
+                .out_point(spv_contract_out_point.clone())
+                .dep_type(DepType::Code.into())
+                .build();
+            let spv_type_script = storage.spv_contract_type_script()?;
+            storage.save_cells_state(spv_type_script, spv_contract_cell_dep)?;
+        }
+
+        let ckb_cli = self.ckb.client();
+        let btc_cli = self.bitcoin.client();
+
+        let spv_service = SpvService {
+            ckb_cli: ckb_cli.clone(),
+            btc_cli: btc_cli.clone(),
+            storage: storage.clone(),
+        };
+
+        let _api_service = ApiServiceConfig::new(self.listen_address).start(spv_service.clone());
+
+        let mut prev_tx_hash: Option<H256> = None;
+
+        loop {
+            if !spv_service.sync_storage(self.bitcoin_headers_download_batch_size)? {
+                continue;
+            }
+
+            if let Some(ref tx_hash) = prev_tx_hash {
+                let tx_status = ckb_cli
+                    .get_transaction_status(tx_hash.to_owned())?
+                    .tx_status
+                    .status;
+
+                match tx_status {
+                    Status::Pending | Status::Proposed => {
+                        // To avoid PoolRejectedDuplicatedTransaction
+                        log::debug!("Waiting for the previous transaction {tx_hash:#x}");
+                        self.take_a_break();
+                        continue;
+                    }
+                    Status::Committed | Status::Unknown | Status::Rejected => {}
+                }
+            }
+
+            let (stg_tip_height, stg_tip_header) = spv_service.storage.tip_state()?;
+            let stg_tip_hash = stg_tip_header.block_hash();
+            log::info!("[storage] header#{stg_tip_height:07}, {stg_tip_hash:#x}; tip");
+
+            match spv_service.select_operation()? {
+                SpvOperation::Update(input) => {
+                    let spv_tip_height = input.curr.client.headers_mmr_root.max_height;
+
+                    match stg_tip_height.cmp(&spv_tip_height) {
+                        Ordering::Less | Ordering::Equal => {
+                            log::info!("No updates, sleep for a while");
+                            self.take_a_break();
+                            continue;
+                        }
+                        Ordering::Greater => {}
+                    }
+
+                    log::info!("Try to update SPV instance");
+
+                    let (spv_client, spv_update) = storage.generate_spv_client_and_spv_update(
+                        spv_tip_height,
+                        self.spv_headers_update_limit,
+                        input.info.get_flags()?,
+                    )?;
+
+                    let tx_hash =
+                        self.update_spv_cells(&spv_service, input, spv_client, spv_update)?;
+
+                    prev_tx_hash = Some(tx_hash);
+                }
+                SpvOperation::Reorg(input) => {
+                    log::info!("Try to reorg SPV instance");
+
+                    let spv_tip_height = input.curr.client.headers_mmr_root.max_height;
+
+                    let flags = input.info.get_flags()?;
+                    let limit = match flags.into() {
+                        BitcoinChainType::Testnet => self.spv_headers_update_limit,
+                        _ => NonZeroU32::MAX,
+                    };
+                    let (spv_client, spv_update) =
+                        storage.generate_spv_client_and_spv_update(spv_tip_height, limit, flags)?;
+
+                    let tx_hash =
+                        self.reorg_spv_cells(&spv_service, input, spv_client, spv_update)?;
+
+                    prev_tx_hash = Some(tx_hash);
+                }
+                SpvOperation::Reset(input) => {
+                    let flags = input.info.get_flags()?;
+                    if BitcoinChainType::Testnet != flags.into() {
+                        let msg = "failed to reorg since no common parent between SPV instance and storage";
+                        return Err(Error::other(msg));
+                    }
+
+                    log::info!(
+                        "stale length: {:?}, clients count: {:?}",
+                        input.stale.len(),
+                        input.info.clients_count
+                    );
+                    log::info!("Try to reset SPV instance");
+
+                    let spv_tip_height =
+                        input.curr.client.headers_mmr_root.max_height - SPV_RESET_TIP_OFFSET;
+
+                    let (spv_client, spv_update) = storage.generate_spv_client_and_spv_update(
+                        spv_tip_height,
+                        self.spv_headers_update_limit,
+                        flags,
+                    )?;
+
+                    let tx_hash =
+                        self.reorg_spv_cells(&spv_service, input, spv_client, spv_update)?;
+
+                    prev_tx_hash = Some(tx_hash);
+                }
+            }
+        }
+
+        // TODO Handle Ctrl-C and clean resources before exit.
+    }
+
+    pub(crate) fn update_spv_cells(
+        &self,
+        spv: &SpvService,
+        update_input: SpvUpdateInput,
+        mut spv_client: SpvClient,
+        spv_update: packed::SpvUpdate,
+    ) -> Result<H256> {
+        let network_info =
+            NetworkInfo::new(self.ckb.network, self.ckb.ckb_endpoint.as_str().to_owned());
+        let configuration = {
+            let mut tmp = TransactionBuilderConfiguration::new_with_network(network_info.clone())?;
+            tmp.fee_rate = self.ckb.fee_rate()?;
+            tmp
+        };
+
+        let (deployer, deployer_key) = SecretKey::from_slice(&self.ckb.private_key.as_ref()[..])
+            .map(|sk| {
+                let pk = sk.public_key(&SECP256K1);
+                let payload = CkbAddressPayload::from_pubkey(&pk);
+                let address = CkbAddress::new(self.ckb.network, payload, true);
+                (address, sk)
+            })?;
+        log::debug!("The SPV cells will be updated by {deployer}");
+
+        let iterator = InputIterator::new_with_address(&[deployer.clone()], &network_info);
+        let mut tx_builder = TransactionBuilder::default();
+
+        let spv_inputs = {
+            let spv_info_input = CellInput::new_builder()
+                .previous_output(update_input.info.cell.out_point.clone())
+                .build();
+            let spv_client_input = CellInput::new_builder()
+                .previous_output(update_input.next.cell.out_point.clone())
+                .build();
+            vec![spv_info_input, spv_client_input]
+        };
+        tx_builder.inputs(spv_inputs);
+
+        let spv_contract_cell_dep = spv.storage.spv_contract_cell_dep()?;
+        tx_builder.cell_dep(spv_contract_cell_dep);
+        let spv_client_curr_cell_dep = CellDep::new_builder()
+            .out_point(update_input.curr.cell.out_point)
+            .dep_type(DepType::Code.into())
+            .build();
+        tx_builder.cell_dep(spv_client_curr_cell_dep);
+
+        // Try to insert cell deps for the lock scripts.
+        match self.ckb.network {
+            NetworkType::Mainnet | NetworkType::Testnet => {
+                let known_cell_dep = if self.ckb.network == NetworkType::Mainnet {
+                    constants::mainnet::known_cell_dep
+                } else {
+                    constants::testnet::known_cell_dep
+                };
+                #[allow(clippy::mutable_key_type)]
+                let mut handled_code_hashes = HashSet::new();
+                for cell in [&update_input.info.cell, &update_input.next.cell] {
+                    let code_hash = cell.output.lock().code_hash();
+                    if handled_code_hashes.insert(code_hash.clone()) {
+                        if let Some(cell_dep) = known_cell_dep(&code_hash) {
+                            tx_builder.cell_dep(cell_dep);
+                        }
+                    }
+                }
+            }
+            _ => {
+                log::warn!("Unsupport CKB network \"{}\"", self.ckb.network);
+            }
+        }
+
+        let spv_outputs_data = {
+            spv_client.id = update_input.next.client.id;
+            let mut spv_info = update_input.info.info;
+            spv_info.tip_client_id = spv_client.id;
+            let packed_spv_info: packed::SpvInfo = spv_info.pack();
+            let packed_spv_client: packed::SpvClient = spv_client.pack();
+            vec![packed_spv_info.as_bytes(), packed_spv_client.as_bytes()]
+        };
+        let spv_outputs: Vec<CellOutput> = if let Some(lock_script) =
+            self.spv_owner_opt.lock_script()
+        {
+            let spv_info_capacity = Capacity::bytes(spv_outputs_data[0].len()).map_err(|err| {
+                let msg = format!(
+                    "failed to calculate the capacity for Bitcoin SPV info cell since {err}"
+                );
+                Error::other(msg)
+            })?;
+            let spv_client_capacity =
+                Capacity::bytes(spv_outputs_data[1].len()).map_err(|err| {
+                    let msg = format!(
+                        "failed to calculate the capacity for Bitcoin SPV client cell since {err}"
+                    );
+                    Error::other(msg)
+                })?;
+            let info_output = update_input
+                .info
+                .cell
+                .output
+                .clone()
+                .as_builder()
+                .lock(lock_script.clone())
+                .build_exact_capacity(spv_info_capacity)
+                .map_err(|err| {
+                    let msg = format!(
+                        "failed to sum the total capacity for Bitcoin SPV info cell since {err}"
+                    );
+                    Error::other(msg)
+                })?;
+            let client_output = update_input
+                .next
+                .cell
+                .output
+                .clone()
+                .as_builder()
+                .lock(lock_script)
+                .build_exact_capacity(spv_client_capacity)
+                .map_err(|err| {
+                    let msg = format!(
+                        "failed to sum the total capacity for Bitcoin SPV client cell since {err}"
+                    );
+                    Error::other(msg)
+                })?;
+            vec![info_output, client_output]
+        } else {
+            vec![
+                update_input.info.cell.output.clone(),
+                update_input.next.cell.output.clone(),
+            ]
+        };
+        tx_builder.outputs(spv_outputs);
+        tx_builder.outputs_data(spv_outputs_data.iter().map(Pack::pack));
+
+        #[allow(clippy::mutable_key_type)]
+        let mut lock_groups: HashMap<Byte32, ScriptGroup> = HashMap::default();
+        #[allow(clippy::mutable_key_type)]
+        let mut type_groups: HashMap<Byte32, ScriptGroup> = HashMap::default();
+
+        {
+            let lock_script = update_input.info.cell.output.lock();
+            lock_groups
+                .entry(lock_script.calc_script_hash())
+                .or_insert_with(|| ScriptGroup::from_lock_script(&lock_script))
+                .input_indices
+                .push(0);
+            let lock_script = update_input.next.cell.output.lock();
+            lock_groups
+                .entry(lock_script.calc_script_hash())
+                .or_insert_with(|| ScriptGroup::from_lock_script(&lock_script))
+                .input_indices
+                .push(1);
+        }
+
+        for (output_idx, output) in tx_builder.get_outputs().clone().iter().enumerate() {
+            if let Some(type_script) = &output.type_().to_opt() {
+                type_groups
+                    .entry(type_script.calc_script_hash())
+                    .or_insert_with(|| ScriptGroup::from_type_script(type_script))
+                    .output_indices
+                    .push(output_idx);
+            }
+        }
+
+        let witness = {
+            let type_args = BytesOpt::new_builder()
+                .set(Some(Pack::pack(spv_update.as_slice())))
+                .build();
+            let witness_args = WitnessArgs::new_builder().output_type(type_args).build();
+            Pack::pack(&witness_args.as_bytes())
+        };
+        tx_builder.witness(witness);
+        tx_builder.witness(PackedBytes::default());
+
+        let mut change_builder =
+            DefaultChangeBuilder::new(&configuration, (&deployer).into(), Vec::new());
+        change_builder.init(&mut tx_builder);
+        {
+            let spv_info_input = TransactionInput {
+                live_cell: update_input.info.cell.clone(),
+                since: 0,
+            };
+            let spv_client_input = TransactionInput {
+                live_cell: update_input.next.cell.clone(),
+                since: 0,
+            };
+            let _ = change_builder.check_balance(spv_info_input, &mut tx_builder);
+            let _ = change_builder.check_balance(spv_client_input, &mut tx_builder);
+        };
+        let contexts = HandlerContexts::default();
+
+        let mut tx_with_groups = {
+            let mut check_result = None;
+            for (mut input_index, input) in iterator.enumerate() {
+                input_index += 2; // The first 2 inputs are SPV cells.
+                log::debug!("Try to find the {input_index}-th live cell for {deployer}");
+                let input = input.map_err(|err| {
+                    let msg = format!(
+                        "failed to find {input_index}-th live cell for {deployer} since {err}"
+                    );
+                    Error::other(msg)
+                })?;
+                tx_builder.input(input.cell_input());
+                tx_builder.witness(PackedBytes::default());
+
+                let previous_output = input.previous_output();
+                let lock_script = previous_output.lock();
+                lock_groups
+                    .entry(lock_script.calc_script_hash())
+                    .or_insert_with(|| ScriptGroup::from_lock_script(&lock_script))
+                    .input_indices
+                    .push(input_index);
+
+                if change_builder.check_balance(input, &mut tx_builder) {
+                    let mut script_groups: Vec<ScriptGroup> = lock_groups
+                        .into_values()
+                        .chain(type_groups.into_values())
+                        .collect();
+                    for script_group in script_groups.iter_mut() {
+                        for handler in configuration.get_script_handlers() {
+                            for context in &contexts.contexts {
+                                if handler.build_transaction(
+                                    &mut tx_builder,
+                                    script_group,
+                                    context.as_ref(),
+                                )? {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    let tx_view = change_builder.finalize(tx_builder);
+
+                    check_result = Some(TransactionWithScriptGroups::new(tx_view, script_groups));
+                    break;
+                }
+            }
+            check_result
+        }
+        .ok_or_else(|| {
+            let msg = format!("{deployer}'s live cells are not enough");
+            Error::other(msg)
+        })?;
+
+        TransactionSigner::new(&network_info).sign_transaction(
+            &mut tx_with_groups,
+            &SignContexts::new_sighash(vec![deployer_key]),
+        )?;
+
+        let tx_json = TransactionView::from(tx_with_groups.get_tx_view().clone());
+        let tx_hash = self
+            .ckb
+            .client()
+            .send_transaction_ext(tx_json, self.dry_run)?;
+
+        Ok(tx_hash)
+    }
+
+    pub(crate) fn reorg_spv_cells(
+        &self,
+        spv: &SpvService,
+        reorg_input: SpvReorgInput,
+        mut spv_client: SpvClient,
+        spv_update: packed::SpvUpdate,
+    ) -> Result<H256> {
+        let network_info =
+            NetworkInfo::new(self.ckb.network, self.ckb.ckb_endpoint.as_str().to_owned());
+        let configuration = {
+            let mut tmp = TransactionBuilderConfiguration::new_with_network(network_info.clone())?;
+            tmp.fee_rate = self.ckb.fee_rate()?;
+            tmp
+        };
+
+        let (deployer, deployer_key) = SecretKey::from_slice(&self.ckb.private_key.as_ref()[..])
+            .map(|sk| {
+                let pk = sk.public_key(&SECP256K1);
+                let payload = CkbAddressPayload::from_pubkey(&pk);
+                let address = CkbAddress::new(self.ckb.network, payload, true);
+                (address, sk)
+            })?;
+        log::debug!("The SPV cells will be updated by {deployer}");
+
+        let iterator = InputIterator::new_with_address(&[deployer.clone()], &network_info);
+        let mut tx_builder = TransactionBuilder::default();
+
+        let spv_inputs = {
+            let spv_info_input = CellInput::new_builder()
+                .previous_output(reorg_input.info.cell.out_point.clone())
+                .build();
+            let mut inputs = vec![spv_info_input];
+            for client in &reorg_input.stale {
+                let spv_client_input = CellInput::new_builder()
+                    .previous_output(client.cell.out_point.clone())
+                    .build();
+                inputs.push(spv_client_input);
+            }
+            inputs
+        };
+        tx_builder.inputs(spv_inputs);
+
+        let spv_contract_cell_dep = spv.storage.spv_contract_cell_dep()?;
+        tx_builder.cell_dep(spv_contract_cell_dep);
+        let spv_client_curr_cell_dep = CellDep::new_builder()
+            .out_point(reorg_input.curr.cell.out_point)
+            .dep_type(DepType::Code.into())
+            .build();
+        tx_builder.cell_dep(spv_client_curr_cell_dep);
+
+        // Try to insert cell deps for the lock scripts.
+        match self.ckb.network {
+            NetworkType::Mainnet | NetworkType::Testnet => {
+                let known_cell_dep = if self.ckb.network == NetworkType::Mainnet {
+                    constants::mainnet::known_cell_dep
+                } else {
+                    constants::testnet::known_cell_dep
+                };
+                #[allow(clippy::mutable_key_type)]
+                let mut handled_code_hashes = HashSet::new();
+                let code_hash = reorg_input.info.cell.output.lock().code_hash();
+                if handled_code_hashes.insert(code_hash.clone()) {
+                    if let Some(cell_dep) = known_cell_dep(&code_hash) {
+                        tx_builder.cell_dep(cell_dep);
+                    }
+                }
+                for client in &reorg_input.stale {
+                    let code_hash = client.cell.output.lock().code_hash();
+                    if handled_code_hashes.insert(code_hash.clone()) {
+                        if let Some(cell_dep) = known_cell_dep(&code_hash) {
+                            tx_builder.cell_dep(cell_dep);
+                        }
+                    }
+                }
+            }
+            _ => {
+                log::warn!("Unsupport CKB network \"{}\"", self.ckb.network);
+            }
+        }
+
+        let spv_outputs_data = {
+            let mut spv_info = reorg_input.info.info.clone();
+            spv_info.tip_client_id = reorg_input.info.next_tip_client_id();
+            let packed_spv_info: packed::SpvInfo = spv_info.pack();
+            let mut outputs_data = vec![packed_spv_info.as_bytes()];
+            for client in &reorg_input.stale {
+                spv_client.id = client.client.id;
+                let packed_spv_client: packed::SpvClient = spv_client.pack();
+                outputs_data.push(packed_spv_client.as_bytes());
+            }
+            outputs_data
+        };
+        let spv_outputs = if let Some(lock_script) = self.spv_owner_opt.lock_script() {
+            let spv_info_capacity = Capacity::bytes(spv_outputs_data[0].len()).map_err(|err| {
+                let msg = format!(
+                    "failed to calculate the capacity for Bitcoin SPV info cell since {err}"
+                );
+                Error::other(msg)
+            })?;
+            let spv_client_capacity =
+                Capacity::bytes(spv_outputs_data[1].len()).map_err(|err| {
+                    let msg = format!(
+                        "failed to calculate the capacity for Bitcoin SPV client cell since {err}"
+                    );
+                    Error::other(msg)
+                })?;
+            let info_output = reorg_input
+                .info
+                .cell
+                .output
+                .clone()
+                .as_builder()
+                .lock(lock_script.clone())
+                .build_exact_capacity(spv_info_capacity)
+                .map_err(|err| {
+                    let msg = format!(
+                        "failed to sum the total capacity for Bitcoin SPV info cell since {err}"
+                    );
+                    Error::other(msg)
+                })?;
+            let mut outputs = vec![info_output];
+            for client in &reorg_input.stale {
+                let client_output = client
+                    .cell
+                    .output
+                    .clone()
+                    .as_builder()
+                    .lock(lock_script.clone())
+                    .build_exact_capacity(spv_client_capacity)
+                    .map_err(|err| {
+                        let msg = format!(
+                            "failed to sum the total capacity for Bitcoin SPV client cell since {err}"
+                        );
+                        Error::other(msg)
+                    })?;
+                outputs.push(client_output);
+            }
+            outputs
+        } else {
+            let mut outputs = vec![reorg_input.info.cell.output.clone()];
+            for client in &reorg_input.stale {
+                outputs.push(client.cell.output.clone());
+            }
+            outputs
+        };
+        tx_builder.outputs(spv_outputs);
+        tx_builder.outputs_data(spv_outputs_data.iter().map(Pack::pack));
+
+        #[allow(clippy::mutable_key_type)]
+        let mut lock_groups: HashMap<Byte32, ScriptGroup> = HashMap::default();
+        #[allow(clippy::mutable_key_type)]
+        let mut type_groups: HashMap<Byte32, ScriptGroup> = HashMap::default();
+
+        {
+            let lock_script = reorg_input.info.cell.output.lock();
+            lock_groups
+                .entry(lock_script.calc_script_hash())
+                .or_insert_with(|| ScriptGroup::from_lock_script(&lock_script))
+                .input_indices
+                .push(0);
+            for (index, client) in reorg_input.stale.iter().enumerate() {
+                let lock_script = client.cell.output.lock();
+                lock_groups
+                    .entry(lock_script.calc_script_hash())
+                    .or_insert_with(|| ScriptGroup::from_lock_script(&lock_script))
+                    .input_indices
+                    .push(index + 1);
+            }
+        }
+
+        for (output_idx, output) in tx_builder.get_outputs().clone().iter().enumerate() {
+            if let Some(type_script) = &output.type_().to_opt() {
+                type_groups
+                    .entry(type_script.calc_script_hash())
+                    .or_insert_with(|| ScriptGroup::from_type_script(type_script))
+                    .output_indices
+                    .push(output_idx);
+            }
+        }
+
+        let witness = {
+            let type_args = BytesOpt::new_builder()
+                .set(Some(Pack::pack(spv_update.as_slice())))
+                .build();
+            let witness_args = WitnessArgs::new_builder().output_type(type_args).build();
+            Pack::pack(&witness_args.as_bytes())
+        };
+        tx_builder.witness(witness);
+        tx_builder.witnesses(vec![PackedBytes::default(); reorg_input.stale.len()]);
+
+        let mut change_builder =
+            DefaultChangeBuilder::new(&configuration, (&deployer).into(), Vec::new());
+        change_builder.init(&mut tx_builder);
+        {
+            let spv_info_input = TransactionInput {
+                live_cell: reorg_input.info.cell.clone(),
+                since: 0,
+            };
+            let _ = change_builder.check_balance(spv_info_input, &mut tx_builder);
+            for client in &reorg_input.stale {
+                let spv_client_input = TransactionInput {
+                    live_cell: client.cell.clone(),
+                    since: 0,
+                };
+                let _ = change_builder.check_balance(spv_client_input, &mut tx_builder);
+            }
+        };
+        let contexts = HandlerContexts::default();
+
+        let mut tx_with_groups = {
+            let mut check_result = None;
+            for (mut input_index, input) in iterator.enumerate() {
+                input_index += 1 + reorg_input.stale.len(); // info + stale clients
+                log::debug!("Try to find the {input_index}-th live cell for {deployer}");
+                let input = input.map_err(|err| {
+                    let msg = format!(
+                        "failed to find {input_index}-th live cell for {deployer} since {err}"
+                    );
+                    Error::other(msg)
+                })?;
+                tx_builder.input(input.cell_input());
+                tx_builder.witness(PackedBytes::default());
+
+                let previous_output = input.previous_output();
+                let lock_script = previous_output.lock();
+                lock_groups
+                    .entry(lock_script.calc_script_hash())
+                    .or_insert_with(|| ScriptGroup::from_lock_script(&lock_script))
+                    .input_indices
+                    .push(input_index);
+
+                if change_builder.check_balance(input, &mut tx_builder) {
+                    let mut script_groups: Vec<ScriptGroup> = lock_groups
+                        .into_values()
+                        .chain(type_groups.into_values())
+                        .collect();
+                    for script_group in script_groups.iter_mut() {
+                        for handler in configuration.get_script_handlers() {
+                            for context in &contexts.contexts {
+                                if handler.build_transaction(
+                                    &mut tx_builder,
+                                    script_group,
+                                    context.as_ref(),
+                                )? {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    let tx_view = change_builder.finalize(tx_builder);
+
+                    check_result = Some(TransactionWithScriptGroups::new(tx_view, script_groups));
+                    break;
+                }
+            }
+            check_result
+        }
+        .ok_or_else(|| {
+            let msg = format!("{deployer}'s live cells are not enough");
+            Error::other(msg)
+        })?;
+
+        TransactionSigner::new(&network_info).sign_transaction(
+            &mut tx_with_groups,
+            &SignContexts::new_sighash(vec![deployer_key]),
+        )?;
+
+        let tx_json = TransactionView::from(tx_with_groups.get_tx_view().clone());
+        let tx_hash = self
+            .ckb
+            .client()
+            .send_transaction_ext(tx_json, self.dry_run)?;
+
+        Ok(tx_hash)
+    }
+
+    fn take_a_break(&self) {
+        thread::sleep(time::Duration::from_secs(self.interval));
+    }
+}
+
+
+================================================
+File: src/cli/sync.rs
+================================================
+//! The `sync` sub-command.
+
+use std::path::PathBuf;
+
+use ckb_sdk::rpc::ResponseFormatGetter as _;
+use ckb_types::{
+    core::DepType,
+    packed::{CellDep, CellOutput, OutPoint},
+    prelude::*,
+};
+use clap::Parser;
+
+use crate::{
+    components::Storage,
+    prelude::*,
+    result::{Error, Result},
+    utilities::value_parsers,
+};
+
+#[derive(Parser)]
+pub struct Args {
+    #[clap(flatten)]
+    pub(crate) common: super::CommonArgs,
+
+    /// The directory, which stores all cached data.
+    #[arg(long)]
+    pub(crate) data_dir: PathBuf,
+
+    #[clap(flatten)]
+    pub(crate) ckb: super::CkbRoArgs,
+
+    #[clap(flatten)]
+    pub(crate) bitcoin: super::BitcoinArgs,
+
+    /// The out point of the Bitcoin SPV contract.
+    #[arg(long, value_parser = value_parsers::OutPointValueParser)]
+    pub(crate) spv_contract_out_point: OutPoint,
+
+    /// An out point of any cell in the target Bitcoin SPV instance.
+    #[arg(long, value_parser = value_parsers::OutPointValueParser)]
+    pub(crate) spv_cell_out_point: OutPoint,
+}
+
+impl Args {
+    pub fn execute(&self) -> Result<()> {
+        log::info!("Sync data to local storage base on on-chain Bitcoin SPV instance");
+
+        let ckb_cli = self.ckb.client();
+
+        let input_tx_hash = self.spv_cell_out_point.tx_hash();
+        let input_cell_index: u32 = self.spv_cell_out_point.index().unpack();
+        let input_cell_output: CellOutput = ckb_cli
+            .get_transaction(input_tx_hash.unpack())?
+            .ok_or_else(|| {
+                let msg = format!("CKB transaction {input_tx_hash:#x} is not existed");
+                Error::other(msg)
+            })?
+            .transaction
+            .ok_or_else(|| {
+                let msg = format!("remote server replied empty for transaction {input_tx_hash:#x}");
+                Error::other(msg)
+            })?
+            .get_value()?
+            .inner
+            .outputs
+            .get(input_cell_index as usize)
+            .ok_or_else(|| {
+                let msg = format!(
+                    "CKB transaction {input_tx_hash:#x} doesn't have \
+                    the {input_cell_index}-th output"
+                );
+                Error::other(msg)
+            })?
+            .to_owned()
+            .into();
+        let spv_type_script = input_cell_output.type_().to_opt().ok_or_else(|| {
+            let msg = format!(
+                "input cell (tx-hash: {input_tx_hash:#x}, index: {input_cell_index}) \
+                is not a SPV cell since no type script"
+            );
+            Error::other(msg)
+        })?;
+
+        let tip_spv_client_cell = ckb_cli.find_best_spv_client(spv_type_script.clone(), None)?;
+        let start_height = tip_spv_client_cell.client.headers_mmr_root.min_height;
+
+        let btc_cli = self.bitcoin.client();
+        let start_header = btc_cli.get_block_header_by_height(start_height)?;
+
+        let storage = Storage::new(&self.data_dir)?;
+        let _ = storage.initialize_with(start_height, start_header)?;
+
+        let spv_contract_cell_dep = CellDep::new_builder()
+            .out_point(self.spv_contract_out_point.clone())
+            .dep_type(DepType::Code.into())
+            .build();
+        storage.save_cells_state(spv_type_script, spv_contract_cell_dep)?;
+
+        Ok(())
+    }
+}
+
+
+================================================
+File: src/cli/watch.rs
+================================================
+//! The `watch` sub-command.
+
+use std::{net::SocketAddr, path::PathBuf, thread, time};
+
+use clap::Parser;
+
+use crate::{
+    components::{ApiServiceConfig, SpvService, Storage},
+    prelude::*,
+    result::{Error, Result},
+    utilities::try_raise_fd_limit,
+};
+
+#[derive(Parser)]
+pub struct Args {
+    #[clap(flatten)]
+    pub(crate) common: super::CommonArgs,
+
+    /// The directory, which stores all cached data.
+    #[arg(long)]
+    pub(crate) data_dir: PathBuf,
+
+    #[clap(flatten)]
+    pub(crate) ckb: super::CkbRoArgs,
+
+    #[clap(flatten)]
+    pub(crate) bitcoin: super::BitcoinArgs,
+
+    /// The JSON-RPC server's listen address.
+    #[arg(long)]
+    pub(crate) listen_address: SocketAddr,
+
+    /// A interval in seconds.
+    ///
+    /// - When no better bitcoin blocks, waiting for several seconds.
+    /// - After a CKB transaction is sent, waiting for several seconds.
+    #[arg(long, default_value = "30")]
+    pub(crate) interval: u64,
+
+    /// The batch size that how many Bitcoin headers will be downloaded at once.
+    #[arg(long, default_value = "30")]
+    pub(crate) bitcoin_headers_download_batch_size: u32,
+}
+
+impl Args {
+    pub fn execute(&self) -> Result<()> {
+        log::info!("Starting the Bitcoin SPV service (readonly)");
+
+        try_raise_fd_limit();
+
+        let storage = Storage::new(&self.data_dir)?;
+        if !storage.is_initialized()? {
+            let msg = format!(
+                "user-provided data directory \"{}\" is empty, please initialize it",
+                self.data_dir.display()
+            );
+            return Err(Error::other(msg));
+        }
+        let ckb_cli = self.ckb.client();
+        let btc_cli = self.bitcoin.client();
+
+        let spv_service = SpvService {
+            ckb_cli: ckb_cli.clone(),
+            btc_cli: btc_cli.clone(),
+            storage: storage.clone(),
+        };
+
+        let _api_service = ApiServiceConfig::new(self.listen_address).start(spv_service.clone());
+
+        loop {
+            if !spv_service.sync_storage(self.bitcoin_headers_download_batch_size)? {
+                continue;
+            }
+            self.take_a_break();
+        }
+
+        // TODO Handle Ctrl-C and clean resources before exit.
+    }
+
+    fn take_a_break(&self) {
+        thread::sleep(time::Duration::from_secs(self.interval));
+    }
+}
+
+
+================================================
+File: src/components/bitcoin_client.rs
+================================================
+//! A bitcoin client to communicate with a Bitcoin chain.
+
+use std::sync::atomic::{AtomicU64, Ordering};
+
+use bitcoin::{consensus::deserialize, BlockHash, MerkleBlock, Txid};
+use ckb_bitcoin_spv_verifier::types::core::Header;
+use faster_hex::hex_decode;
+use jsonrpc_core::{Error as RpcError, ErrorCode as RpcErrorCode, Id as RpcId, Value as RpcValue};
+use reqwest::blocking::Client;
+use serde::{Deserialize, Serialize};
+use url::Url;
+
+use crate::result::{BtcRpcError, BtcRpcResult, Error, Result};
+
+pub struct BitcoinClient {
+    client: Client,
+    endpoint: Url,
+    username: Option<String>,
+    password: Option<String>,
+    id: AtomicU64,
+}
+
+impl Clone for BitcoinClient {
+    fn clone(&self) -> Self {
+        Self::new(
+            self.endpoint.clone(),
+            self.username.clone(),
+            self.password.clone(),
+        )
+    }
+}
+
+#[derive(Serialize, Clone, Copy)]
+struct ZeroElemTuple();
+
+// ### Warning
+//
+// If parameters contain only one parameter:
+// - `serde_json::to_value(($($arg,)+))`
+// - `serde_json::to_value(($($arg),+))`
+// are different.
+//
+// Ref: https://github.com/serde-rs/serde/issues/1309
+macro_rules! serialize_parameters {
+    () => ( serde_json::to_value(ZeroElemTuple())?);
+    ($($arg:ident),+) => ( serde_json::to_value(($($arg,)+))?)
+}
+
+/// JSON-RPC 1.0 compatible response.
+///
+/// ### Warning
+///
+/// Do NOT use `jsonrpc_core::types::Output` directly.
+///
+/// Differences with jsonrpc_core::types::Output`:
+/// - JSON-RPC version.
+/// - Fields `result` and `error` could be returned in one response.
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Output {
+    /// Protocol version: 1.0 or 2.0? Don't care about it. Just ignore it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub jsonrpc: Option<String>,
+    /// Result
+    pub result: Option<RpcValue>,
+    /// Error
+    pub error: Option<RpcError>,
+    /// Correlation id
+    pub id: RpcId,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct BlockHeight {
+    height: u32,
+}
+
+/// Implement simple JSON-RPC methods.
+impl BitcoinClient {
+    pub fn new(endpoint: Url, username: Option<String>, password: Option<String>) -> Self {
+        let client = Client::new();
+        Self {
+            client,
+            endpoint,
+            username,
+            password,
+            id: 0.into(),
+        }
+    }
+
+    pub fn post<PARAM, RET>(&self, method: &str, params: PARAM) -> BtcRpcResult<RET>
+    where
+        PARAM: serde::ser::Serialize,
+        RET: serde::de::DeserializeOwned,
+    {
+        let params = serde_json::to_value(params)?;
+        let id = self.id.fetch_add(1, Ordering::Relaxed);
+        log::trace!("params \"{params}\", id: {id}");
+
+        let mut req_json = serde_json::Map::new();
+        req_json.insert("id".to_owned(), serde_json::json!(id));
+        req_json.insert("jsonrpc".to_owned(), serde_json::json!("1.0"));
+        req_json.insert("method".to_owned(), serde_json::json!(method));
+        req_json.insert("params".to_owned(), params);
+        log::trace!("request data \"{:?}\"", serde_json::to_string(&req_json));
+
+        log::trace!(
+            "username \"{:?}\", have-password: {}",
+            self.username,
+            self.password.is_some()
+        );
+
+        let req = self.client.post(self.endpoint.clone());
+        let req = match (&self.username, &self.password) {
+            (Some(ref username), password) => req.basic_auth(username, password.clone()),
+            (None, Some(ref password)) => req.basic_auth("", Some(password)),
+            (None, None) => req,
+        }
+        .header(reqwest::header::CONTENT_TYPE, "text/plain")
+        .json(&req_json);
+        log::trace!("request: {req:?}");
+        let resp = req.send()?;
+        log::trace!("response: {resp:?}");
+
+        let output = resp.error_for_status()?.json::<Output>()?;
+        match (output.result, output.error) {
+            (_, Some(error)) => Err(error.into()),
+            (Some(result), None) => serde_json::from_value(result).map_err(Into::into),
+            (None, None) => {
+                let error = RpcError {
+                    code: RpcErrorCode::InternalError,
+                    message: "result is empty withtout errors".to_owned(),
+                    data: None,
+                };
+                Err(error.into())
+            }
+        }
+    }
+
+    pub fn get_best_block_hash(&self) -> BtcRpcResult<BlockHash> {
+        let params = serialize_parameters!();
+        self.post("getbestblockhash", params)
+    }
+
+    pub fn get_tip_height(&self) -> BtcRpcResult<u32> {
+        // Two way to get the tip height:
+        // - getblockcount
+        // - getbestblockhash -> getblockstats(height)
+        self.get_best_block_hash()
+            .and_then(|hash| self.get_block_height(hash))
+    }
+
+    pub fn get_tip_state(&self) -> BtcRpcResult<(u32, Header)> {
+        self.get_best_block_hash().and_then(|hash| {
+            self.get_block_height(hash)
+                .and_then(|height| self.get_block_header(hash).map(|header| (height, header)))
+        })
+    }
+
+    pub fn get_block_hash(&self, height: u32) -> BtcRpcResult<BlockHash> {
+        let params = serialize_parameters!(height);
+        self.post("getblockhash", params)
+    }
+
+    pub fn get_block_height(&self, hash: BlockHash) -> BtcRpcResult<u32> {
+        let stats = &["height"];
+        let params = serialize_parameters!(hash, stats);
+        let height: BlockHeight = self.post("getblockstats", params)?;
+        Ok(height.height)
+    }
+
+    pub fn get_raw_block_header(&self, hash: BlockHash) -> BtcRpcResult<Vec<u8>> {
+        let params = serialize_parameters!(hash, false);
+        self.post("getblockheader", params).and_then(|hex: String| {
+            let mut bin = vec![0; hex.len() / 2];
+            hex_decode(hex.as_bytes(), &mut bin).map_err(|err| {
+                let error = RpcError {
+                    code: RpcErrorCode::ParseError,
+                    message: format!("failed to decode the hex string \"{hex}\" since {err}"),
+                    data: None,
+                };
+                <RpcError as Into<BtcRpcError>>::into(error)
+            })?;
+            Ok(bin)
+        })
+    }
+
+    pub fn get_block_header(&self, hash: BlockHash) -> BtcRpcResult<Header> {
+        self.get_raw_block_header(hash).and_then(|bin| {
+            deserialize(&bin).map_err(|err| {
+                let error = RpcError {
+                    code: RpcErrorCode::ParseError,
+                    message: format!("failed to deserialize header from hex string since {err}"),
+                    data: None,
+                };
+                error.into()
+            })
+        })
+    }
+
+    pub fn get_block_header_by_height(&self, height: u32) -> BtcRpcResult<Header> {
+        self.get_block_hash(height)
+            .and_then(|hash| self.get_block_header(hash))
+    }
+
+    pub fn get_raw_tx_out_proof(&self, txid: Txid) -> BtcRpcResult<Vec<u8>> {
+        let txids = vec![txid];
+        let params = serialize_parameters!(txids);
+        self.post("gettxoutproof", params).and_then(|hex: String| {
+            let mut bin = vec![0; hex.len() / 2];
+            hex_decode(hex.as_bytes(), &mut bin).map_err(|err| {
+                let error = RpcError {
+                    code: RpcErrorCode::ParseError,
+                    message: format!("failed to decode the hex string \"{hex}\" since {err}"),
+                    data: None,
+                };
+                <RpcError as Into<BtcRpcError>>::into(error)
+            })?;
+            Ok(bin)
+        })
+    }
+
+    pub fn get_tx_out_proof(&self, txid: Txid) -> BtcRpcResult<(MerkleBlock, Vec<u8>)> {
+        self.get_raw_tx_out_proof(txid).and_then(|bin| {
+            deserialize(&bin)
+                .map_err(|err| {
+                    let error = RpcError {
+                        code: RpcErrorCode::ParseError,
+                        message: format!(
+                            "failed to deserialize tx out proof from hex string since {err}"
+                        ),
+                        data: None,
+                    };
+                    error.into()
+                })
+                .map(|mb| (mb, bin))
+        })
+    }
+}
+
+/// Implement combined methods.
+impl BitcoinClient {
+    pub fn check_then_fetch_header(&self, height: u32) -> Result<Header> {
+        let tip_height = self.get_tip_height()?;
+        log::debug!("The height of the best bitcoin block is {tip_height}");
+        if height > tip_height {
+            let msg = format!(
+                "the tip height of bitcoin ({tip_height}) is less than
+                the required height {height}"
+            );
+            return Err(Error::other(msg));
+        }
+        let header = self.get_block_header_by_height(height)?;
+        log::debug!("The bitcoin header#{height} is {header:?}");
+        Ok(header)
+    }
+
+    pub fn get_headers(
+        &self,
+        start: u32,
+        end: u32,
+        mut expected_prev_hash: BlockHash,
+    ) -> Result<Option<Vec<Header>>> {
+        log::info!("Download headers from {start} to {end} base on {expected_prev_hash:#x}");
+        let mut headers = Vec::new();
+        for height in start..=end {
+            let header = self.get_block_header_by_height(height)?;
+            let block_hash = header.block_hash();
+            log::trace!(
+                "[download] header#{height:07}, {block_hash:#x}; tip; prev {}",
+                header.prev_blockhash
+            );
+            if header.prev_blockhash != expected_prev_hash {
+                log::warn!(
+                    "[download] reorg at {height} when download headers from {start} to {end}\
+                    expect {expected_prev_hash:#x} but got {:#x}",
+                    header.prev_blockhash
+                );
+                return Ok(None);
+            }
+            expected_prev_hash = block_hash;
+            headers.push(header);
+        }
+        Ok(Some(headers))
+    }
+}
+
+
+================================================
+File: src/components/ckb_client.rs
+================================================
+//! Expand the functionality of the original CKB RPC client.
+
+use std::{collections::HashMap, fmt};
+
+use ckb_bitcoin_spv_verifier::types::{
+    core::{SpvClient, SpvInfo},
+    packed,
+    prelude::Unpack as VUnpack,
+};
+use ckb_jsonrpc_types::TransactionView;
+use ckb_sdk::{
+    rpc::{
+        ckb_indexer::{Order, SearchKey},
+        CkbRpcClient,
+    },
+    traits::{CellQueryOptions, LiveCell, PrimaryScriptType},
+};
+use ckb_types::{
+    packed::{Script, Transaction},
+    prelude::*,
+    H256,
+};
+
+use crate::result::{Error, Result};
+
+#[derive(Clone)]
+pub struct SpvInfoCell {
+    pub(crate) info: SpvInfo,
+    pub(crate) cell: LiveCell,
+    pub(crate) clients_count: u8,
+}
+
+#[derive(Clone)]
+pub struct SpvClientCell {
+    pub(crate) client: SpvClient,
+    pub(crate) cell: LiveCell,
+}
+
+#[derive(Clone)]
+pub struct SpvInstance {
+    pub(crate) info: SpvInfoCell,
+    pub(crate) clients: HashMap<u8, SpvClientCell>,
+}
+
+impl SpvInfoCell {
+    pub(crate) fn prev_tip_client_id(&self) -> u8 {
+        let current = self.info.tip_client_id;
+        if current == 0 {
+            self.clients_count - 1
+        } else {
+            current - 1
+        }
+    }
+
+    pub(crate) fn next_tip_client_id(&self) -> u8 {
+        let next = self.info.tip_client_id + 1;
+        if next < self.clients_count {
+            next
+        } else {
+            0
+        }
+    }
+
+    pub(crate) fn get_flags(&self) -> Result<u8> {
+        let script_args = self
+            .cell
+            .output
+            .type_()
+            .to_opt()
+            .ok_or_else(|| Error::other("the SPV info cell has no type script"))?
+            .args();
+        let script_args_slice = script_args.as_reader().raw_data();
+        let args = packed::SpvTypeArgsReader::from_slice(script_args_slice).map_err(|err| {
+            let msg =
+                format!("failed to parse the type script args for the SPV info cell since {err}");
+            Error::other(msg)
+        })?;
+        let flags: u8 = args.flags().into();
+        Ok(flags)
+    }
+}
+
+pub trait CkbRpcClientExtension {
+    fn dynamic_fee_rate(&self) -> Result<u64>;
+    fn send_transaction_ext(&self, tx_json: TransactionView, dry_run: bool) -> Result<H256>;
+    fn find_raw_spv_cells(&self, spv_type_script: Script) -> Result<Vec<LiveCell>>;
+
+    fn find_spv_cells(&self, spv_type_script: Script) -> Result<SpvInstance> {
+        let cells = self.find_raw_spv_cells(spv_type_script)?;
+        parse_raw_spv_cells(cells)
+    }
+
+    fn find_best_spv_client(
+        &self,
+        spv_type_script: Script,
+        height_opt: Option<u32>,
+    ) -> Result<SpvClientCell> {
+        let instance = self.find_spv_cells(spv_type_script)?;
+        if let Some(height) = height_opt {
+            instance.find_best_spv_client_not_greater_than_height(height)
+        } else {
+            instance.find_tip_spv_client()
+        }
+    }
+}
+
+impl CkbRpcClientExtension for CkbRpcClient {
+    fn dynamic_fee_rate(&self) -> Result<u64> {
+        self.get_fee_rate_statistics(None)?
+            .ok_or_else(|| {
+                let msg = "remote server replied null for \
+                    RPC method get_fee_rate_statistics(null)";
+                Error::other(msg)
+            })
+            .map(|resp| resp.median)
+            .map(Into::into)
+    }
+
+    fn send_transaction_ext(&self, tx_json: TransactionView, dry_run: bool) -> Result<H256> {
+        if log::log_enabled!(log::Level::Trace) {
+            match serde_json::to_string_pretty(&tx_json) {
+                Ok(tx_json_str) => {
+                    log::trace!("transaction: {tx_json_str}")
+                }
+                Err(err) => {
+                    log::warn!("failed to convert the transaction into json string since {err}")
+                }
+            }
+        }
+
+        let tx: Transaction = tx_json.inner.clone().into();
+        let tx_hash = tx.calc_tx_hash().unpack();
+
+        if log::log_enabled!(log::Level::Debug) {
+            let cycles: u64 = self.estimate_cycles(tx_json.inner.clone())?.cycles.into();
+            log::debug!("Estimated cycles for {tx_hash:#x}: {cycles}");
+        }
+
+        if !dry_run {
+            let tx_hash = self.send_transaction(tx_json.inner, None)?;
+            log::info!("Transaction hash: {tx_hash:#x}");
+            println!("Send transaction: {tx_hash:#x}");
+        }
+
+        Ok(tx_hash)
+    }
+
+    fn find_raw_spv_cells(&self, spv_type_script: Script) -> Result<Vec<LiveCell>> {
+        let args_data = spv_type_script.args().raw_data();
+        let args = packed::SpvTypeArgsReader::from_slice(&args_data)
+            .map_err(|err| {
+                let msg = format!("the args of the SPV type script is invalid since {err}");
+                Error::other(msg)
+            })?
+            .unpack();
+
+        log::trace!("the type script of SPV cell is {spv_type_script}");
+
+        let query = CellQueryOptions::new(spv_type_script, PrimaryScriptType::Type);
+        let order = Order::Desc;
+        let search_key = SearchKey::from(query);
+
+        self.get_cells(search_key, order, u32::MAX.into(), None)
+            .map_err(Into::into)
+            .map(|res| res.objects)
+            .and_then(|cells| {
+                let actual = cells.len();
+                let expected = usize::from(args.clients_count) + 1;
+                if actual == expected {
+                    Ok(cells.into_iter().map(Into::into).collect())
+                } else {
+                    let msg = format!(
+                        "the count of SPV cells is incorrect, expect {expected} but got {actual}"
+                    );
+                    Err(Error::other(msg))
+                }
+            })
+    }
+}
+
+impl SpvInstance {
+    pub(crate) fn find_tip_spv_client(&self) -> Result<SpvClientCell> {
+        self.clients
+            .get(&self.info.info.tip_client_id)
+            .ok_or_else(|| {
+                let msg = format!(
+                    "the SPV client (id={}) is not found",
+                    self.info.info.tip_client_id
+                );
+                Error::other(msg)
+            })
+            .cloned()
+    }
+
+    pub(crate) fn find_best_spv_client_not_greater_than_height(
+        &self,
+        height: u32,
+    ) -> Result<SpvClientCell> {
+        let SpvInstance { ref info, clients } = self;
+        let mut info = info.to_owned();
+        for _ in 0..clients.len() {
+            let cell = clients.get(&info.info.tip_client_id).ok_or_else(|| {
+                let msg = format!(
+                    "the SPV client (id={}) is not found",
+                    info.info.tip_client_id
+                );
+                Error::other(msg)
+            })?;
+            if cell.client.headers_mmr_root.max_height <= height {
+                return Ok(cell.to_owned());
+            }
+            info.info.tip_client_id = info.prev_tip_client_id();
+        }
+        let msg = format!("all SPV clients have better heights than server has (height: {height})");
+        Err(Error::other(msg))
+    }
+}
+
+impl fmt::Display for SpvInstance {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{{ tip: {}, clients-count: {} }}",
+            self.info.info.tip_client_id,
+            self.clients.len()
+        )
+    }
+}
+
+fn parse_raw_spv_cells(cells: Vec<LiveCell>) -> Result<SpvInstance> {
+    let mut spv_info_opt = None;
+    let mut spv_clients = HashMap::new();
+    let clients_count = (cells.len() - 1) as u8; // Checked when fetch SPV cells.
+    for cell in cells.into_iter() {
+        let data = &cell.output_data;
+        if let Ok(client) = packed::SpvClientReader::from_slice(data) {
+            let spv_cell = SpvClientCell {
+                client: client.unpack(),
+                cell,
+            };
+            spv_clients.insert(spv_cell.client.id, spv_cell);
+        } else if let Ok(info) = packed::SpvInfoReader::from_slice(data) {
+            if spv_info_opt.is_some() {
+                let msg = "the SPV info cell should be unique";
+                return Err(Error::other(msg));
+            }
+            let spv_cell = SpvInfoCell {
+                info: info.unpack(),
+                cell,
+                clients_count,
+            };
+            spv_info_opt = Some(spv_cell);
+        } else {
+            let msg = "the data of the SPV cell is unexpected";
+            return Err(Error::other(msg));
+        }
+    }
+    if let Some(spv_info) = spv_info_opt {
+        let instance = SpvInstance {
+            info: spv_info,
+            clients: spv_clients,
+        };
+        Ok(instance)
+    } else {
+        let msg = "the SPV info cell is missing";
+        Err(Error::other(msg))
+    }
+}
+
+
+================================================
+File: src/components/mod.rs
+================================================
+//! Components of the whole service.
+
+mod bitcoin_client;
+mod ckb_client;
+pub(crate) mod storage;
+
+mod api_service;
+mod spv_service;
+
+pub use api_service::ApiServiceConfig;
+pub use bitcoin_client::BitcoinClient;
+pub use ckb_client::{CkbRpcClientExtension, SpvClientCell, SpvInfoCell, SpvInstance};
+pub use spv_service::{SpvOperation, SpvReorgInput, SpvService, SpvUpdateInput};
+pub use storage::{Error as StorageError, Storage};
+
+
+================================================
+File: src/components/spv_service.rs
+================================================
+//! Internal SPV service.
+
+use bitcoin::BlockHash;
+use ckb_bitcoin_spv_verifier::types::{
+    core::{Hash, Header},
+    prelude::{Pack as VPack, Unpack as VUnpack},
+};
+use ckb_sdk::rpc::CkbRpcClient;
+use ckb_types::prelude::*;
+
+use crate::{
+    components::{BitcoinClient, SpvClientCell, SpvInfoCell, SpvInstance, Storage},
+    prelude::*,
+    result::{Error, Result},
+};
+
+#[derive(Clone)]
+pub struct SpvService {
+    pub(crate) ckb_cli: CkbRpcClient,
+    pub(crate) btc_cli: BitcoinClient,
+    pub(crate) storage: Storage,
+}
+
+pub struct SpvUpdateInput {
+    pub(crate) info: SpvInfoCell,
+    pub(crate) curr: SpvClientCell,
+    pub(crate) next: SpvClientCell,
+}
+
+pub struct SpvReorgInput {
+    pub(crate) info: SpvInfoCell,
+    pub(crate) curr: SpvClientCell,
+    pub(crate) stale: Vec<SpvClientCell>,
+}
+
+pub enum SpvOperation {
+    Update(SpvUpdateInput),
+    Reorg(SpvReorgInput),
+    Reset(SpvReorgInput),
+}
+
+impl SpvService {
+    pub(crate) fn select_operation(&self) -> Result<SpvOperation> {
+        let spv_type_script = self.storage.spv_contract_type_script()?;
+        let ins = self.ckb_cli.find_spv_cells(spv_type_script)?;
+        let spv_client_curr = ins
+            .clients
+            .get(&ins.info.info.tip_client_id)
+            .ok_or_else(|| {
+                let msg = format!(
+                    "the current tip SPV client (id={}) is not found",
+                    ins.info.info.tip_client_id
+                );
+                Error::other(msg)
+            })?
+            .to_owned();
+        log::info!("[onchain] tip SPV client {}", spv_client_curr.client);
+
+        let spv_header_root_curr = &spv_client_curr.client.headers_mmr_root;
+        let spv_height_curr = spv_header_root_curr.max_height;
+        let packed_stg_header_root_curr = self.storage.generate_headers_root(spv_height_curr)?;
+        let packed_spv_header_root_curr = spv_header_root_curr.pack();
+
+        if packed_stg_header_root_curr.as_slice() != packed_spv_header_root_curr.as_slice() {
+            log::warn!("[onchain] header#{spv_height_curr}; mmr-root {spv_header_root_curr}");
+            let stg_header_root_curr = packed_stg_header_root_curr.unpack();
+            log::warn!("[storage] header#{spv_height_curr}; mmr-root {stg_header_root_curr}");
+            let input = self.prepare_reorg_input(ins)?;
+            if input.info.clients_count as usize == input.stale.len() {
+                log::warn!("[onchain] all SPV clients are stale, resetting");
+                return Ok(SpvOperation::Reset(input));
+            } else {
+                return Ok(SpvOperation::Reorg(input));
+            }
+        }
+
+        let next_tip_client_id = ins.info.next_tip_client_id();
+        let spv_client_next = ins
+            .clients
+            .get(&next_tip_client_id)
+            .ok_or_else(|| {
+                let msg = format!("the next tip SPV client (id={next_tip_client_id}) is not found");
+                Error::other(msg)
+            })?
+            .to_owned();
+        log::trace!(
+            "[onchain] old SPV client {} (will be next)",
+            spv_client_next.client
+        );
+        let input = SpvUpdateInput {
+            info: ins.info,
+            curr: spv_client_curr,
+            next: spv_client_next,
+        };
+        Ok(SpvOperation::Update(input))
+    }
+
+    pub(crate) fn prepare_reorg_input(&self, ins: SpvInstance) -> Result<SpvReorgInput> {
+        let SpvInstance { mut info, clients } = ins;
+        let mut stale = Vec::new();
+        for _ in 0..clients.len() {
+            let cell = clients.get(&info.info.tip_client_id).ok_or_else(|| {
+                let msg = format!(
+                    "the SPV client (id={}) is not found",
+                    info.info.tip_client_id
+                );
+                Error::other(msg)
+            })?;
+
+            let spv_header_root = &cell.client.headers_mmr_root;
+            let spv_height = spv_header_root.max_height;
+            let packed_stg_header_root = self.storage.generate_headers_root(spv_height)?;
+            let packed_spv_header_root = spv_header_root.pack();
+
+            if packed_stg_header_root.as_slice() == packed_spv_header_root.as_slice() {
+                if stale.len() > 1 {
+                    let input = SpvReorgInput {
+                        info,
+                        curr: cell.clone(),
+                        stale,
+                    };
+                    return Ok(input);
+                } else {
+                    log::warn!(
+                        "[TODO::KnownIssue] this is a dirty patch to fix an issue in the contract: \
+                        update and reorg only 1 block are indistinguishable, \
+                        let's just reorg 1 more client"
+                    );
+                }
+            }
+
+            log::trace!("[onchain] header#{spv_height}; mmr-root {spv_header_root}");
+            let stg_header_root = packed_stg_header_root.unpack();
+            log::trace!("[storage] header#{spv_height}; mmr-root {stg_header_root}");
+
+            stale.push(cell.clone());
+            info.info.tip_client_id = info.prev_tip_client_id();
+        }
+        log::warn!("failed to reorg since no common parent between SPV instance and storage");
+        let input = SpvReorgInput {
+            info: info.clone(),
+            curr: clients.get(&info.info.tip_client_id).unwrap().clone(),
+            stale,
+        };
+        Ok(input)
+    }
+
+    pub(crate) fn sync_storage(&self, batch_size: u32) -> Result<bool> {
+        let spv = &self;
+        let (stg_tip_height, stg_tip_header) = spv.storage.tip_state()?;
+        let stg_tip_hash = stg_tip_header.block_hash();
+        log::info!("[storage] header#{stg_tip_height:07}, {stg_tip_hash:#x}; tip");
+
+        let (btc_tip_height, btc_tip_header) = spv.btc_cli.get_tip_state()?;
+        log::info!(
+            "[bitcoin] header#{btc_tip_height:07}, {:#x}; tip; prev {:#x}",
+            btc_tip_header.block_hash(),
+            btc_tip_header.prev_blockhash
+        );
+
+        if stg_tip_height >= btc_tip_height {
+            return Ok(true);
+        }
+
+        let btc_header = spv.btc_cli.get_block_header_by_height(stg_tip_height)?;
+        let btc_hash = btc_header.block_hash();
+        if stg_tip_hash == btc_hash {
+            let headers_opt = self.sync_storage_internal(
+                batch_size,
+                stg_tip_height + 1,
+                btc_tip_height,
+                stg_tip_hash,
+            )?;
+            return Ok(headers_opt.is_some());
+        }
+
+        log::info!("Try to find the height when fork happened");
+        let (stg_base_height, _) = spv.storage.base_state()?;
+        let mut fork_point = None;
+
+        for height in (stg_base_height..stg_tip_height).rev() {
+            let stg_hash = spv.storage.bitcoin_header_hash(height)?;
+            log::debug!("[storage] header#{height:07}, {stg_hash:#x}");
+            let btc_header = spv.btc_cli.get_block_header_by_height(height)?;
+            let btc_hash: Hash = btc_header.block_hash().into();
+            log::debug!("[bitcoin] header#{height:07}, {btc_hash:#x}");
+
+            if stg_hash == btc_hash {
+                log::info!("Fork happened at height {height}");
+                fork_point = Some((height, btc_hash));
+                break;
+            }
+        }
+
+        if fork_point.is_none() {
+            let msg = format!(
+                "reorg failed since the fork point is ahead than \
+                local start height {stg_base_height}"
+            );
+            return Err(Error::other(msg));
+        }
+        let (fork_height, fork_hash) = fork_point.unwrap();
+
+        log::warn!("The chain in storage rollback to header#{fork_height:07}, {fork_hash:#x}");
+        spv.storage.rollback_to(Some(fork_height))?;
+
+        let headers_opt = self.sync_storage_internal(
+            batch_size,
+            fork_height + 1,
+            btc_tip_height,
+            fork_hash.into(),
+        )?;
+        Ok(headers_opt.is_some())
+    }
+
+    fn sync_storage_internal(
+        &self,
+        batch_size: u32,
+        mut start_height: u32,
+        end_height: u32,
+        mut start_hash: BlockHash,
+    ) -> Result<Option<Vec<Header>>> {
+        let spv = self;
+        let mut headers = Vec::new();
+        while start_height <= end_height {
+            let mut next_height = start_height + batch_size;
+            if next_height > end_height {
+                next_height = end_height;
+            }
+
+            let tmp_headers = if let Some(headers) =
+                spv.btc_cli
+                    .get_headers(start_height, next_height, start_hash)?
+            {
+                headers
+            } else {
+                return Ok(None);
+            };
+
+            start_height = next_height + 1;
+            if let Some(header) = tmp_headers.last() {
+                start_hash = header.block_hash();
+            } else {
+                return Ok(None);
+            }
+            headers.extend_from_slice(&tmp_headers);
+            let _ = spv.storage.append_headers(tmp_headers)?;
+        }
+        Ok(Some(headers))
+    }
+}
+
+
+================================================
+File: src/components/api_service/error.rs
+================================================
+use std::fmt;
+
+use jsonrpc_core::{Error as RpcError, ErrorCode as RpcErrorCode};
+
+#[repr(i64)]
+pub enum ApiErrorCode {
+    // Bitcoin: 21xxx
+    // Storage: 23xxx
+    StorageTxTooNew = 23101,
+    StorageTxUnconfirmed,
+    StorageHeaderMissing = 23301,
+    StorageHeaderUnmatched,
+    // Onchain: 25xxx
+    OnchainTxUnconfirmed = 25101,
+    OnchainReorgRequired = 25901,
+}
+
+impl ApiErrorCode {
+    pub fn with_desc<D: fmt::Display>(self, desc: D) -> RpcError {
+        RpcError {
+            code: RpcErrorCode::ServerError(self as i64),
+            message: desc.to_string(),
+            data: None,
+        }
+    }
+}
+
+
+================================================
+File: src/components/api_service/mod.rs
+================================================
+//! JSON-RPC APIs service.
+
+use std::{net::SocketAddr, sync::RwLock, time::SystemTime};
+
+use bitcoin::Txid;
+use ckb_bitcoin_spv_verifier::types::{
+    core::{Bytes, Hash},
+    packed,
+    prelude::*,
+};
+use ckb_jsonrpc_types::{JsonBytes, OutPoint};
+use jsonrpc_core::{Error as RpcError, ErrorCode as RpcErrorCode, IoHandler, Result as RpcResult};
+use jsonrpc_derive::rpc;
+use jsonrpc_http_server::{Server, ServerBuilder};
+use jsonrpc_server_utils::{cors::AccessControlAllowOrigin, hosts::DomainsValidation};
+use serde::Serialize;
+
+use crate::{
+    components::{SpvInstance, SpvService},
+    prelude::*,
+    result::{Error, Result},
+};
+
+mod error;
+
+pub use error::ApiErrorCode;
+
+// Bitcoin target block time is 10 minutes.
+const SPV_INSTANCE_CACHED_SECS: u64 = 60 * 10;
+
+pub struct ApiServiceConfig {
+    listen_address: SocketAddr,
+}
+
+#[derive(Serialize, Clone)]
+pub struct BitcoinTxProof {
+    pub(crate) spv_client: OutPoint,
+    pub(crate) proof: JsonBytes,
+}
+
+#[rpc(server)]
+pub trait SpvRpc {
+    #[rpc(name = "getTxProof")]
+    fn get_tx_proof(
+        &self,
+        tx_hash: Txid,
+        tx_index: u32,
+        confirmations: u32,
+    ) -> RpcResult<BitcoinTxProof>;
+}
+
+pub struct SpvRpcImpl {
+    spv_service: SpvService,
+    cached_spv_instance: RwLock<Option<CachedSpvInstance>>,
+}
+
+#[derive(Clone)]
+struct CachedSpvInstance {
+    instance: SpvInstance,
+    expired_timestamp: u64,
+}
+
+impl ApiServiceConfig {
+    pub fn new(listen_address: SocketAddr) -> Self {
+        Self { listen_address }
+    }
+
+    pub fn start(&self, spv_service: SpvService) -> Result<Server> {
+        log::info!("Starting the JSON-RPC service ...");
+        let mut io_handler = IoHandler::new();
+        let spv_rpc_impl = SpvRpcImpl::new(spv_service);
+        io_handler.extend_with(spv_rpc_impl.to_delegate());
+
+        ServerBuilder::new(io_handler)
+            .cors(DomainsValidation::AllowOnly(vec![
+                AccessControlAllowOrigin::Null,
+                AccessControlAllowOrigin::Any,
+            ]))
+            .health_api(("/ping", "ping"))
+            .start_http(&self.listen_address)
+            .map_err(Error::other)
+    }
+}
+
+impl SpvRpcImpl {
+    pub fn new(spv_service: SpvService) -> Self {
+        Self {
+            spv_service,
+            cached_spv_instance: RwLock::new(None),
+        }
+    }
+
+    fn load_spv_instance(
+        &self,
+        stg_tip_height: u32,
+        target_confirmed_height: u32,
+    ) -> Result<Option<SpvInstance>> {
+        let spv_instance = match self.load_cache_spv_instance() {
+            Some(instance) => instance,
+            None => return Ok(None),
+        };
+
+        let spv_client_cell =
+            spv_instance.find_best_spv_client_not_greater_than_height(stg_tip_height)?;
+
+        let spv_header_root = &spv_client_cell.client.headers_mmr_root;
+        let spv_best_height = spv_header_root.max_height;
+
+        if spv_best_height < target_confirmed_height {
+            return Ok(None);
+        }
+
+        Ok(Some(spv_instance))
+    }
+
+    fn load_cache_spv_instance(&self) -> Option<SpvInstance> {
+        if let Some(cached) = self
+            .cached_spv_instance
+            .read()
+            .ok()
+            .and_then(|locked| locked.as_ref().cloned())
+        {
+            if let Ok(dur) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+                let current_timestamp = dur.as_secs();
+                if current_timestamp > cached.expired_timestamp {
+                    log::trace!(
+                        "cached SPV instance is expired, expired at {}, now is {current_timestamp}",
+                        cached.expired_timestamp
+                    );
+                    None
+                } else {
+                    log::trace!(
+                        "cached SPV instance is loaded, will be expired at {}, now is {current_timestamp}",
+                        cached.expired_timestamp
+                    );
+                    Some(cached.instance)
+                }
+            } else {
+                log::warn!("failed to read current timestamp for load the cached SPV instance");
+                None
+            }
+        } else {
+            log::debug!("failed to load cached SPV instance: not existed or lock error");
+            None
+        }
+    }
+
+    fn update_spv_instance(&self, instance: SpvInstance) {
+        match self.cached_spv_instance.write() {
+            Ok(mut locked) => {
+                if let Ok(dur) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+                    let current_timestamp = dur.as_secs();
+                    let expired_timestamp = current_timestamp + SPV_INSTANCE_CACHED_SECS;
+                    let cache = CachedSpvInstance {
+                        instance,
+                        expired_timestamp,
+                    };
+                    *locked = Some(cache);
+                    log::debug!(
+                        "refreshed the cached SPV instance, it will be expired at {expired_timestamp}, \
+                        now is {current_timestamp}",
+                    );
+                } else {
+                    log::warn!(
+                        "failed to read current timestamp for update the cached SPV instance"
+                    );
+                }
+            }
+            Err(err) => {
+                log::debug!("failed to update the cached SPV instance since {err}");
+            }
+        }
+    }
+}
+
+impl SpvRpc for SpvRpcImpl {
+    fn get_tx_proof(
+        &self,
+        txid: Txid,
+        tx_index: u32,
+        confirmations: u32,
+    ) -> RpcResult<BitcoinTxProof> {
+        log::debug!("Call getTxProof with params [{txid:#x}, {confirmations}]");
+        let spv = &self.spv_service;
+
+        let (target_height, target_hash, raw_tx_out_proof) =
+            tokio::task::block_in_place(|| -> RpcResult<(u32, Hash, Vec<u8>)> {
+                let (merkle_block, raw_tx_out_proof) =
+                    spv.btc_cli.get_tx_out_proof(txid).map_err(|err| {
+                        let message =
+                            format!("failed to get tx out proof for {txid:#x} from remote");
+                        log::error!("{message} since {err}");
+                        RpcError {
+                            code: RpcErrorCode::InternalError,
+                            message,
+                            data: None,
+                        }
+                    })?;
+                let block_hash = merkle_block.header.block_hash();
+                log::trace!(">>> the input tx in header {block_hash:#x}");
+                let block_height = spv.btc_cli.get_block_height(block_hash).map_err(|err| {
+                    let message =
+                        format!("failed to get block height for {block_hash:#x} from remote");
+                    log::error!("{message} since {err}");
+                    RpcError {
+                        code: RpcErrorCode::InternalError,
+                        message,
+                        data: None,
+                    }
+                })?;
+                log::trace!(">>> the input tx in header {block_height}");
+                Ok((block_height, block_hash.into(), raw_tx_out_proof))
+            })?;
+
+        let (stg_tip_height, _) = spv.storage.tip_state().map_err(|err| {
+            let message = "failed to read tip bitcoin height from local storage".to_owned();
+            log::error!("{message} since {err}");
+            RpcError {
+                code: RpcErrorCode::InternalError,
+                message,
+                data: None,
+            }
+        })?;
+        log::debug!(">>> tip height in local storage is {stg_tip_height}");
+
+        if stg_tip_height < target_height {
+            let desc = format!(
+                "target transaction is in header#{target_height}, \
+                but the tip header in local storage is header#{stg_tip_height}"
+            );
+            return Err(ApiErrorCode::StorageTxTooNew.with_desc(desc));
+        }
+        if stg_tip_height < target_height + confirmations {
+            let desc = format!(
+                "target transaction is in header#{target_height} \
+                and it requires {confirmations} confirmations, \
+                but the tip header in local storage is header#{stg_tip_height}"
+            );
+            return Err(ApiErrorCode::StorageTxUnconfirmed.with_desc(desc));
+        }
+        let stg_target_hash = spv
+            .storage
+            .bitcoin_header_hash(target_height)
+            .map_err(|err| {
+                let desc = format!("local storage doesn't have header#{target_height}");
+                log::error!("{desc} since {err}");
+                ApiErrorCode::StorageHeaderMissing.with_desc(desc)
+            })?;
+        if target_hash != stg_target_hash {
+            let desc = format!(
+                "target transaction is in header#{target_height}, \
+                the header hash from remote is {target_hash:#x}, \
+                its hash in local storage is {stg_target_hash:#x}"
+            );
+            return Err(ApiErrorCode::StorageHeaderUnmatched.with_desc(desc));
+        }
+
+        let spv_type_script = spv.storage.spv_contract_type_script().map_err(|err| {
+            let message = "failed to get SPV contract type script from storage".to_owned();
+            log::error!("{message} since {err}");
+            RpcError {
+                code: RpcErrorCode::InternalError,
+                message,
+                data: None,
+            }
+        })?;
+
+        log::debug!(">>> try the cached SPV instance at first");
+
+        let spv_instance = if let Ok(Some(spv_instance)) =
+            self.load_spv_instance(stg_tip_height, target_height + confirmations)
+        {
+            log::debug!(">>> the cached SPV instance is {spv_instance}");
+            spv_instance
+        } else {
+            log::debug!(">>> fetch SPV instance from remote since cached is not satisfied");
+            let spv_instance = tokio::task::block_in_place(|| -> RpcResult<SpvInstance> {
+                spv.ckb_cli.find_spv_cells(spv_type_script).map_err(|err| {
+                    let message = format!(
+                        "failed to get SPV cell base on height {stg_tip_height} from chain"
+                    );
+                    log::error!("{message} since {err}");
+                    RpcError {
+                        code: RpcErrorCode::InternalError,
+                        message,
+                        data: None,
+                    }
+                })
+            })?;
+            log::debug!(">>> the fetched SPV instance is {spv_instance}");
+            self.update_spv_instance(spv_instance.clone());
+            spv_instance
+        };
+
+        let spv_client_cell = spv_instance
+            .find_best_spv_client_not_greater_than_height(stg_tip_height)
+            .map_err(|err| {
+                let message = format!(
+                    "failed to get SPV cell base on height {stg_tip_height} from fetched data"
+                );
+                log::error!("{message} since {err}");
+                RpcError {
+                    code: RpcErrorCode::InternalError,
+                    message,
+                    data: None,
+                }
+            })?;
+
+        log::debug!(">>> the best SPV client is {}", spv_client_cell.client);
+
+        let spv_header_root = &spv_client_cell.client.headers_mmr_root;
+
+        let spv_best_height = spv_header_root.max_height;
+        if spv_best_height < target_height + confirmations {
+            let desc = format!(
+                "target transaction is in header#{target_height} \
+                and it requires {confirmations} confirmations, \
+                but the best SPV header is header#{spv_best_height}",
+            );
+            return Err(ApiErrorCode::OnchainTxUnconfirmed.with_desc(desc));
+        }
+
+        let packed_stg_header_root =
+            spv.storage
+                .generate_headers_root(spv_best_height)
+                .map_err(|err| {
+                    let message =
+                        format!("failed to generate headers MMR root for height {spv_best_height}");
+                    log::error!("{message} since {err}");
+                    RpcError {
+                        code: RpcErrorCode::InternalError,
+                        message,
+                        data: None,
+                    }
+                })?;
+        let packed_spv_header_root = spv_header_root.pack();
+
+        if packed_stg_header_root.as_slice() != packed_spv_header_root.as_slice() {
+            log::warn!("[onchain] header#{spv_best_height}; mmr-root {spv_header_root}");
+            let stg_header_root = packed_stg_header_root.unpack();
+            log::warn!("[storage] header#{spv_best_height}; mmr-root {stg_header_root}");
+            let desc = "the SPV instance on chain is unknown, reorg is required";
+            return Err(ApiErrorCode::OnchainReorgRequired.with_desc(desc));
+        }
+
+        let header_proof = spv
+            .storage
+            .generate_headers_proof(
+                spv_client_cell.client.headers_mmr_root.max_height,
+                vec![target_height],
+            )
+            .map_err(|err| {
+                let message = "failed to generate headers MMR proof".to_owned();
+                log::error!("{message} since {err}");
+                RpcError {
+                    code: RpcErrorCode::InternalError,
+                    message,
+                    data: None,
+                }
+            })?;
+
+        let tx_proof: Bytes = packed::TransactionProof::new_builder()
+            .tx_index(tx_index.pack())
+            .height(target_height.pack())
+            .transaction_proof(Bytes::from(raw_tx_out_proof).pack())
+            .header_proof(header_proof.pack())
+            .build()
+            .as_bytes();
+
+        let btc_tx_proof = BitcoinTxProof {
+            spv_client: spv_client_cell.cell.out_point.into(),
+            proof: JsonBytes::from_bytes(tx_proof),
+        };
+        Ok(btc_tx_proof)
+    }
+}
+
+
+================================================
+File: src/components/storage/mod.rs
+================================================
+//! Storage for all cached data.
+
+mod internal;
+pub(crate) mod prelude;
+mod result;
+pub(crate) mod schemas;
+
+pub use internal::Storage;
+pub use result::Error;
+
+
+================================================
+File: src/components/storage/prelude.rs
+================================================
+use std::num::NonZeroU32;
+
+use bitcoin::constants::DIFFCHANGE_INTERVAL;
+use ckb_bitcoin_spv_verifier::{
+    types::{
+        core::{Hash, Header, HeaderDigest, MmrProof, SpvClient, Target},
+        packed,
+        prelude::*,
+    },
+    utilities::{
+        bitcoin::calculate_next_target,
+        mmr::{self, ClientRootMMR},
+    },
+};
+use ckb_types::packed::{CellDep, Script};
+
+use crate::components::storage::{
+    result::{Error, Result},
+    Storage,
+};
+
+pub(crate) trait StorageReader: Send + Sync + Sized {
+    // Initialize DB
+    fn get_base_bitcoin_height(&self) -> Result<Option<u32>>;
+    // Store Bitcoin state
+    fn get_tip_bitcoin_height(&self) -> Result<u32>;
+    fn get_bitcoin_header(&self, height: u32) -> Result<Header>;
+    // For MMR
+    fn get_bitcoin_header_digest(&self, position: u64) -> Result<Option<packed::HeaderDigest>>;
+    // For CKB transactions
+    fn get_spv_contract_type_script(&self) -> Result<Script>;
+    fn get_spv_contract_cell_dep(&self) -> Result<CellDep>;
+}
+
+pub(crate) trait StorageWriter: Send + Sync + Sized {
+    // Initialize DB
+    fn put_base_bitcoin_height(&self, height: u32) -> Result<()>;
+    // Store Bitcoin state
+    fn put_tip_bitcoin_height(&self, height: u32) -> Result<()>;
+    fn put_bitcoin_header(&self, height: u32, header: &Header) -> Result<()>;
+    // For MMR
+    fn put_bitcoin_header_digest(&self, position: u64, digest: &packed::HeaderDigest)
+        -> Result<()>;
+    // For CKB transactions
+    fn put_spv_contract_type_script(&self, type_script: Script) -> Result<()>;
+    fn put_spv_contract_cell_dep(&self, cell_dep: CellDep) -> Result<()>;
+}
+
+// Private APIs: for internal use.
+// Don't call methods in this trait directly.
+pub(crate) trait InternalBitcoinSpvStorage:
+    mmr::lib::MMRStoreReadOps<packed::HeaderDigest>
+    + mmr::lib::MMRStoreWriteOps<packed::HeaderDigest>
+    + StorageReader
+    + StorageWriter
+    + Clone
+{
+    /// Returns the chain root MMR for a provided height, with the base height.
+    fn chain_root_mmr(&self, current_height: u32) -> Result<(u32, ClientRootMMR<Self>)> {
+        let base_height = self
+            .get_base_bitcoin_height()
+            .and_then(|opt| opt.ok_or_else(|| Error::not_found("base bitcoin height")))?;
+        if current_height < base_height {
+            let msg = format!("base height {base_height} is larget than input {current_height}");
+            return Err(Error::data(msg));
+        }
+        let index = current_height - base_height;
+        let mmr_size = mmr::lib::leaf_index_to_mmr_size(u64::from(index));
+        let mmr = ClientRootMMR::new(mmr_size, self.clone());
+        Ok((base_height, mmr))
+    }
+}
+
+pub(crate) trait BitcoinSpvStorage: InternalBitcoinSpvStorage {
+    fn is_initialized(&self) -> Result<bool> {
+        self.get_base_bitcoin_height().map(|inner| inner.is_some())
+    }
+
+    fn initialize_with(&self, height: u32, header: Header) -> Result<SpvClient> {
+        if self.is_initialized()? {
+            return Err(Error::data("don't initialize a non-empty storage"));
+        }
+        let block_hash: Hash = header.block_hash().into();
+        let digest = HeaderDigest::new_leaf(height, &header).pack();
+
+        let mut mmr = ClientRootMMR::new(0, self.clone());
+
+        mmr.push(digest)?;
+        let mmr_root = mmr.get_root()?;
+        mmr.commit()?;
+
+        self.put_bitcoin_header(height, &header)?;
+        self.put_base_bitcoin_height(height)?;
+        self.put_tip_bitcoin_height(height)?;
+
+        let target_adjust_info = packed::TargetAdjustInfo::encode(header.time, header.bits);
+        let spv_client = SpvClient {
+            id: 0,
+            tip_block_hash: block_hash,
+            headers_mmr_root: mmr_root.unpack(),
+            target_adjust_info,
+        };
+
+        Ok(spv_client)
+    }
+
+    fn save_cells_state(&self, spv_script: Script, spv_cell_dep: CellDep) -> Result<()> {
+        self.put_spv_contract_type_script(spv_script.clone())?;
+        self.put_spv_contract_cell_dep(spv_cell_dep.clone())?;
+        Ok(())
+    }
+
+    fn append_headers(&self, headers: Vec<Header>) -> Result<(u32, Header)> {
+        if headers.is_empty() {
+            return Err(Error::not_found("input headers"));
+        }
+
+        let (mut tip_height, mut tip_header) = self.tip_state()?;
+        let mut tip_hash: Hash = tip_header.block_hash().into();
+        let (base_height, mut mmr) = self.chain_root_mmr(tip_height)?;
+        let mut positions = Vec::new();
+
+        for header in &headers {
+            let prev_hash = header.prev_blockhash.into();
+            if tip_hash != prev_hash {
+                let msg = format!(
+                    "input headers are uncontinuous, expect previous hash is \
+                    {tip_hash:#x} but got {prev_hash:#x}"
+                );
+                return Err(Error::data(msg));
+            }
+            tip_height += 1;
+            tip_header = *header;
+            tip_hash = header.block_hash().into();
+
+            let index = tip_height - base_height;
+            let position = mmr::lib::leaf_index_to_pos(u64::from(index));
+
+            let digest = HeaderDigest::new_leaf(tip_height, header).pack();
+
+            self.put_bitcoin_header(tip_height, &tip_header)?;
+            positions.push(position);
+            mmr.push(digest)?;
+        }
+        mmr.commit()?;
+
+        self.put_tip_bitcoin_height(tip_height)?;
+
+        Ok((tip_height, tip_header))
+    }
+
+    fn generate_spv_client_and_spv_update(
+        &self,
+        prev_height: u32,
+        limit: NonZeroU32,
+        flags: u8,
+    ) -> Result<(SpvClient, packed::SpvUpdate)> {
+        let mut tip_height = self.get_tip_bitcoin_height()?;
+        if tip_height > prev_height.saturating_add(limit.into()) {
+            tip_height = prev_height.saturating_add(limit.into());
+        }
+        log::trace!("new tip height will be {tip_height}, prev {prev_height}, limit {limit}",);
+        let tip_header = self.get_bitcoin_header(tip_height)?;
+        let (headers_mmr_root, headers_mmr_proof) = {
+            let (base_height, mmr) = self.chain_root_mmr(tip_height)?;
+            let positions = (prev_height..tip_height)
+                .map(|height| {
+                    let index = height + 1 - base_height;
+                    mmr::lib::leaf_index_to_pos(u64::from(index))
+                })
+                .collect::<Vec<_>>();
+            let headers_mmr_root = mmr.get_root()?;
+            let headers_mmr_proof_items = mmr
+                .gen_proof(positions)?
+                .proof_items()
+                .iter()
+                .map(Clone::clone)
+                .collect::<Vec<_>>();
+            let headers_mmr_proof = packed::MmrProof::new_builder()
+                .set(headers_mmr_proof_items)
+                .build();
+            (headers_mmr_root, headers_mmr_proof)
+        };
+        let mut headers = Vec::new();
+        for height in (prev_height + 1)..=tip_height {
+            let header = self.get_bitcoin_header(height)?;
+            headers.push(header)
+        }
+
+        let flag = (tip_height + 1) % DIFFCHANGE_INTERVAL;
+
+        let target_adjust_info = if flag == 1 {
+            packed::TargetAdjustInfo::encode(tip_header.time, tip_header.bits)
+        } else {
+            let start_height = (tip_height / DIFFCHANGE_INTERVAL) * DIFFCHANGE_INTERVAL;
+            let start_header = self.get_bitcoin_header(start_height)?;
+            if flag == 0 {
+                let curr_target: Target = tip_header.bits.into();
+                log::trace!(
+                    "height {tip_height}, time: {}, target {curr_target:#x}",
+                    tip_header.time
+                );
+                let next_target =
+                    calculate_next_target(curr_target, start_header.time, tip_header.time, flags);
+                log::trace!("calculated new target  {next_target:#x}");
+                let next_bits = next_target.to_compact_lossy();
+                let next_target: Target = next_bits.into();
+                log::trace!("after definition lossy {next_target:#x}");
+                packed::TargetAdjustInfo::encode(start_header.time, next_bits)
+            } else {
+                packed::TargetAdjustInfo::encode(start_header.time, start_header.bits)
+            }
+        };
+
+        let spv_client = SpvClient {
+            id: 0,
+            tip_block_hash: tip_header.block_hash().into(),
+            headers_mmr_root: headers_mmr_root.unpack(),
+            target_adjust_info,
+        };
+        let spv_update = packed::SpvUpdate::new_builder()
+            .headers(headers.pack())
+            .new_headers_mmr_proof(headers_mmr_proof)
+            .build();
+
+        Ok((spv_client, spv_update))
+    }
+
+    fn generate_headers_root(&self, tip_height: u32) -> Result<packed::HeaderDigest> {
+        let (_, mmr) = self.chain_root_mmr(tip_height)?;
+        let mmr_root = mmr.get_root()?;
+        Ok(mmr_root)
+    }
+    fn generate_headers_proof(&self, tip_height: u32, heights: Vec<u32>) -> Result<MmrProof> {
+        let (base_height, mmr) = self.chain_root_mmr(tip_height)?;
+        let positions = heights
+            .into_iter()
+            .map(|height| {
+                let index = height - base_height;
+                mmr::lib::leaf_index_to_pos(u64::from(index))
+            })
+            .collect::<Vec<_>>();
+        let proof = mmr
+            .gen_proof(positions)?
+            .proof_items()
+            .iter()
+            .map(|item| item.unpack())
+            .collect::<Vec<_>>();
+        Ok(proof)
+    }
+
+    fn rollback_to(&self, height_opt: Option<u32>) -> Result<()> {
+        if let Some(height) = height_opt {
+            self.put_tip_bitcoin_height(height)?;
+        } else if let Some(height) = self.get_base_bitcoin_height()? {
+            self.put_tip_bitcoin_height(height)?;
+        } else {
+            return Err(Error::data("don't rollback on an empty storage"));
+        }
+        Ok(())
+    }
+
+    fn base_state(&self) -> Result<(u32, Header)> {
+        self.get_base_bitcoin_height()
+            .and_then(|opt| opt.ok_or_else(|| Error::not_found("base bitcoin height")))
+            .and_then(|height| {
+                self.get_bitcoin_header(height)
+                    .map(|header| (height, header))
+            })
+    }
+
+    fn tip_state(&self) -> Result<(u32, Header)> {
+        self.get_tip_bitcoin_height().and_then(|height| {
+            self.get_bitcoin_header(height)
+                .map(|header| (height, header))
+        })
+    }
+
+    fn bitcoin_header_hash(&self, height: u32) -> Result<Hash> {
+        self.get_bitcoin_header(height)
+            .map(|header| header.block_hash().into())
+    }
+
+    fn spv_contract_type_script(&self) -> Result<Script> {
+        self.get_spv_contract_type_script()
+    }
+
+    fn spv_contract_cell_dep(&self) -> Result<CellDep> {
+        self.get_spv_contract_cell_dep()
+    }
+}
+
+impl InternalBitcoinSpvStorage for Storage {}
+impl BitcoinSpvStorage for Storage {}
+
+
+================================================
+File: src/components/storage/result.rs
+================================================
+use std::{fmt, result};
+
+use ckb_bitcoin_spv_verifier::{molecule, utilities::mmr};
+
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("low-level db error: {0}")]
+    Db(#[from] rocksdb::Error),
+
+    #[error("mmr error: {0}")]
+    Mmr(#[from] mmr::lib::Error),
+
+    #[error("storage error: {0}")]
+    Storage(String),
+
+    #[error("data error: {0}")]
+    Data(String),
+}
+
+pub type Result<T> = result::Result<T, Error>;
+
+impl Error {
+    pub fn storage<T: fmt::Display>(inner: T) -> Self {
+        Self::Storage(inner.to_string())
+    }
+
+    pub fn data<T: fmt::Display>(inner: T) -> Self {
+        Self::Data(inner.to_string())
+    }
+
+    pub fn not_found<T: fmt::Display>(name: T) -> Self {
+        let msg = format!("{name} is not found");
+        Self::Data(msg)
+    }
+}
+
+impl From<molecule::error::VerificationError> for Error {
+    fn from(error: molecule::error::VerificationError) -> Self {
+        Self::data(error)
+    }
+}
+
+
+================================================
+File: src/components/storage/internal/cache.rs
+================================================
+//! Memory cache for the storage.
+
+use std::sync::RwLock;
+
+#[derive(Default)]
+pub(crate) struct Cache {
+    pub(crate) base_bitcoin_height: RwLock<Option<u32>>,
+    // TODO Cache headers by their heights.
+}
+
+
+================================================
+File: src/components/storage/internal/mmr.rs
+================================================
+//! Implement MMR-related traits for the storage.
+
+use ckb_bitcoin_spv_verifier::{
+    types::packed,
+    utilities::mmr::lib::{
+        Error as MMRError, MMRStoreReadOps, MMRStoreWriteOps, Result as MMRResult,
+    },
+};
+
+use crate::components::storage::{prelude::*, Storage};
+
+impl MMRStoreReadOps<packed::HeaderDigest> for Storage {
+    fn get_elem(&self, pos: u64) -> MMRResult<Option<packed::HeaderDigest>> {
+        self.get_bitcoin_header_digest(pos).map_err(|err| {
+            MMRError::StoreError(format!(
+                "Failed to read position {} from MMR, DB error {}",
+                pos, err
+            ))
+        })
+    }
+}
+
+impl MMRStoreWriteOps<packed::HeaderDigest> for Storage {
+    fn append(&mut self, pos: u64, elems: Vec<packed::HeaderDigest>) -> MMRResult<()> {
+        for (offset, elem) in elems.iter().enumerate() {
+            let pos: u64 = pos + (offset as u64);
+            self.put_bitcoin_header_digest(pos, elem).map_err(|err| {
+                MMRError::StoreError(format!("Failed to append to MMR, DB error {}", err))
+            })?;
+        }
+        Ok(())
+    }
+}
+
+
+================================================
+File: src/components/storage/internal/mod.rs
+================================================
+//! Implement the `Storage`.
+
+use std::{path::Path, sync::Arc};
+
+use rocksdb::{
+    prelude::{
+        GetColumnFamilys as _, GetPinned as _, GetPinnedCF as _, OpenCF as _, Put as _, PutCF as _,
+    },
+    ColumnFamily, ColumnFamilyDescriptor, DBPinnableSlice, Options, DB,
+};
+
+use crate::components::storage::{
+    result::{Error, Result},
+    schemas::columns::{self, Column},
+};
+
+mod cache;
+mod mmr;
+mod reader;
+mod writer;
+
+use cache::Cache;
+
+#[derive(Clone)]
+pub struct Storage {
+    pub(crate) db: Arc<DB>,
+    pub(crate) cache: Arc<Cache>,
+}
+
+impl Storage {
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
+        let cf_names = {
+            let mut cf_names = Vec::with_capacity(columns::COUNT);
+            cf_names.push(columns::COLUMN_BITCOIN_HEADER_MMR.to_string());
+            cf_names.push(columns::COLUMN_BITCOIN_HEADERS.to_string());
+            cf_names
+        };
+        let cf_descriptors: Vec<_> = cf_names
+            .iter()
+            .map(|c| ColumnFamilyDescriptor::new(c, Options::default()))
+            .collect();
+
+        let opts = {
+            let mut opts = Options::default();
+            opts.create_if_missing(true);
+            opts.create_missing_column_families(true);
+            opts
+        };
+
+        let db = DB::open_cf_descriptors(&opts, path.as_ref(), cf_descriptors)?;
+        let cache = Cache::default();
+        let storage = Self {
+            db: Arc::new(db),
+            cache: Arc::new(cache),
+        };
+
+        Ok(storage)
+    }
+
+    pub(crate) fn get<K: AsRef<[u8]>>(&self, key: K) -> Result<Option<DBPinnableSlice>> {
+        self.db.get_pinned(key.as_ref()).map_err(Into::into)
+    }
+
+    pub(crate) fn put<K: AsRef<[u8]>, V: AsRef<[u8]>>(&self, key: K, value: V) -> Result<()> {
+        self.db
+            .put(key.as_ref(), value.as_ref())
+            .map_err(Into::into)
+    }
+
+    pub(crate) fn get_cf<K: AsRef<[u8]>>(
+        &self,
+        col: Column,
+        key: K,
+    ) -> Result<Option<DBPinnableSlice>> {
+        let cf = cf_handle(&self.db, col)?;
+        self.db.get_pinned_cf(cf, key.as_ref()).map_err(Into::into)
+    }
+
+    pub(crate) fn put_cf<K: AsRef<[u8]>, V: AsRef<[u8]>>(
+        &self,
+        col: Column,
+        key: K,
+        value: V,
+    ) -> Result<()> {
+        let cf = cf_handle(&self.db, col)?;
+        self.db
+            .put_cf(cf, key.as_ref(), value.as_ref())
+            .map_err(Into::into)
+    }
+}
+
+pub(crate) fn cf_handle(db: &DB, col: Column) -> Result<&ColumnFamily> {
+    db.cf_handle(col)
+        .ok_or_else(|| Error::storage(format!("column {} not found", col)))
+}
+
+
+================================================
+File: src/components/storage/internal/reader.rs
+================================================
+//! Implement reading data from the storage.
+
+use bitcoin::consensus::deserialize;
+use ckb_bitcoin_spv_verifier::types::{core::Header, packed, prelude::*};
+use ckb_types::packed::{CellDep, CellDepReader, Script, ScriptReader};
+
+use crate::components::storage::{
+    prelude::StorageReader,
+    result::{Error, Result},
+    schemas::{columns, keys},
+    Storage,
+};
+
+impl StorageReader for Storage {
+    fn get_base_bitcoin_height(&self) -> Result<Option<u32>> {
+        let height_opt = *self
+            .cache
+            .base_bitcoin_height
+            .read()
+            .map_err(Error::storage)?;
+        if let Some(height) = height_opt {
+            Ok(Some(height))
+        } else {
+            let height_opt = self
+                .get(keys::BASE_BITCOIN_HEIGHT)?
+                .map(|raw| packed::Uint32Reader::from_slice(&raw).map(|reader| reader.unpack()))
+                .transpose()?;
+            if let Some(height) = height_opt {
+                *self
+                    .cache
+                    .base_bitcoin_height
+                    .write()
+                    .map_err(Error::storage)? = Some(height);
+            }
+            Ok(height_opt)
+        }
+    }
+
+    fn get_tip_bitcoin_height(&self) -> Result<u32> {
+        self.get(keys::TIP_BITCOIN_HEIGHT)?
+            .map(|raw| packed::Uint32Reader::from_slice(&raw).map(|reader| reader.unpack()))
+            .transpose()
+            .map_err(Into::into)
+            .and_then(|opt| opt.ok_or_else(|| Error::not_found("tip bitcoin height")))
+    }
+
+    fn get_bitcoin_header(&self, height: u32) -> Result<Header> {
+        let key = height.to_be_bytes();
+        self.get_cf(columns::COLUMN_BITCOIN_HEADERS, key)?
+            .map(|raw| {
+                deserialize(&raw).map_err(|err| {
+                    let msg =
+                        format!("failed to decode the header#{height} from storage since {err}");
+                    Error::data(msg)
+                })
+            })
+            .transpose()
+            .and_then(|opt| opt.ok_or_else(|| Error::not_found(format!("header#{height}"))))
+    }
+
+    fn get_bitcoin_header_digest(&self, position: u64) -> Result<Option<packed::HeaderDigest>> {
+        let key = position.to_be_bytes();
+        self.get_cf(columns::COLUMN_BITCOIN_HEADER_MMR, key)?
+            .map(|raw| {
+                packed::HeaderDigestReader::from_slice(&raw)
+                    .map(|reader| reader.to_entity())
+                    .map_err(Into::into)
+            })
+            .transpose()
+    }
+
+    fn get_spv_contract_type_script(&self) -> Result<Script> {
+        self.get(keys::SPV_CONTRACT_TYPE_SCRIPT)?
+            .map(|raw| ScriptReader::from_slice(&raw).map(|reader| reader.to_entity()))
+            .transpose()
+            .map_err(Into::into)
+            .and_then(|opt| opt.ok_or_else(|| Error::not_found("the SPV script type script")))
+    }
+
+    fn get_spv_contract_cell_dep(&self) -> Result<CellDep> {
+        self.get(keys::SPV_CONTRACT_CELL_DEP)?
+            .map(|raw| CellDepReader::from_slice(&raw).map(|reader| reader.to_entity()))
+            .transpose()
+            .map_err(Into::into)
+            .and_then(|opt| opt.ok_or_else(|| Error::not_found("the SPV script cell dep")))
+    }
+}
+
+
+================================================
+File: src/components/storage/internal/writer.rs
+================================================
+//! Implement writing data into the storage.
+
+use bitcoin::consensus::serialize;
+use ckb_bitcoin_spv_verifier::types::{core::Header, packed, prelude::*};
+use ckb_types::packed::{CellDep, Script};
+
+use crate::components::storage::{
+    prelude::StorageWriter,
+    result::{Error, Result},
+    schemas::{columns, keys},
+    Storage,
+};
+
+impl StorageWriter for Storage {
+    fn put_base_bitcoin_height(&self, height: u32) -> Result<()> {
+        let value: packed::Uint32 = height.pack();
+        let mut writer = self
+            .cache
+            .base_bitcoin_height
+            .write()
+            .map_err(Error::storage)?;
+        self.put(keys::BASE_BITCOIN_HEIGHT, value.as_slice())?;
+        *writer = Some(height);
+        Ok(())
+    }
+
+    fn put_tip_bitcoin_height(&self, height: u32) -> Result<()> {
+        let value: packed::Uint32 = height.pack();
+        self.put(keys::TIP_BITCOIN_HEIGHT, value.as_slice())
+    }
+
+    fn put_bitcoin_header(&self, height: u32, header: &Header) -> Result<()> {
+        let key = height.to_be_bytes();
+        let value = serialize(header);
+        self.put_cf(columns::COLUMN_BITCOIN_HEADERS, key, value)
+    }
+
+    fn put_bitcoin_header_digest(
+        &self,
+        position: u64,
+        digest: &packed::HeaderDigest,
+    ) -> Result<()> {
+        let key = position.to_be_bytes();
+        self.put_cf(columns::COLUMN_BITCOIN_HEADER_MMR, key, digest.as_slice())
+    }
+
+    fn put_spv_contract_type_script(&self, type_script: Script) -> Result<()> {
+        self.put(keys::SPV_CONTRACT_TYPE_SCRIPT, type_script.as_slice())
+    }
+
+    fn put_spv_contract_cell_dep(&self, cell_dep: CellDep) -> Result<()> {
+        self.put(keys::SPV_CONTRACT_CELL_DEP, cell_dep.as_slice())
+    }
+}
+
+
+================================================
+File: src/components/storage/schemas/columns.rs
+================================================
+//! Constants which define low-level database column families.
+
+/// Column families alias type
+pub type Column = &'static str;
+
+/// Total column number
+pub const COUNT: usize = 2;
+
+/// Column to store MMR for Bitcoin headers
+pub const COLUMN_BITCOIN_HEADER_MMR: Column = "bitcoin-header-mmr";
+
+/// Column to store Bitcoin headers
+pub const COLUMN_BITCOIN_HEADERS: Column = "bitcoin-headers";
+
+
+================================================
+File: src/components/storage/schemas/keys.rs
+================================================
+//! Keys for special values.
+
+// TODO Tracks the current database version.
+// pub const MIGRATION_VERSION_KEY: &[u8] = b"db-version";
+
+/// The height of the first Bitcoin header.
+pub const BASE_BITCOIN_HEIGHT: &[u8] = b"base-bitcoin-height";
+/// The height of the tip Bitcoin header.
+pub const TIP_BITCOIN_HEIGHT: &[u8] = b"tip-bitcoin-height";
+
+/// The type script of the Bitcoin SPV contract.
+pub const SPV_CONTRACT_TYPE_SCRIPT: &[u8] = b"spv-contract-type-script";
+/// The cell dep of the Bitcoin SPV contract.
+pub const SPV_CONTRACT_CELL_DEP: &[u8] = b"spv-contract-cell-dep";
+
+
+================================================
+File: src/components/storage/schemas/mod.rs
+================================================
+//! The schemas include constants which define low-level database column
+//! families and keys for special values.
+
+pub mod columns;
+pub mod keys;
+
+
+================================================
+File: src/constants/mainnet.rs
+================================================
+use std::{collections::HashMap, sync::OnceLock};
+
+use ckb_types::{core::DepType, h256, packed, prelude::*};
+
+use crate::constants::CodeHashAndItsCellDep;
+
+const CODE_HASH_WITH_CELL_DEP_INFO: &[CodeHashAndItsCellDep] = &[(
+    h256!("0xd483925160e4232b2cb29f012e8380b7b612d71cf4e79991476b6bcf610735f6"),
+    h256!("0x81e22f4bb39080b112e5efb18e3fad65ebea735eac2f9c495b7f4d3b4faa377d"),
+    0,
+    DepType::Code,
+)];
+
+pub(crate) fn known_cell_dep(code_hash: &packed::Byte32) -> Option<packed::CellDep> {
+    static MAP: OnceLock<HashMap<packed::Byte32, packed::CellDep>> = OnceLock::new();
+    MAP.get_or_init(|| {
+        #[allow(clippy::mutable_key_type)]
+        let mut map = HashMap::new();
+        for (code_hash, tx_hash, tx_index, dep_type) in CODE_HASH_WITH_CELL_DEP_INFO {
+            let out_point = packed::OutPoint::new_builder()
+                .tx_hash(tx_hash.pack())
+                .index(tx_index.pack())
+                .build();
+            let cell_dep = packed::CellDep::new_builder()
+                .out_point(out_point)
+                .dep_type((*dep_type).into())
+                .build();
+            map.insert(code_hash.pack(), cell_dep);
+        }
+        map
+    })
+    .get(code_hash)
+    .cloned()
+}
+
+
+================================================
+File: src/constants/mod.rs
+================================================
+//! Constants.
+
+use ckb_types::{core::DepType, H256};
+
+pub(crate) mod mainnet;
+pub(crate) mod testnet;
+
+// (code_hash, cell_dep.tx_hash, cell_dep.tx_index, cell_dep.dep_type)
+pub(crate) type CodeHashAndItsCellDep = (H256, H256, u32, DepType);
+
+
+================================================
+File: src/constants/testnet.rs
+================================================
+use std::{collections::HashMap, sync::OnceLock};
+
+use ckb_types::{core::DepType, h256, packed, prelude::*};
+
+use crate::constants::CodeHashAndItsCellDep;
+
+const CODE_HASH_WITH_CELL_DEP_INFO: &[CodeHashAndItsCellDep] = &[(
+    h256!("0x28e83a1277d48add8e72fadaa9248559e1b632bab2bd60b27955ebc4c03800a5"),
+    h256!("0x9660b35c0a97fc47debb73f68a4868d8108e226a669219b62cc34a8c213c9d57"),
+    0,
+    DepType::Code,
+)];
+
+pub(crate) fn known_cell_dep(code_hash: &packed::Byte32) -> Option<packed::CellDep> {
+    static MAP: OnceLock<HashMap<packed::Byte32, packed::CellDep>> = OnceLock::new();
+    MAP.get_or_init(|| {
+        #[allow(clippy::mutable_key_type)]
+        let mut map = HashMap::new();
+        for (code_hash, tx_hash, tx_index, dep_type) in CODE_HASH_WITH_CELL_DEP_INFO {
+            let out_point = packed::OutPoint::new_builder()
+                .tx_hash(tx_hash.pack())
+                .index(tx_index.pack())
+                .build();
+            let cell_dep = packed::CellDep::new_builder()
+                .out_point(out_point)
+                .dep_type((*dep_type).into())
+                .build();
+            map.insert(code_hash.pack(), cell_dep);
+        }
+        map
+    })
+    .get(code_hash)
+    .cloned()
+}
+
+
+================================================
+File: src/utilities/key.rs
+================================================
+//! Structs for sensitive data.
+
+use std::{ffi::OsStr, fmt};
+
+use clap::{
+    builder::{TypedValueParser, ValueParserFactory},
+    error::{ContextKind, ContextValue, ErrorKind},
+};
+use zeroize::{Zeroize, ZeroizeOnDrop};
+
+use crate::utilities::value_parsers;
+
+/// A 256 bits bytes used for sensitive data, such as private keys.
+/// It's implemented a `Drop` handler which erase its memory when it dropped.
+/// This ensures that sensitive data is securely erased from memory when it is
+/// no longer needed.
+#[derive(Clone, Zeroize, ZeroizeOnDrop)]
+pub struct Key256Bits([u8; 32]);
+
+impl fmt::Debug for Key256Bits {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Key256Bits")
+    }
+}
+
+impl fmt::Display for Key256Bits {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "256-bits-key")
+    }
+}
+
+impl AsRef<[u8; 32]> for Key256Bits {
+    fn as_ref(&self) -> &[u8; 32] {
+        &self.0
+    }
+}
+
+impl ValueParserFactory for Key256Bits {
+    type Parser = Key256BitsValueParser;
+
+    fn value_parser() -> Self::Parser {
+        Key256BitsValueParser
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Key256BitsValueParser;
+
+impl TypedValueParser for Key256BitsValueParser {
+    type Value = Key256Bits;
+
+    fn parse_ref(
+        &self,
+        cmd: &clap::Command,
+        arg: Option<&clap::Arg>,
+        value: &OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        let mut err = clap::Error::new(ErrorKind::InvalidValue).with_cmd(cmd);
+        if let Some(arg) = arg {
+            err.insert(
+                ContextKind::InvalidArg,
+                ContextValue::String(arg.to_string()),
+            );
+        }
+        let data = value_parsers::BinaryFileValueParser.parse_ref(cmd, arg, value)?;
+        if data.len() != 32 {
+            let msg = format!("the input 256 bits key file contains {} bytes", data.len());
+            err.insert(ContextKind::InvalidValue, ContextValue::String(msg));
+            return Err(err);
+        }
+        let mut arr = [0u8; 32];
+        arr.copy_from_slice(&data);
+        Ok(Key256Bits(arr))
+    }
+}
+
+
+================================================
+File: src/utilities/mod.rs
+================================================
+//! Utilities.
+
+mod key;
+mod platform;
+mod type_id;
+pub(crate) mod value_parsers;
+
+pub(crate) use key::Key256Bits;
+pub(crate) use platform::try_raise_fd_limit;
+pub(crate) use type_id::calculate_type_id;
+
+
+================================================
+File: src/utilities/platform.rs
+================================================
+//! Enhance the platform environment for continuously running services.
+
+use fdlimit::{raise_fd_limit, Outcome};
+
+pub fn try_raise_fd_limit() {
+    match raise_fd_limit() {
+        Ok(Outcome::LimitRaised { from, to }) => {
+            log::info!("raise file descriptor resource limit from {from} to {to}");
+        }
+        Ok(Outcome::Unsupported) => {
+            log::warn!("raising limit is not supported on this platform");
+        }
+        Err(err) => {
+            log::error!("failed to raise file descriptor resource limit, since {err}");
+        }
+    }
+}
+
+
+================================================
+File: src/utilities/type_id.rs
+================================================
+use ckb_hash::{new_blake2b, BLAKE2B_LEN};
+use ckb_types::{packed, prelude::*};
+
+pub fn calculate_type_id(input: packed::CellInput, outputs_count: usize) -> [u8; BLAKE2B_LEN] {
+    let mut blake2b = new_blake2b();
+    blake2b.update(input.as_slice());
+    blake2b.update(&(outputs_count as u64).to_le_bytes());
+    let mut ret = [0; BLAKE2B_LEN];
+    blake2b.finalize(&mut ret);
+    ret
+}
+
+
+================================================
+File: src/utilities/value_parsers.rs
+================================================
+//! Implement trait `clap::builder::TypedValueParser` for types.
+
+use std::{ffi::OsStr, fs::File, io::Read as _, str::FromStr};
+
+use ckb_sdk::{Address as CkbAddress, NetworkType};
+use ckb_types::{bytes::Bytes, packed::OutPoint, prelude::*, H256};
+use clap::{
+    builder::{PathBufValueParser, PossibleValuesParser, StringValueParser, TypedValueParser},
+    error::{ContextKind, ContextValue, ErrorKind},
+};
+
+#[derive(Clone, Debug)]
+pub struct BinaryFileValueParser;
+
+impl TypedValueParser for BinaryFileValueParser {
+    type Value = Bytes;
+
+    fn parse_ref(
+        &self,
+        cmd: &clap::Command,
+        arg: Option<&clap::Arg>,
+        value: &OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        let mut err = clap::Error::new(ErrorKind::InvalidValue).with_cmd(cmd);
+        if let Some(arg) = arg {
+            err.insert(
+                ContextKind::InvalidArg,
+                ContextValue::String(arg.to_string()),
+            );
+        }
+        PathBufValueParser::new()
+            .parse_ref(cmd, arg, value)
+            .and_then(|filename| {
+                let mut data = vec![];
+                File::open(&filename)
+                    .and_then(|mut file| file.read_to_end(&mut data))
+                    .map(|_| data)
+                    .map_err(|io_err| {
+                        let msg = format!(
+                            "failed to read file \"{}\" since {io_err}",
+                            filename.display()
+                        );
+                        err.insert(ContextKind::InvalidValue, ContextValue::String(msg));
+                        err
+                    })
+                    .map(Bytes::from)
+            })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct PrefixedHexStringValueParser;
+
+impl TypedValueParser for PrefixedHexStringValueParser {
+    type Value = String;
+
+    fn parse_ref(
+        &self,
+        cmd: &clap::Command,
+        arg: Option<&clap::Arg>,
+        value: &OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        let mut err = clap::Error::new(ErrorKind::InvalidValue).with_cmd(cmd);
+        if let Some(arg) = arg {
+            err.insert(
+                ContextKind::InvalidArg,
+                ContextValue::String(arg.to_string()),
+            );
+        }
+        let hex_str = StringValueParser::new().parse_ref(cmd, arg, value)?;
+        if !hex_str.starts_with("0x") {
+            err.insert(ContextKind::InvalidValue, ContextValue::String(hex_str));
+            return Err(err);
+        }
+        Ok(hex_str)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct U8VecValueParser;
+
+impl TypedValueParser for U8VecValueParser {
+    type Value = Vec<u8>;
+
+    fn parse_ref(
+        &self,
+        cmd: &clap::Command,
+        arg: Option<&clap::Arg>,
+        value: &OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        let mut err = clap::Error::new(ErrorKind::InvalidValue).with_cmd(cmd);
+        if let Some(arg) = arg {
+            err.insert(
+                ContextKind::InvalidArg,
+                ContextValue::String(arg.to_string()),
+            );
+        }
+        let hex_str = PrefixedHexStringValueParser.parse_ref(cmd, arg, value)?;
+        let hex_bytes = hex_str[2..].as_bytes();
+        let mut decoded = vec![0u8; hex_bytes.len() >> 1];
+        faster_hex::hex_decode(hex_bytes, &mut decoded)
+            .map_err(|_raw_err| {
+                err.insert(ContextKind::InvalidValue, ContextValue::String(hex_str));
+                err
+            })
+            .map(|_| decoded)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct H256ValueParser;
+
+impl TypedValueParser for H256ValueParser {
+    type Value = H256;
+
+    fn parse_ref(
+        &self,
+        cmd: &clap::Command,
+        arg: Option<&clap::Arg>,
+        value: &OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        let mut err = clap::Error::new(ErrorKind::InvalidValue).with_cmd(cmd);
+        if let Some(arg) = arg {
+            err.insert(
+                ContextKind::InvalidArg,
+                ContextValue::String(arg.to_string()),
+            );
+        }
+        let hex_str = PrefixedHexStringValueParser.parse_ref(cmd, arg, value)?;
+        Self::Value::from_str(&hex_str[2..]).map_err(|_raw_err| {
+            err.insert(ContextKind::InvalidValue, ContextValue::String(hex_str));
+            err
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct OutPointValueParser;
+
+impl TypedValueParser for OutPointValueParser {
+    type Value = OutPoint;
+
+    fn parse_ref(
+        &self,
+        cmd: &clap::Command,
+        arg: Option<&clap::Arg>,
+        value: &OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        let mut err = clap::Error::new(ErrorKind::InvalidValue).with_cmd(cmd);
+        if let Some(arg) = arg {
+            err.insert(
+                ContextKind::InvalidArg,
+                ContextValue::String(arg.to_string()),
+            );
+        }
+        let vec = U8VecValueParser.parse_ref(cmd, arg, value)?;
+        Self::Value::from_slice(&vec).map_err(|_raw_err| {
+            let hex_str = faster_hex::hex_string(&vec);
+            err.insert(
+                ContextKind::InvalidValue,
+                ContextValue::String(format!("0x{hex_str}")),
+            );
+            err
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct NetworkTypeValueParser;
+
+impl TypedValueParser for NetworkTypeValueParser {
+    type Value = NetworkType;
+
+    fn parse_ref(
+        &self,
+        cmd: &clap::Command,
+        arg: Option<&clap::Arg>,
+        value: &OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        PossibleValuesParser::new(["mainnet", "testnet"])
+            .parse_ref(cmd, arg, value)
+            .map(|s| match s.as_str() {
+                "mainnet" => Self::Value::Mainnet,
+                "testnet" => Self::Value::Testnet,
+                _ => unreachable!(),
+            })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct AddressValueParser;
+
+impl TypedValueParser for AddressValueParser {
+    type Value = CkbAddress;
+
+    fn parse_ref(
+        &self,
+        cmd: &clap::Command,
+        arg: Option<&clap::Arg>,
+        value: &OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        let mut err = clap::Error::new(ErrorKind::InvalidValue).with_cmd(cmd);
+        if let Some(arg) = arg {
+            err.insert(
+                ContextKind::InvalidArg,
+                ContextValue::String(arg.to_string()),
+            );
+        }
+        let addr_str = StringValueParser::new().parse_ref(cmd, arg, value)?;
+        Self::Value::from_str(&addr_str).map_err(|_raw_err| {
+            err.insert(ContextKind::InvalidValue, ContextValue::String(addr_str));
+            err
+        })
+    }
+}
+
+
+================================================
+File: .github/workflows/ci.yaml
+================================================
+name: CI
+on:
+  push:
+    branches: [ master, develop, release/* ]
+  pull_request:
+    branches: [ master, release/* ]
+defaults:
+  run:
+    shell: bash
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.76.0
+jobs:
+  rustfmt:
+    name: Checks / Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the Repository
+        uses: actions/checkout@v4
+      - name: Install Rust Toolchain
+        run: |
+          rustup toolchain install ${{ env.RUST_TOOLCHAIN }} --no-self-update --profile minimal --component rustfmt
+          rustup override set ${{ env.RUST_TOOLCHAIN }}
+      - name: Format Check
+        run: make fmt
+  clippy:
+    name: Checks / Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the Repository
+        uses: actions/checkout@v4
+      - name: Install Rust Toolchain
+        run: |
+          rustup toolchain install ${{ env.RUST_TOOLCHAIN }} --no-self-update --profile minimal --component clippy
+          rustup override set ${{ env.RUST_TOOLCHAIN }}
+      - name: Lint Check
+        run: make clippy
+  test:
+    name: Tests / Build & Test
+    needs: [ rustfmt, clippy ]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+      fail-fast: true
+      max-parallel: 3
+    steps:
+      - name: Checkout the Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install Rust Toolchain
+        run: |
+          rustup toolchain install ${{ env.RUST_TOOLCHAIN }} --no-self-update --profile minimal
+          rustup override set ${{ env.RUST_TOOLCHAIN }}
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+      - name: Build
+        run: make build
+      - name: Unit Testing
+        run: make test
+
+
+================================================
+File: .github/workflows/docker.yml
+================================================
+name: Docker
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["develop", "master"]
+    tags:
+
+jobs:
+  docker-build-push:
+    runs-on: ubuntu-22.04
+    permissions:
+      packages: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          context: git
+          images: ghcr.io/${{ github.repository }}
+          flavor: |
+            latest=auto
+          tags: |
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=ref,event=branch
+            type=ref,event=branch,suffix=-{{date 'YYYYMMDDHHmm'}}
+            type=sha,enable=true,prefix=sha-,format=short
+        env:
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          provenance: false
+          platforms: linux/amd64, linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          build-args: |
+            RUST_RELEASE_MODE=release
+            CARGO_BUILD_FEATURES=default
+
+

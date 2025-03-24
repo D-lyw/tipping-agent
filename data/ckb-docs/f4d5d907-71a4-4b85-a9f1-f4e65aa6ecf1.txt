@@ -1,0 +1,4004 @@
+Directory structure:
+└── ckb-devrel-create-ccc-app/
+    ├── README.md
+    ├── config.js
+    ├── helpers.js
+    ├── index.js
+    ├── package.json
+    ├── pnpm-lock.yaml
+    └── app-templates/
+        ├── nest-ts/
+        │   ├── README.md
+        │   ├── nest-cli.json
+        │   ├── package.json
+        │   ├── tsconfig.build.json
+        │   ├── tsconfig.json
+        │   ├── .eslintrc.js
+        │   ├── .gitignore
+        │   ├── .prettierignore
+        │   ├── .prettierrc
+        │   ├── config/
+        │   │   └── config.yaml
+        │   ├── libs/
+        │   │   ├── commons/
+        │   │   │   ├── tsconfig.lib.json
+        │   │   │   └── src/
+        │   │   │       ├── config.ts
+        │   │   │       └── index.ts
+        │   │   └── tap/
+        │   │       ├── tsconfig.lib.json
+        │   │       └── src/
+        │   │           ├── index.ts
+        │   │           ├── params.ts
+        │   │           ├── tap.controller.ts
+        │   │           ├── tap.module.ts
+        │   │           └── tap.service.ts
+        │   └── src/
+        │       ├── app.module.ts
+        │       └── main.ts
+        ├── next14-js/
+        │   ├── README.md
+        │   ├── jsconfig.json
+        │   ├── next.config.mjs
+        │   ├── package.json
+        │   ├── postcss.config.mjs
+        │   ├── tailwind.config.js
+        │   ├── .eslintrc.json
+        │   ├── app/
+        │   │   ├── globals.css
+        │   │   ├── layout.js
+        │   │   ├── layoutProvider.js
+        │   │   ├── page.js
+        │   │   └── fonts/
+        │   │       ├── GeistMonoVF.woff
+        │   │       └── GeistVF.woff
+        │   ├── components/
+        │   │   └── ConnectWallet.jsx
+        │   ├── public/
+        │   └── utils/
+        │       └── stringUtils.js
+        ├── next14-ts/
+        │   ├── README.md
+        │   ├── next-env.d.ts
+        │   ├── next.config.mjs
+        │   ├── package.json
+        │   ├── postcss.config.mjs
+        │   ├── tailwind.config.ts
+        │   ├── tsconfig.json
+        │   ├── .eslintrc.json
+        │   ├── app/
+        │   │   ├── globals.css
+        │   │   ├── layout.tsx
+        │   │   ├── layoutProvider.tsx
+        │   │   ├── page.tsx
+        │   │   └── fonts/
+        │   │       ├── GeistMonoVF.woff
+        │   │       └── GeistVF.woff
+        │   ├── components/
+        │   │   └── ConnectWallet.tsx
+        │   ├── public/
+        │   └── utils/
+        │       └── stringUtils.ts
+        ├── react-js/
+        │   ├── README.md
+        │   ├── craco.config.js
+        │   ├── package.json
+        │   ├── tailwind.config.js
+        │   ├── public/
+        │   │   ├── index.html
+        │   │   ├── manifest.json
+        │   │   ├── robots.txt
+        │   │   └── images/
+        │   └── src/
+        │       ├── App.css
+        │       ├── App.js
+        │       ├── App.test.js
+        │       ├── index.css
+        │       ├── index.js
+        │       ├── layoutProvider.js
+        │       ├── reportWebVitals.js
+        │       ├── setupTests.js
+        │       ├── components/
+        │       │   └── ConnectWallet.jsx
+        │       └── utils/
+        │           └── stringUtils.js
+        └── react-ts/
+            ├── README.md
+            ├── craco.config.js
+            ├── package.json
+            ├── tailwind.config.js
+            ├── tsconfig.json
+            ├── public/
+            │   ├── index.html
+            │   ├── manifest.json
+            │   ├── robots.txt
+            │   └── images/
+            └── src/
+                ├── App.css
+                ├── App.test.tsx
+                ├── App.tsx
+                ├── index.css
+                ├── index.tsx
+                ├── layoutProvider.tsx
+                ├── react-app-env.d.ts
+                ├── reportWebVitals.ts
+                ├── setupTests.ts
+                ├── components/
+                │   └── ConnectWallet.tsx
+                └── utils/
+                    └── stringUtils.ts
+
+================================================
+File: README.md
+================================================
+# create-ccc-app
+
+`create-ccc-app`(Create CCC App) is a CLI tool that helps you quickly bootstrap `CKB` applications powered by [@ckb-ccc](https://github.com/ckb-devrel/ccc) SDK. It allows you to generate a project using **`Next.js`** or **`Create React App`**, with support for both **`TypeScript`** and **`JavaScript`**.
+
+## Getting Started
+
+Basic usage:
+
+```bash filename="Terminal"
+npx create-ccc-app@latest [project-name] [options]
+```
+
+### Interactive
+
+You can create a new project interactively by running:
+
+```bash
+npx create-ccc-app@latest
+# or
+yarn create ccc-app
+# or
+pnpm create ccc-app
+# or
+bunx create-ccc-app
+```
+
+You will then be asked the following prompts:
+
+```bash
+✔ What is your project named? … my-ckb-app
+✔ Would you like to use TypeScript? … No / Yes
+? Select a framework to use: › - Use arrow-keys. Return to submit.
+❯   Create Next App (Next.js) v14
+    Create React App
+```
+
+Once you've answered the prompts, a new project will be created with your chosen configuration.
+
+### Non-interactive
+
+You can also pass command line arguments to set up a new project
+non-interactively. See `create-ccc-app --help`:
+
+```bash filename="Terminal"
+npx create-ccc-app@latest [project-name] [options]
+```
+
+The following options are available:
+
+| Options                                 | Description                                                     |
+| --------------------------------------- | --------------------------------------------------------------- |
+| `-h` or `--help`                        | Show all available options                                      |
+| `-v` or `--version`                     | Output the version number                                       |
+| `--ts` or `--typescript`                | Initialize as a TypeScript project (default)                    |
+| `--js` or `--javascript`                | Initialize as a JavaScript project                              |
+| `--cra` or `--react`                    | Initialize as a Create React App(CRA) project.                  |
+| `--cna14` or `--next14`                 | Initialize as a Create Next App(CNA) v14 project. (default)     |
+| `--use-npm`                             | Explicitly tell the CLI to bootstrap the application using npm  |
+| `--use-pnpm`                            | Explicitly tell the CLI to bootstrap the application using pnpm |
+| `--use-yarn`                            | Explicitly tell the CLI to bootstrap the application using Yarn |
+| `--use-bun`                             | Explicitly tell the CLI to bootstrap the application using Bun  |
+| `--skip-install`                        | Explicitly tell the CLI to skip installing packages             |
+
+Examples:
+
+```bash filename="Terminal"
+npx create-ccc-app@latest my-ckb-app --ts --next14
+```
+This command creates a new **`Next.js 14`** project named **`my-ckb-app`** using **`TypeScript`** and installs the relevant dependencies for the project using **`npm`** as the package manager.
+
+```bash filename="Terminal"
+pnpm create ccc-app my-ckb-app --js --cra
+```
+This command creates a new **`Create React App`** project named **`my-ckb-app`** using **`JavaScript`** and installs the relevant dependencies for the project using **`pnpm`** as the package manager.
+
+```bash filename="Terminal"
+yarn create ccc-app my-ckb-app --js --next14 --skip-install
+```
+This command creates a new **`Next.js 14`** project named **`my-ckb-app`** using **`JavaScript`**, specifies **`yarn`** as the default package manager, and skips installing the dependencies.
+
+
+
+
+================================================
+File: config.js
+================================================
+// ccc's version
+const cccConnectorReactVersion = "^1.0.0"
+const cccCoreVersion = "^1.0.0"
+
+
+module.exports = { cccConnectorReactVersion, cccCoreVersion };
+
+================================================
+File: helpers.js
+================================================
+const validateProjectName = require('validate-npm-package-name');
+const fs = require('fs-extra');
+const spawn = require('cross-spawn');
+
+function validateNpmName(name) {
+  const nameValidation = validateProjectName(name)
+  if (nameValidation.validForNewPackages) {
+    return { valid: true }
+  }
+
+  return {
+    valid: false,
+    problems: [
+      ...(nameValidation.errors || []),
+      ...(nameValidation.warnings || []),
+    ],
+  }
+}
+
+function getPkgManager() {
+  const userAgent = process.env.npm_config_user_agent || ''
+
+  if (userAgent.startsWith('yarn')) {
+    return 'yarn'
+  }
+
+  if (userAgent.startsWith('pnpm')) {
+    return 'pnpm'
+  }
+
+  if (userAgent.startsWith('bun')) {
+    return 'bun'
+  }
+
+  return 'npm'
+}
+
+function isFolderEmpty(folderPath) {
+  const files = fs.readdirSync(folderPath);
+  return files.length === 0;
+}
+
+
+/**
+ * Spawn a package manager installation based on user preference.
+ *
+ * @returns A Promise that resolves once the installation is finished.
+ */
+async function install(
+  /** Indicate which package manager to use. */
+  packageManager,
+) {
+  const args = ['install']
+  
+  /**
+   * Return a Promise that resolves once the installation is finished.
+   */
+  return new Promise((resolve, reject) => {
+    /**
+     * Spawn the installation process.
+     */
+    const child = spawn(packageManager, args, {
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        ADBLOCK: '1',
+        // we set NODE_ENV to development as pnpm skips dev
+        // dependencies when production
+        NODE_ENV: 'development',
+        DISABLE_OPENCOLLECTIVE: '1',
+      },
+    })
+    child.on('close', (code) => {
+      if (code !== 0) {
+        reject({ command: `${packageManager} ${args.join(' ')}` })
+        return
+      }
+      resolve()
+    })
+  })
+}
+
+module.exports = { validateNpmName, getPkgManager, isFolderEmpty, install };
+
+================================================
+File: index.js
+================================================
+#!/usr/bin/env node
+
+const { Command } = require('commander');
+const fs = require('fs-extra');
+const path = require('path');
+const packageJson = require('./package.json');
+const updateCheck = require('update-check');
+const prompts = require('prompts');
+const { blue, bold, cyan, green, red, yellow } = require('picocolors');
+const { validateNpmName, isFolderEmpty, getPkgManager, install } = require('./helpers');
+const { cccConnectorReactVersion, cccCoreVersion } = require('./config');
+
+let projectName = ''
+
+const handleSigTerm = () => process.exit(0)
+
+process.on('SIGINT', handleSigTerm)
+process.on('SIGTERM', handleSigTerm)
+
+const onPromptState = (state) => {
+    if (state.aborted) {
+        // If we don't re-enable the terminal cursor before exiting
+        // the program, the cursor will remain hidden
+        process.stdout.write('\x1B[?25h')
+        process.stdout.write('\n')
+        process.exit(1)
+    }
+}
+
+
+const program = new Command(packageJson.name)
+    .version(
+        packageJson.version,
+        '-v, --version',
+        `Output the current version of ${packageJson.name}.`
+    )
+    .argument('[directory]')
+    .usage('[directory] [options]')
+    .helpOption(
+        '-h, --help',
+        'Display this help message.')
+    .option(
+        '--ts, --typescript',
+        'Use TypeScript. (default)'
+    )
+    .option(
+        '--js, --javascript',
+        'Use JavaScript.'
+    )
+    .option(
+        '--nest, --nest',
+        'Initialize as a Nest.js project. TypeScript only.'
+    )
+    .option(
+        '--cra, --react',
+        'Initialize as a Create React App(CRA) project. '
+    )
+    .option(
+        '--cna14, --next14',
+        'Initialize as a Create Next App(CNA) v14 project. (default)'
+    )
+    .option(
+        '--use-npm',
+        'Explicitly tell the CLI to bootstrap the application using npm.'
+    )
+    .option(
+        '--use-pnpm',
+        'Explicitly tell the CLI to bootstrap the application using pnpm.'
+    )
+    .option(
+        '--use-yarn',
+        'Explicitly tell the CLI to bootstrap the application using Yarn.'
+    )
+    .option(
+        '--use-bun',
+        'Explicitly tell the CLI to bootstrap the application using Bun.'
+    )
+    .option(
+        '--skip-install',
+        'Explicitly tell the CLI to skip installing packages.'
+    )
+    .action((name) => {
+        // Commander does not implicitly support negated options. When they are used
+        // by the user they will be interpreted as the positional argument (name) in
+        // the action handler. See https://github.com/tj/commander.js/pull/1355
+        if (name && !name.startsWith('--no-')) {
+            projectName = name
+        }
+    })
+    .allowUnknownOption()
+    .parse(process.argv)
+
+const opts = program.opts()
+const { args } = program
+//console.log(opts, args, projectName)
+
+const packageManager = !!opts.useNpm
+    ? 'npm'
+    : !!opts.usePnpm
+        ? 'pnpm'
+        : !!opts.useYarn
+            ? 'yarn'
+            : !!opts.useBun
+                ? 'bun'
+                : getPkgManager()
+
+//console.log(packageManager)
+
+async function run() {
+    console.log()
+    // Check ProjectPath
+    if (projectName && typeof projectName === 'string') {
+        projectName = projectName.trim()
+    }
+
+    if (!projectName) {
+        const res = await prompts({
+            onState: onPromptState,
+            type: 'text',
+            name: 'path',
+            message: 'What is your project named?',
+            initial: 'my-ckb-app',
+            validate: (name) => {
+                const validation = validateNpmName(path.basename(path.resolve(name)))
+                if (validation.valid) {
+                    return true
+                }
+                return 'Invalid project name: ' + validation.problems[0]
+            },
+        })
+
+        if (typeof res.path === 'string') {
+            projectName = res.path.trim()
+        }
+    }
+
+    if (!projectName) {
+        console.log(
+            '\nPlease specify the project directory:\n' +
+            `  ${cyan(opts.name())} ${green('<project-directory>')}\n` +
+            'For example:\n' +
+            `  ${cyan(opts.name())} ${green('my-next-app')}\n\n` +
+            `Run ${cyan(`${opts.name()} --help`)} to see all options.`
+        )
+        process.exit(1)
+    }
+
+    const appPath = path.resolve(projectName)
+    const appName = path.basename(appPath)
+
+    const validation = validateNpmName(appName)
+    if (!validation.valid) {
+        console.error(
+            `Could not create a project called ${red(
+                `"${appName}"`
+            )} because of npm naming restrictions:`
+        )
+
+        validation.problems.forEach((p) =>
+            console.error(`    ${red(bold('*'))} ${p}`)
+        )
+        process.exit(1)
+    }
+
+    if (fs.pathExistsSync(appPath) && !isFolderEmpty(appPath)) {
+        console.error(
+            `Could not create a project called ${red(
+                `"${appName}"`
+            )} because a project with the same name already exists.`
+        )
+        process.exit(1)
+    }
+
+    // Handle framework flags
+    if (!opts.framework) {
+        if (opts.react) {
+            opts.framework = 'react';
+        } else if (opts.next14) {
+            opts.framework = 'next14';
+        } if (opts.nest) {
+            opts.framework = 'nest';
+        }
+
+        // If no valid framework flag is provided, prompt the user
+        if (!opts.framework) {
+            const frameworks = [
+                { title: 'Create Next App (Next.js) v14', value: 'next14' },
+                { title: 'Nest.js', value: 'nest' },
+                { title: 'Create React App', value: 'react' },
+            ];
+
+            const { framework } = await prompts(
+                {
+                    type: 'select',
+                    name: 'framework',
+                    message: 'Select a framework to use:',
+                    choices: frameworks,
+                    initial: 0,
+                },
+                {
+                    onCancel: () => {
+                        console.error('Exiting.');
+                        process.exit(1);
+                    },
+                }
+            );
+
+            opts.framework = framework;
+
+            if (!opts.framework) {
+                console.error(red('You must select a framework to proceed.'));
+                process.exit(1);
+            }
+        }
+    }
+
+    // js, ts
+    if (opts.framework === "nest") {
+        opts.typescript = true;
+        opts.javascript = false;
+    } else if (!opts.typescript && !opts.javascript) {
+        const styledTypeScript = blue('TypeScript')
+        const { typescript } = await prompts(
+            {
+                type: 'toggle',
+                name: 'typescript',
+                message: `Would you like to use ${styledTypeScript}?`,
+                initial: true,
+                active: 'Yes',
+                inactive: 'No',
+            },
+            {
+                /**
+                 * User inputs Ctrl+C or Ctrl+D to exit the prompt. We should close the
+                 * process and not write to the file system.
+                 */
+                onCancel: () => {
+                    console.error('Exiting.')
+                    process.exit(1)
+                },
+            }
+        )
+        /**
+         * Depending on the prompt response, set the appropriate program flags.
+         */
+        opts.typescript = Boolean(typescript)
+        opts.javascript = !Boolean(typescript)
+    }
+
+    console.log()
+
+    console.log(bold(`Using ${packageManager}.`));
+    // Copy template
+    const language = opts.javascript ? "js" : "ts";
+
+    console.log(`📦 Initializing project with template: ${cyan(`${opts.framework}-${language}`)}`);
+
+    const templatePath = path.join(__dirname, `app-templates/${opts.framework}-${language}`);
+    if (!fs.pathExistsSync(templatePath)) {
+        console.error(
+            `Could not find a template named ${red(
+                `"${opts.framework}-${language}-template"`
+            )}.`
+        )
+        console.error(`\n 😮‍💨 Project ${projectName} created failed!\n`);
+        process.exit(1)
+    }
+
+    // 创建项目文件夹并复制模板
+    const originalDirectory = process.cwd();
+    const projectPath = path.join(originalDirectory, projectName);
+
+    fs.ensureDirSync(projectPath);
+    fs.copySync(templatePath, projectPath);
+
+    // 修改 package.json 的 name 字段
+    const packageJsonPath = path.join(projectPath, 'package.json');
+    let appPackageJson = '';
+    if (fs.pathExistsSync(packageJsonPath)) {
+        try {
+            appPackageJson = fs.readJsonSync(packageJsonPath); // 读取 package.json
+            appPackageJson.name = projectName; // 修改 name 字段
+
+            // set ccc version
+            if (opts.framework === "nest") {
+                
+                appPackageJson.dependencies = {
+                    ...appPackageJson.dependencies,
+                    "@ckb-ccc/core": cccCoreVersion,
+                };
+            } else {
+                appPackageJson.dependencies = {
+                    ...appPackageJson.dependencies,
+                    "@ckb-ccc/connector-react": cccConnectorReactVersion,
+                };
+            }
+
+            fs.writeJsonSync(packageJsonPath, appPackageJson, { spaces: 2 }); // 写入修改后的内容
+            console.log(green(`Updated ${projectName}/package.json.`));
+        } catch (error) {
+            console.error(red(`Failed to update package.json: ${error.message}`));
+            process.exit(1);
+        }
+    } else {
+        console.error(
+            red(`Could not find package.json in the template. Make sure your template includes a package.json.`)
+        );
+        process.exit(1);
+    }
+
+    console.log(`\n🎉 Project ${projectName} created!\n`);
+
+    const useYarn = packageManager === 'yarn';
+
+    if (opts.skipInstall) {
+    /*    console.log('Skip install the dependencies, you can run the install command inside the project directory:')
+        console.log()
+        console.log(cyan(`    npm install`))
+        console.log('or', cyan(`  pnpm install`))
+        console.log('or', cyan(`  yarn install`))
+        console.log('or', cyan(`  bun install`))
+        console.log('    Install the dependencies.')*/
+
+        console.log('Skip install the dependencies, we suggest that you begin by typing:')
+        console.log()
+        console.log(cyan('  cd'), projectName)
+        console.log(`  ${cyan(`${packageManager} install`)}`)
+        console.log()   
+
+    } else {
+        console.log("\nInstalling dependencies:");
+        for (const dependency in appPackageJson.dependencies) {
+            const version = appPackageJson.dependencies[dependency];
+            console.log(`- ${cyan(dependency)}: ${yellow(version)}`);
+        }
+
+        console.log("\nInstalling devDependencies:");
+        for (const dependency in appPackageJson.devDependencies) {
+            const version = appPackageJson.devDependencies[dependency];
+            console.log(`- ${cyan(dependency)}: ${yellow(version)}`);
+        }
+
+        console.log()
+        console.log('Installing packages. This might take a couple of minutes.')
+        console.log()
+
+        // Change to the project directory
+        process.chdir(appPath);
+        await install(packageManager)
+        console.log('Packages installed.')
+        console.log()
+    }
+
+    if (opts.framework === 'next14' || opts.framework === 'next15') {
+        console.log('Inside the project directory, you can run several commands:')
+        console.log()
+        console.log(cyan(`  ${packageManager} ${useYarn ? '' : 'run '}dev`))
+        console.log('  Starts the development server.')
+        console.log()
+        console.log(cyan(`  ${packageManager} ${useYarn ? '' : 'run '}build`))
+        console.log('  Builds the app for production.')
+        console.log()
+        console.log(cyan(`  ${packageManager} start`))
+        console.log('  Runs the built app in production mode.')
+        console.log()
+        console.log('We suggest that you begin by typing:')
+        console.log()
+        console.log(cyan('  cd'), projectName)
+        console.log(`  ${cyan(`${packageManager} ${useYarn ? '' : 'run '}dev`)}`)
+        console.log()
+    } else if (opts.framework === 'nest') {
+        console.log('Inside the project directory, you can run several commands:')
+        console.log()
+        console.log(cyan(`  ${packageManager} ${useYarn ? '' : 'run '}start:dev`))
+        console.log('  Starts the development server.')
+        console.log()
+        console.log(cyan(`  ${packageManager} ${useYarn ? '' : 'run '}build`))
+        console.log('  Builds the app for production.')
+        console.log()
+        console.log(cyan(`  ${packageManager} start`))
+        console.log('  Runs the built app in production mode.')
+        console.log()
+        console.log('We suggest that you begin by typing:')
+        console.log()
+        console.log(cyan('  cd'), projectName)
+        console.log(`  ${cyan(`${packageManager} ${useYarn ? '' : 'run '}start:dev`)}`)
+        console.log()
+    } else if (opts.framework === 'react') {
+        console.log('Inside the project directory, you can run several commands:')
+        console.log()
+        console.log(cyan(`  ${packageManager} start`))
+        console.log('  Starts the development server.')
+        console.log()
+        console.log(cyan(`  ${packageManager} ${useYarn ? '' : 'run '}build`))
+        console.log('  Builds the app for production.')
+        console.log()
+        console.log('We suggest that you begin by typing:')
+        console.log()
+        console.log(cyan('  cd'), projectName)
+        console.log(`  ${cyan(`${packageManager} start`)}`)
+        console.log()   
+    }
+
+    console.log(`${green('Success!')} Created ${projectName} at ${projectPath}`)
+    console.log()
+}
+
+const update = updateCheck(packageJson).catch(() => null)
+
+async function notifyUpdate() {
+    try {
+        if ((await update)?.latest) {
+            const global = {
+                npm: 'npm i -g',
+                yarn: 'yarn global add',
+                pnpm: 'pnpm add -g',
+                bun: 'bun add -g',
+            }
+            const updateMessage = `${global[packageManager]} ${packageJson.name}`
+            console.log(
+                yellow(bold('A new version of `${packageJson.name}` is available!')) +
+                '\n' +
+                'You can update by running: ' +
+                cyan(updateMessage) +
+                '\n'
+            )
+        }
+        process.exit(0)
+    } catch {
+        // ignore error
+    }
+}
+
+async function exit(reason) {
+    console.log()
+    console.log('Aborting installation.')
+    if (reason.command) {
+        console.log(`  ${cyan(reason.command)} has failed.`)
+    } else {
+        console.log(
+            red('Unexpected error. Please report it as a bug:') + '\n',
+            reason
+        )
+    }
+    console.log()
+    await notifyUpdate()
+    process.exit(1)
+}
+
+run().then(notifyUpdate).catch(exit)
+
+
+================================================
+File: package.json
+================================================
+{
+  "name": "create-ccc-app",
+  "version": "0.0.7",
+  "description": "CLI tool to quickly bootstrap CKB dapps with @ckb-ccc.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "create-ccc-app": "./index.js"
+  },
+  "homepage": "https://github.com/ckb-devrel/create-ccc-app",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:ckb-devrel/create-ccc-app.git"
+  },
+  "keywords": [
+    "ccc", 
+    "ckb", 
+    "ckb-app", 
+    "create-ccc-app",
+    "ccc app",
+    "ckb app",
+    "create ccc app"
+  ],
+  "author": "ckbfans",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.1.0",
+    "cross-spawn": "^7.0.5",
+    "fs-extra": "^11.2.0",
+    "picocolors": "^1.1.1",
+    "prompts": "^2.4.2",
+    "update-check": "^1.5.4",
+    "validate-npm-package-name": "^6.0.0"
+  }
+}
+
+================================================
+File: pnpm-lock.yaml
+================================================
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      commander:
+        specifier: ^12.1.0
+        version: 12.1.0
+      cross-spawn:
+        specifier: ^7.0.5
+        version: 7.0.6
+      fs-extra:
+        specifier: ^11.2.0
+        version: 11.2.0
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
+      prompts:
+        specifier: ^2.4.2
+        version: 2.4.2
+      update-check:
+        specifier: ^1.5.4
+        version: 1.5.4
+      validate-npm-package-name:
+        specifier: ^6.0.0
+        version: 6.0.0
+
+packages:
+
+  commander@12.1.0:
+    resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
+    engines: {node: '>=18'}
+
+  cross-spawn@7.0.6:
+    resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
+    engines: {node: '>= 8'}
+
+  deep-extend@0.6.0:
+    resolution: {integrity: sha512-LOHxIOaPYdHlJRtCQfDIVZtfw/ufM8+rVj649RIHzcm/vGwQRXFt6OPqIFWsm2XEMrNIEtWR64sY1LEKD2vAOA==}
+    engines: {node: '>=4.0.0'}
+
+  fs-extra@11.2.0:
+    resolution: {integrity: sha512-PmDi3uwK5nFuXh7XDTlVnS17xJS7vW36is2+w3xcv8SVxiB4NyATf4ctkVY5bkSjX0Y4nbvZCq1/EjtEyr9ktw==}
+    engines: {node: '>=14.14'}
+
+  graceful-fs@4.2.11:
+    resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
+
+  ini@1.3.8:
+    resolution: {integrity: sha512-JV/yugV2uzW5iMRSiZAyDtQd+nxtUnjeLt0acNdw98kKLrvuRVyB80tsREOE7yvGVgalhZ6RNXCmEHkUKBKxew==}
+
+  isexe@2.0.0:
+    resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
+
+  jsonfile@6.1.0:
+    resolution: {integrity: sha512-5dgndWOriYSm5cnYaJNhalLNDKOqFwyDB/rr1E9ZsGciGvKPs8R2xYGCacuf3z6K1YKDz182fd+fY3cn3pMqXQ==}
+
+  kleur@3.0.3:
+    resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
+    engines: {node: '>=6'}
+
+  minimist@1.2.8:
+    resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
+
+  path-key@3.1.1:
+    resolution: {integrity: sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==}
+    engines: {node: '>=8'}
+
+  picocolors@1.1.1:
+    resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
+
+  prompts@2.4.2:
+    resolution: {integrity: sha512-NxNv/kLguCA7p3jE8oL2aEBsrJWgAakBpgmgK6lpPWV+WuOmY6r2/zbAVnP+T8bQlA0nzHXSJSJW0Hq7ylaD2Q==}
+    engines: {node: '>= 6'}
+
+  rc@1.2.8:
+    resolution: {integrity: sha512-y3bGgqKj3QBdxLbLkomlohkvsA8gdAiUQlSBJnBhfn+BPxg4bc62d8TcBW15wavDfgexCgccckhcZvywyQYPOw==}
+    hasBin: true
+
+  registry-auth-token@3.3.2:
+    resolution: {integrity: sha512-JL39c60XlzCVgNrO+qq68FoNb56w/m7JYvGR2jT5iR1xBrUA3Mfx5Twk5rqTThPmQKMWydGmq8oFtDlxfrmxnQ==}
+
+  registry-url@3.1.0:
+    resolution: {integrity: sha512-ZbgR5aZEdf4UKZVBPYIgaglBmSF2Hi94s2PcIHhRGFjKYu+chjJdYfHn4rt3hB6eCKLJ8giVIIfgMa1ehDfZKA==}
+    engines: {node: '>=0.10.0'}
+
+  safe-buffer@5.2.1:
+    resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==}
+
+  shebang-command@2.0.0:
+    resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
+    engines: {node: '>=8'}
+
+  shebang-regex@3.0.0:
+    resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
+    engines: {node: '>=8'}
+
+  sisteransi@1.0.5:
+    resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
+
+  strip-json-comments@2.0.1:
+    resolution: {integrity: sha512-4gB8na07fecVVkOI6Rs4e7T6NOTki5EmL7TUduTs6bu3EdnSycntVJ4re8kgZA+wx9IueI2Y11bfbgwtzuE0KQ==}
+    engines: {node: '>=0.10.0'}
+
+  universalify@2.0.1:
+    resolution: {integrity: sha512-gptHNQghINnc/vTGIk0SOFGFNXw7JVrlRUtConJRlvaw6DuX0wO5Jeko9sWrMBhh+PsYAZ7oXAiOnf/UKogyiw==}
+    engines: {node: '>= 10.0.0'}
+
+  update-check@1.5.4:
+    resolution: {integrity: sha512-5YHsflzHP4t1G+8WGPlvKbJEbAJGCgw+Em+dGR1KmBUbr1J36SJBqlHLjR7oob7sco5hWHGQVcr9B2poIVDDTQ==}
+
+  validate-npm-package-name@6.0.0:
+    resolution: {integrity: sha512-d7KLgL1LD3U3fgnvWEY1cQXoO/q6EQ1BSz48Sa149V/5zVTAbgmZIpyI8TRi6U9/JNyeYLlTKsEMPtLC27RFUg==}
+    engines: {node: ^18.17.0 || >=20.5.0}
+
+  which@2.0.2:
+    resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
+    engines: {node: '>= 8'}
+    hasBin: true
+
+snapshots:
+
+  commander@12.1.0: {}
+
+  cross-spawn@7.0.6:
+    dependencies:
+      path-key: 3.1.1
+      shebang-command: 2.0.0
+      which: 2.0.2
+
+  deep-extend@0.6.0: {}
+
+  fs-extra@11.2.0:
+    dependencies:
+      graceful-fs: 4.2.11
+      jsonfile: 6.1.0
+      universalify: 2.0.1
+
+  graceful-fs@4.2.11: {}
+
+  ini@1.3.8: {}
+
+  isexe@2.0.0: {}
+
+  jsonfile@6.1.0:
+    dependencies:
+      universalify: 2.0.1
+    optionalDependencies:
+      graceful-fs: 4.2.11
+
+  kleur@3.0.3: {}
+
+  minimist@1.2.8: {}
+
+  path-key@3.1.1: {}
+
+  picocolors@1.1.1: {}
+
+  prompts@2.4.2:
+    dependencies:
+      kleur: 3.0.3
+      sisteransi: 1.0.5
+
+  rc@1.2.8:
+    dependencies:
+      deep-extend: 0.6.0
+      ini: 1.3.8
+      minimist: 1.2.8
+      strip-json-comments: 2.0.1
+
+  registry-auth-token@3.3.2:
+    dependencies:
+      rc: 1.2.8
+      safe-buffer: 5.2.1
+
+  registry-url@3.1.0:
+    dependencies:
+      rc: 1.2.8
+
+  safe-buffer@5.2.1: {}
+
+  shebang-command@2.0.0:
+    dependencies:
+      shebang-regex: 3.0.0
+
+  shebang-regex@3.0.0: {}
+
+  sisteransi@1.0.5: {}
+
+  strip-json-comments@2.0.1: {}
+
+  universalify@2.0.1: {}
+
+  update-check@1.5.4:
+    dependencies:
+      registry-auth-token: 3.3.2
+      registry-url: 3.1.0
+
+  validate-npm-package-name@6.0.0: {}
+
+  which@2.0.2:
+    dependencies:
+      isexe: 2.0.0
+
+
+================================================
+File: app-templates/nest-ts/README.md
+================================================
+<p align="center">
+  <a href="https://app.ckbccc.com/">
+    <img alt="Logo" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/logoAndText.svg" style="height: 8rem; max-width: 35%; padding: 0.5rem 2rem;" />
+  </a>
+  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" style="height: 8rem; max-width: 60%; padding: 0.5rem 2rem;" alt="Nest Logo" /></a>
+</p>
+
+<h1 align="center" style="font-size: 64px;">
+  CCC X NestJS
+</h1>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@ckb-ccc/ccc"><img
+    alt="NPM Version" src="https://img.shields.io/npm/v/%40ckb-ccc%2Fccc"
+  /></a>
+  <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/ckb-devrel/ccc" />
+  <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/ckb-devrel/ccc/master" />
+  <img alt="GitHub branch check runs" src="https://img.shields.io/github/check-runs/ckb-devrel/ccc/master" />
+  <a href="https://live.ckbccc.com/"><img
+    alt="Playground" src="https://img.shields.io/website?url=https%3A%2F%2Flive.ckbccc.com%2F&label=Playground"
+  /></a>
+  <a href="https://app.ckbccc.com/"><img
+    alt="App" src="https://img.shields.io/website?url=https%3A%2F%2Fapp.ckbccc.com%2F&label=App"
+  /></a>
+  <a href="https://docs.ckbccc.com/"><img
+    alt="Docs" src="https://img.shields.io/website?url=https%3A%2F%2Fdocs.ckbccc.com%2F&label=Docs"
+  /></a>
+</p>
+
+<p align="center">This is a <a href="https://nestjs.com/">NestJS</a> project bootstrapped with <a href="https://github.com/ckb-devrel/create-ccc-app">create-ccc-app</a></p>
+
+## Description
+
+[CCC](https://github.com/ckb-devrel/ccc) with [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+
+## Installation
+
+```bash
+$ pnpm install
+```
+
+## Running the app
+
+```bash
+# development
+$ pnpm run start
+
+# watch mode
+$ pnpm run start:dev
+
+# production mode
+$ pnpm run start:prod
+```
+
+## Test
+
+```bash
+# unit tests
+$ pnpm run test
+
+# e2e tests
+$ pnpm run test:e2e
+
+# test coverage
+$ pnpm run test:cov
+```
+
+## Learn More
+
+### NestJS
+To learn more about NestJS, take a look at the [NestJS documentation](https://docs.nestjs.com/).
+
+You can check out [the NestJS GitHub repository](https://github.com/nestjs/nest) - your feedback and contributions are welcome!
+
+### CCC
+To learn more about CCC, take a look at the following resources:
+
+- [CCC Documentation](https://docs.ckbccc.com/) - learn about CCC features and API.
+- [CCC Demo](https://app.ckbccc.com) - Code examples for invoking CCC in various use cases.
+
+You can check out [the CCC GitHub repository](https://github.com/ckb-devrel/ccc) - your feedback and contributions are welcome!
+
+================================================
+File: app-templates/nest-ts/nest-cli.json
+================================================
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "webpack": true
+  },
+  "projects": {
+    "tap": {
+      "type": "library",
+      "root": "libs/tap",
+      "entryFile": "index",
+      "sourceRoot": "libs/tap/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/tap/tsconfig.lib.json"
+      }
+    },
+    "commons": {
+      "type": "library",
+      "root": "libs/commons",
+      "entryFile": "index",
+      "sourceRoot": "libs/commons/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/commons/tsconfig.lib.json"
+      }
+    }
+  }
+}
+
+================================================
+File: app-templates/nest-ts/package.json
+================================================
+{
+  "name": "nest-ts-template",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "nest build",
+    "format": "prettier --write \"src/**/*.ts\" \"libs/**/*.ts\"",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
+    "start:prod": "node dist/main",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:e2e": "jest --config ./test/jest-e2e.json"
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/config": "^3.2.3",
+    "@nestjs/core": "^10.0.0",
+    "@nestjs/platform-express": "^10.0.0",
+    "@scure/bip32": "^1.4.0",
+    "@scure/bip39": "^1.3.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "js-yaml": "^4.1.0",
+    "reflect-metadata": "^0.2.0",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^10.0.0",
+    "@nestjs/schematics": "^10.0.0",
+    "@nestjs/testing": "^10.0.0",
+    "@types/express": "^4.17.17",
+    "@types/jest": "^29.5.2",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.3.1",
+    "@types/supertest": "^6.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.42.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "jest": "^29.5.0",
+    "prettier": "^3.0.0",
+    "prettier-plugin-organize-imports": "^4.1.0",
+    "source-map-support": "^0.5.21",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.1.0",
+    "ts-loader": "^9.4.3",
+    "ts-node": "^10.9.1",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.1.3"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": ".",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "collectCoverageFrom": [
+      "**/*.(t|j)s"
+    ],
+    "coverageDirectory": "./coverage",
+    "testEnvironment": "node",
+    "roots": [
+      "<rootDir>/src/",
+      "<rootDir>/libs/"
+    ],
+    "moduleNameMapper": {
+      "^@app/tap(|/.*)$": "<rootDir>/libs/tap/src/$1",
+      "^@app/commons(|/.*)$": "<rootDir>/libs/commons/src/$1"
+    }
+  }
+}
+
+================================================
+File: app-templates/nest-ts/tsconfig.build.json
+================================================
+{
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+}
+
+
+================================================
+File: app-templates/nest-ts/tsconfig.json
+================================================
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2021",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@app/tap": [
+        "libs/tap/src"
+      ],
+      "@app/tap/*": [
+        "libs/tap/src/*"
+      ],
+      "@app/commons": [
+        "libs/commons/src"
+      ],
+      "@app/commons/*": [
+        "libs/commons/src/*"
+      ]
+    }
+  }
+}
+
+================================================
+File: app-templates/nest-ts/.eslintrc.js
+================================================
+module.exports = {
+  parser: "@typescript-eslint/parser",
+  parserOptions: {
+    project: "tsconfig.json",
+    tsconfigRootDir: __dirname,
+    sourceType: "module",
+  },
+  plugins: ["@typescript-eslint/eslint-plugin"],
+  extends: [
+    "plugin:@typescript-eslint/recommended",
+    "plugin:prettier/recommended",
+  ],
+  root: true,
+  env: {
+    node: true,
+    jest: true,
+  },
+  ignorePatterns: [".eslintrc.js"],
+  rules: {
+    "@typescript-eslint/interface-name-prefix": "off",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+  },
+};
+
+
+================================================
+File: app-templates/nest-ts/.gitignore
+================================================
+# compiled output
+/dist
+/node_modules
+/build
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+
+# Tests
+/coverage
+/.nyc_output
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# temp directory
+.temp
+.tmp
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+
+================================================
+File: app-templates/nest-ts/.prettierignore
+================================================
+node_modules/
+
+dist/
+dist.commonjs/
+
+.npmignore
+.prettierrc
+tsconfig.json
+eslint.config.mjs
+.prettierrc
+
+tsconfig.tsbuildinfo
+.github/
+
+
+================================================
+File: app-templates/nest-ts/.prettierrc
+================================================
+{
+  "singleQuote": false,
+  "trailingComma": "all",
+  "plugins": ["prettier-plugin-organize-imports"]
+}
+
+
+================================================
+File: app-templates/nest-ts/config/config.yaml
+================================================
+port: 8080
+
+server_mnemonic: zebra chalk pitch middle odor defense debris void blind emerge never fade
+hd_path_prefix: m/44'/309'/0'/0/
+fee_rate: 1000
+
+================================================
+File: app-templates/nest-ts/libs/commons/tsconfig.lib.json
+================================================
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "outDir": "../../dist/libs/commons"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "test", "**/*spec.ts"]
+}
+
+
+================================================
+File: app-templates/nest-ts/libs/commons/src/config.ts
+================================================
+import { readFileSync } from "fs";
+import * as yaml from "js-yaml";
+import { join } from "path";
+
+function configPath() {
+  switch (process.env.NODE_ENV) {
+    case "production":
+      return "/config/config.production.yaml";
+    case "development":
+      return "/config/config.development.yaml";
+    case "local":
+      return "/config/config.local.yaml";
+    default:
+      return "/config/config.yaml";
+  }
+}
+
+export function loadConfig() {
+  return yaml.load(
+    readFileSync(join(process.cwd(), configPath()), "utf8"),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ) as Record<string, any>;
+}
+
+
+================================================
+File: app-templates/nest-ts/libs/commons/src/index.ts
+================================================
+export * from "./config";
+
+
+================================================
+File: app-templates/nest-ts/libs/tap/tsconfig.lib.json
+================================================
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "outDir": "../../dist/libs/tap"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "test", "**/*spec.ts"]
+}
+
+
+================================================
+File: app-templates/nest-ts/libs/tap/src/index.ts
+================================================
+export * from "./tap.module";
+export * from "./tap.service";
+
+
+================================================
+File: app-templates/nest-ts/libs/tap/src/params.ts
+================================================
+import { IsNotEmpty, IsString } from "class-validator";
+
+export class TapCkbParams {
+  @IsString()
+  @IsNotEmpty()
+  address: string;
+
+  @IsString()
+  @IsNotEmpty()
+  amount: string;
+}
+
+
+================================================
+File: app-templates/nest-ts/libs/tap/src/tap.controller.ts
+================================================
+import { Controller, Get, Query } from "@nestjs/common";
+import { TapCkbParams } from "./params";
+import { TapService } from "./tap.service";
+
+@Controller({
+  path: "tap",
+})
+export class TapController {
+  constructor(private readonly service: TapService) {}
+
+  @Get("/ckb")
+  async tapCkb(
+    @Query()
+    { address, amount }: TapCkbParams,
+  ) {
+    return this.service.tapCkb(address, amount);
+  }
+}
+
+
+================================================
+File: app-templates/nest-ts/libs/tap/src/tap.module.ts
+================================================
+import { Module } from "@nestjs/common";
+import { TapController } from "./tap.controller";
+import { TapService } from "./tap.service";
+
+@Module({
+  providers: [TapService],
+  exports: [TapService],
+  controllers: [TapController],
+})
+export class TapModule {}
+
+
+================================================
+File: app-templates/nest-ts/libs/tap/src/tap.service.ts
+================================================
+import { ccc } from "@ckb-ccc/core";
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { HDKey } from "@scure/bip32";
+import { mnemonicToSeedSync } from "@scure/bip39";
+
+@Injectable()
+export class TapService {
+  private readonly logger = new Logger(TapService.name);
+
+  private readonly rootKey: HDKey;
+  private readonly pathPrefix: string;
+  private readonly feeRate: number;
+  private readonly client = new ccc.ClientPublicTestnet();
+
+  constructor(configService: ConfigService) {
+    const mnemonic = configService.get<string>("server_mnemonic");
+    if (!mnemonic) {
+      throw Error("Missing mnemonic");
+    }
+    const feeRate = configService.get<number>("fee_rate");
+    if (feeRate === undefined) {
+      throw Error("Missing fee rate");
+    }
+
+    this.rootKey = HDKey.fromMasterSeed(mnemonicToSeedSync(mnemonic));
+    this.pathPrefix = configService.get<string>("hd_path_prefix") ?? "";
+    this.feeRate = feeRate;
+  }
+
+  async tapCkb(address: string, amount: string) {
+    const key = this.rootKey.derive(`${this.pathPrefix}0`);
+    if (!key.privateKey) {
+      throw Error("Failed to derive key");
+    }
+
+    const signer = new ccc.SignerCkbPrivateKey(this.client, key.privateKey);
+    this.logger.log(`Tap CKB: using ${await signer.getAddresses()}`);
+
+    const tx = ccc.Transaction.from({
+      outputs: [
+        {
+          capacity: ccc.fixedPointFrom(amount),
+          lock: (await ccc.Address.fromString(address, this.client)).script,
+        },
+      ],
+    });
+    await tx.completeInputsByCapacity(signer);
+    await tx.completeFeeBy(signer, this.feeRate);
+
+    const hash = await signer.sendTransaction(tx);
+    this.logger.log(`Tap CKB: ${address} tapped ${amount} on ${hash}`);
+  }
+}
+
+
+================================================
+File: app-templates/nest-ts/src/app.module.ts
+================================================
+import { loadConfig } from "@app/commons/config";
+import { TapModule } from "@app/tap";
+import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [loadConfig],
+    }),
+    TapModule,
+  ],
+})
+export class AppModule {}
+
+
+================================================
+File: app-templates/nest-ts/src/main.ts
+================================================
+import { loadConfig } from "@app/commons";
+import { Logger, ValidationPipe } from "@nestjs/common";
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleRoot(req: any, res: any, next: any) {
+  if (req.url === "/") {
+    return res.send("OK!");
+  }
+
+  next();
+}
+
+async function bootstrap() {
+  const config = loadConfig();
+
+  const app = await NestFactory.create(AppModule);
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  app.use(handleRoot);
+  app.enableCors({
+    origin: "*",
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+    credentials: true,
+  });
+
+  await app.listen(config.port, () =>
+    Logger.log(`listening on ${config.port}`),
+  );
+}
+bootstrap();
+
+
+================================================
+File: app-templates/next14-js/README.md
+================================================
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-ccc-app`](https://github.com/CKBFansDAO/create-ccc-app) 
+
+## Getting Started
+
+First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+
+## Learn More
+
+### Next.js
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+
+### CCC
+To learn more about CCC, take a look at the following resources:
+
+- [CCC Documentation](https://docs.ckbccc.com/) - learn about CCC features and API.
+- [CCC Demo](https://app.ckbccc.com) - Code examples for invoking CCC in various use cases.
+
+You can check out [the CCC GitHub repository](https://github.com/ckb-devrel/ccc) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out the [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+
+
+================================================
+File: app-templates/next14-js/jsconfig.json
+================================================
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./*"]
+    }
+  }
+}
+
+
+================================================
+File: app-templates/next14-js/next.config.mjs
+================================================
+/** @type {import('next').NextConfig} */
+const nextConfig = {};
+
+export default nextConfig;
+
+
+================================================
+File: app-templates/next14-js/package.json
+================================================
+{
+  "name": "next-js-14-template",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@ckb-ccc/connector-react": "^0.0.17-alpha.9",
+    "next": "14.2.18",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "devDependencies": {
+    "eslint": "^8",
+    "eslint-config-next": "14.2.18",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1"
+  }
+}
+
+
+================================================
+File: app-templates/next14-js/postcss.config.mjs
+================================================
+/** @type {import('postcss-load-config').Config} */
+const config = {
+  plugins: {
+    tailwindcss: {},
+  },
+};
+
+export default config;
+
+
+================================================
+File: app-templates/next14-js/tailwind.config.js
+================================================
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+      },
+    },
+  },
+  plugins: [],
+};
+
+
+================================================
+File: app-templates/next14-js/.eslintrc.json
+================================================
+{
+  "extends": "next/core-web-vitals"
+}
+
+
+================================================
+File: app-templates/next14-js/app/globals.css
+================================================
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+
+@media (prefers-reduced-motion: no-preference) {
+  .spin-slow {
+    animation: ani-spin-slow infinite 20s linear;
+  }
+}
+
+@keyframes ani-spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+================================================
+File: app-templates/next14-js/app/layout.js
+================================================
+import localFont from "next/font/local";
+import "./globals.css";
+import { LayoutProvider } from "./layoutProvider";
+
+const geistSans = localFont({
+  src: "./fonts/GeistVF.woff",
+  variable: "--font-geist-sans",
+  weight: "100 900",
+});
+const geistMono = localFont({
+  src: "./fonts/GeistMonoVF.woff",
+  variable: "--font-geist-mono",
+  weight: "100 900",
+});
+
+export const metadata = {
+  title: "Create Next App",
+  description: "Generated by create next app",
+};
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <LayoutProvider>
+          {children}
+        </LayoutProvider>
+      </body>
+    </html>
+  );
+}
+
+
+================================================
+File: app-templates/next14-js/app/layoutProvider.js
+================================================
+/* eslint-disable @next/next/no-img-element */
+"use client";
+
+import React, { useMemo } from "react";
+import { ccc } from "@ckb-ccc/connector-react";
+
+export function LayoutProvider({ children }) {
+    
+    const defaultClient = useMemo(() => {
+        return process.env.REACT_APP_IS_MAINNET === "true"
+            ? new ccc.ClientPublicMainnet()
+            : new ccc.ClientPublicTestnet();
+    }, []);
+
+    return (
+        <ccc.Provider
+            connectorProps={{
+                style: {
+                    "--background": "#232323 !important",
+                    "--divider": "rgba(255, 255, 255, 0.1) !important",
+                    "--btn-primary": "#2D2F2F !important",
+                    "--btn-primary-hover": "#515151 !important",
+                    "--btn-secondary": "#2D2F2F !important",
+                    "--btn-secondary-hover": "#515151 !important",
+                    "--icon-primary": "#FFFFFF !important",
+                    "--icon-secondary": "rgba(255, 255, 255, 0.6) !important",
+                    color: "#ffffff !important",
+                    "--tip-color": "#666 !important",
+                },
+            }}
+            defaultClient={defaultClient}
+            clientOptions={[
+                {
+                    name: "CKB Testnet",
+                    client: new ccc.ClientPublicTestnet(),
+                },
+                {
+                    name: "CKB Mainnet",
+                    client: new ccc.ClientPublicMainnet(),
+                },
+            ]}
+        >
+            {children}
+        </ccc.Provider>
+    );
+}
+
+================================================
+File: app-templates/next14-js/app/page.js
+================================================
+"use client"
+
+import Image from "next/image";
+import ConnectWallet from "@/components/ConnectWallet";
+
+export default function Home() {
+
+  return (
+    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
+      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
+        <p className="text-2xl font-bold animate-bounce">Well done! You can now cook up CKB dApp with <span className="text-cyan-600">CCC</span>!</p>
+        <Image
+          className="dark:invert place-self-center spin-slow"
+          src="/ccc-logo.svg"
+          alt="CCC logo"
+          width={150}
+          height={150}
+          priority
+        />
+        
+        <div className="flex flex-col gap-3 items-center w-full">
+          <span className="text-2xl font-semibold">Why CCC?</span>
+          <div className='flex flex-col gap-2 items-start'>
+            <li>One-stop solution for your <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
+            CKB JS/TS</code>
+            ecosystem development.</li>
+            <li>Empower yourself with CCC to discover the unlimited potential of CKB.</li>
+            <li>Interoperate with wallets from different chain ecosystems.</li>
+            <li>Fully enabling CKB's Turing completeness and cryptographic freedom power.</li>
+          </div>
+          
+        </div>
+        <div className="flex gap-4 items-center place-self-center">
+          
+          <ConnectWallet></ConnectWallet>
+          <a
+            className="rounded-full border border-solid border-black/[1] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
+            href="https://docs.ckbccc.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Read our docs
+          </a>
+        </div>
+      </main>
+      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
+        <a
+          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+          href="https://github.com/ckb-devrel/ccc"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Image
+            aria-hidden
+            src="/github.svg"
+            alt="github icon"
+            width={16}
+            height={16}
+          />
+          GitHub
+        </a>
+        <a
+          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+          href="https://app.ckbccc.com"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Image
+            aria-hidden
+            src="/window.svg"
+            alt="Window icon"
+            width={16}
+            height={16}
+          />
+          Examples
+        </a>
+        <a
+          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+          href="https://x.com/CKBDevrel"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Image
+            aria-hidden
+            src="/x-logo.svg"
+            alt="x icon"
+            width={16}
+            height={16}
+          />
+          Follow us →
+        </a>
+      </footer>
+    </div>
+  );
+}
+
+================================================
+File: app-templates/next14-js/components/ConnectWallet.jsx
+================================================
+/* eslint-disable */
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { ccc } from "@ckb-ccc/connector-react";
+import { truncateAddress } from "../utils/stringUtils";
+
+const ConnectWallet = () => {
+    const { open, wallet } = ccc.useCcc();
+    const [balance, setBalance] = useState("");
+    const [address, setAddress] = useState("");
+    const signer = ccc.useSigner();
+
+    useEffect(() => {
+        if (!signer) {
+            return;
+          }
+      
+          (async () => {
+            const addr = await signer.getRecommendedAddress();
+            setAddress(addr);
+          })();
+
+          (async () => {
+            const capacity = await signer.getBalance();
+            setBalance(ccc.fixedPointToString(capacity));
+          })();
+
+        return () => {
+            
+        };
+    }, [signer]);
+
+    const renderConnectWalletBtn = () => {
+        return <div className="cursor-pointer rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base font-bold h-10 sm:h-12 px-4 sm:px-5"
+            onClick={open} >
+            Connect Wallet
+        </div>
+    }
+
+    const renderConnectedWalletInfo = () => {
+        return <div className="cursor-pointer rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
+        onClick={open} >
+            <div className="rounded-full mr-2">
+          {wallet && <img src={wallet.icon} alt="avatar" className="w-6 h-6" />}
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold">
+            {balance} CKB
+          </h2>
+          <p className="text-xs flex items-center gap-2">
+            {truncateAddress(address, 10, 6)}
+          </p>
+        </div>
+    </div>
+    }
+
+    return (
+        <div className="flex">
+            {wallet ? renderConnectedWalletInfo() : renderConnectWalletBtn()}
+        </div>
+    );
+};
+
+export default ConnectWallet;
+
+================================================
+File: app-templates/next14-js/utils/stringUtils.js
+================================================
+export function truncateString(str, frontChars, endChars) {
+    if (str.length <= frontChars + endChars) {
+        return str;
+    }
+    return `${str.slice(0, frontChars)}...${str.slice(-endChars)}`;
+}
+
+export function truncateAddress(address, frontChars = 6, endChars = 4) {
+    return truncateString(address, frontChars, endChars);
+}
+
+export function formatBalance(balanceStr) {
+    const number = parseFloat(balanceStr);
+    if (isNaN(number)) {
+        return "0.00";
+    }
+    return number.toFixed(2);
+}
+
+
+================================================
+File: app-templates/next14-ts/README.md
+================================================
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-ccc-app`](https://github.com/CKBFansDAO/create-ccc-app) 
+
+## Getting Started
+
+First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+### Next.js
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+
+### CCC
+To learn more about CCC, take a look at the following resources:
+
+- [CCC Documentation](https://docs.ckbccc.com/) - learn about CCC features and API.
+- [CCC Demo](https://app.ckbccc.com) - Code examples for invoking CCC in various use cases.
+
+You can check out [the CCC GitHub repository](https://github.com/ckb-devrel/ccc) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+================================================
+File: app-templates/next14-ts/next-env.d.ts
+================================================
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/app/building-your-application/configuring/typescript for more information.
+
+
+================================================
+File: app-templates/next14-ts/next.config.mjs
+================================================
+/** @type {import('next').NextConfig} */
+const nextConfig = {};
+
+export default nextConfig;
+
+
+================================================
+File: app-templates/next14-ts/package.json
+================================================
+{
+  "name": "next-ts-14-template",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "14.2.18",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.18",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}
+
+
+================================================
+File: app-templates/next14-ts/postcss.config.mjs
+================================================
+/** @type {import('postcss-load-config').Config} */
+const config = {
+  plugins: {
+    tailwindcss: {},
+  },
+};
+
+export default config;
+
+
+================================================
+File: app-templates/next14-ts/tailwind.config.ts
+================================================
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  content: [
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+      },
+    },
+  },
+  plugins: [],
+};
+export default config;
+
+
+================================================
+File: app-templates/next14-ts/tsconfig.json
+================================================
+{
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+
+
+================================================
+File: app-templates/next14-ts/.eslintrc.json
+================================================
+{
+  "extends": ["next/core-web-vitals", "next/typescript"]
+}
+
+
+================================================
+File: app-templates/next14-ts/app/globals.css
+================================================
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+
+================================================
+File: app-templates/next14-ts/app/layout.tsx
+================================================
+import type { Metadata } from "next";
+import localFont from "next/font/local";
+import "./globals.css";
+import { LayoutProvider } from "./layoutProvider";
+
+const geistSans = localFont({
+  src: "./fonts/GeistVF.woff",
+  variable: "--font-geist-sans",
+  weight: "100 900",
+});
+const geistMono = localFont({
+  src: "./fonts/GeistMonoVF.woff",
+  variable: "--font-geist-mono",
+  weight: "100 900",
+});
+
+export const metadata: Metadata = {
+  title: "Create Next App",
+  description: "Generated by create next app",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <LayoutProvider>
+          {children}
+        </LayoutProvider>
+      </body>
+    </html>
+  );
+}
+
+
+================================================
+File: app-templates/next14-ts/app/layoutProvider.tsx
+================================================
+/* eslint-disable*/
+"use client";
+
+import { ccc } from "@ckb-ccc/connector-react";
+import { CSSProperties } from "react";
+import React from "react";
+
+export function LayoutProvider({ children }: { children: React.ReactNode }) {
+    const defaultClient = React.useMemo(() => {
+        return process.env.NEXT_PUBLIC_IS_MAINNET === "true"
+            ? new ccc.ClientPublicMainnet()
+            : new ccc.ClientPublicTestnet();
+    }, []);
+
+    return (
+        <ccc.Provider
+            connectorProps={{
+                style: {
+                    "--background": "#232323",
+                    "--divider": "rgba(255, 255, 255, 0.1)",
+                    "--btn-primary": "#2D2F2F",
+                    "--btn-primary-hover": "#515151",
+                    "--btn-secondary": "#2D2F2F",
+                    "--btn-secondary-hover": "#515151",
+                    "--icon-primary": "#FFFFFF",
+                    "--icon-secondary": "rgba(255, 255, 255, 0.6)",
+                    color: "#ffffff",
+                    "--tip-color": "#666",
+                } as CSSProperties,
+            }}
+            defaultClient={defaultClient}
+            clientOptions={[
+                {
+                    name: "CKB Testnet",
+                    client: new ccc.ClientPublicTestnet(),
+                },
+                {
+                    name: "CKB Mainnet",
+                    client: new ccc.ClientPublicMainnet(),
+                },
+            ]}
+        >
+            {children}
+        </ccc.Provider>
+    );
+}
+
+================================================
+File: app-templates/next14-ts/app/page.tsx
+================================================
+"use client"
+
+import Image from "next/image";
+import ConnectWallet from "@/components/ConnectWallet";
+
+export default function Home() {
+
+  return (
+    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
+      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
+        <p className="text-2xl font-bold animate-bounce">Well done! You can now cook up CKB dApp with <span className="text-cyan-600">CCC</span>!!!</p>
+        <Image
+          className="dark:invert place-self-center spin-slow"
+          src="/ccc-logo.svg"
+          alt="CCC logo"
+          width={150}
+          height={150}
+          priority
+        />
+        
+        <div className="flex flex-col gap-3 items-center w-full">
+          <span className="text-2xl font-semibold">Why CCC?</span>
+          <div className='flex flex-col gap-2 items-start'>
+            <li>One-stop solution for your <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
+            CKB JS/TS</code>
+            ecosystem development.</li>
+            <li>Empower yourself with CCC to discover the unlimited potential of CKB.</li>
+            <li>Interoperate with wallets from different chain ecosystems.</li>
+            <li>Fully enabling CKB's Turing completeness and cryptographic freedom power.</li>
+          </div>
+          
+        </div>
+        <div className="flex gap-4 items-center place-self-center">
+          
+          <ConnectWallet></ConnectWallet>
+          <a
+            className="rounded-full border border-solid border-black/[1] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
+            href="https://docs.ckbccc.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Read our docs
+          </a>
+        </div>
+      </main>
+      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
+        <a
+          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+          href="https://github.com/ckb-devrel/ccc"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Image
+            aria-hidden
+            src="/github.svg"
+            alt="github icon"
+            width={16}
+            height={16}
+          />
+          GitHub
+        </a>
+        <a
+          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+          href="https://app.ckbccc.com"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Image
+            aria-hidden
+            src="/window.svg"
+            alt="Window icon"
+            width={16}
+            height={16}
+          />
+          Examples
+        </a>
+        <a
+          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+          href="https://x.com/CKBDevrel"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Image
+            aria-hidden
+            src="/x-logo.svg"
+            alt="x icon"
+            width={16}
+            height={16}
+          />
+          Follow us →
+        </a>
+      </footer>
+    </div>
+  );
+}
+
+
+================================================
+File: app-templates/next14-ts/components/ConnectWallet.tsx
+================================================
+/* eslint-disable*/
+"use client"
+
+import React, { useEffect, useState } from "react";
+import { ccc } from "@ckb-ccc/connector-react";
+import { truncateAddress } from "@/utils/stringUtils";
+
+const ConnectWallet: React.FC = () => {
+  const { open, wallet } = ccc.useCcc();
+  const [balance, setBalance] = useState<string>("");
+  const [address, setAddress] = useState<string>("");
+  const signer = ccc.useSigner();
+
+  useEffect(() => {
+    if (!window) {
+      return
+    }
+
+    if (!signer) {
+      return;
+    }
+
+    (async () => {
+      const addr = await signer.getRecommendedAddress();
+      setAddress(addr);
+    })();
+
+    (async () => {
+      const capacity = await signer.getBalance();
+      setBalance(ccc.fixedPointToString(capacity));
+    })();
+
+    return () => {
+
+    };
+  }, [signer]);
+
+  const renderConnectWalletBtn = () => {
+    return <div className="cursor-pointer rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base font-bold h-10 sm:h-12 px-4 sm:px-5"
+      onClick={open} >
+      Connect Wallet
+    </div>
+  }
+
+  const renderConnectedWalletInfo = () => {
+    return <div className="cursor-pointer rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
+      onClick={open} >
+      <div className="rounded-full mr-2">
+        {wallet && <img src={wallet.icon} alt="avatar" className="w-6 h-6" />}
+      </div>
+      <div>
+        <h2 className="text-sm font-semibold">
+          {balance} CKB
+        </h2>
+        <p className="text-xs flex items-center gap-2">
+          {truncateAddress(address, 10, 6)}
+        </p>
+      </div>
+    </div>
+  }
+
+  return (
+    <div className="flex">
+      {wallet ? renderConnectedWalletInfo() : renderConnectWalletBtn()}
+    </div>
+  );
+};
+
+export default ConnectWallet;
+
+================================================
+File: app-templates/next14-ts/utils/stringUtils.ts
+================================================
+export function truncateString(
+  str: string,
+  frontChars: number,
+  endChars: number
+): string {
+  if (str.length <= frontChars + endChars) {
+    return str;
+  }
+  return `${str.slice(0, frontChars)}...${str.slice(-endChars)}`;
+}
+
+export function truncateAddress(
+  address: string,
+  frontChars: number = 6,
+  endChars: number = 4
+): string {
+  return truncateString(address, frontChars, endChars);
+}
+
+export function formatBalance(balanceStr: string): string {
+  const number = parseFloat(balanceStr);
+  if (isNaN(number)) {
+    return "0.00";
+  }
+  return number.toFixed(2);
+}
+
+
+================================================
+File: app-templates/react-js/README.md
+================================================
+# Getting Started with Create React App
+
+This project was created as a [Create React App](https://github.com/facebook/create-react-app) project using the [create-ccc-app](https://github.com/CKBFansDAO/create-ccc-app) CLI tool.
+
+## CCC Resource
+
+To learn more about CCC, take a look at the following resources:
+
+- [CCC Documentation](https://docs.ckbccc.com/) - learn about CCC features and API.
+- [CCC Demo](https://app.ckbccc.com) - Code examples for invoking CCC in various use cases.
+
+You can check out [the CCC GitHub repository](https://github.com/ckb-devrel/ccc) - your feedback and contributions are welcome!
+
+## Available Scripts
+
+In the project directory, you can run:
+
+### `npm start`
+
+Runs the app in the development mode.\
+Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+
+The page will reload when you make changes.\
+You may also see any lint errors in the console.
+
+### `npm test`
+
+Launches the test runner in the interactive watch mode.\
+See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+
+### `npm run build`
+
+Builds the app for production to the `build` folder.\
+It correctly bundles React in production mode and optimizes the build for the best performance.
+
+The build is minified and the filenames include the hashes.\
+Your app is ready to be deployed!
+
+See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+
+### `npm run eject`
+
+**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+
+If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+
+Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+
+You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+
+## Learn More
+
+You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+
+To learn React, check out the [React documentation](https://reactjs.org/).
+
+### Code Splitting
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+
+### Analyzing the Bundle Size
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+
+### Making a Progressive Web App
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+
+### Advanced Configuration
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+
+### Deployment
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+
+### `npm run build` fails to minify
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+
+================================================
+File: app-templates/react-js/craco.config.js
+================================================
+// craco.config.js
+const webpack = require('webpack');
+
+module.exports = {
+    webpack: {
+        configure: (webpackConfig) => {
+            // 添加扩展名解析，以解决没有写完整扩展名的问题
+            webpackConfig.resolve.extensions = [
+                ...(webpackConfig.resolve.extensions || []),
+                ".js",
+                ".jsx",
+                ".ts",
+                ".tsx",
+            ];
+
+            // 针对 'stream' 的 fallback 配置
+            webpackConfig.resolve.fallback = {
+                ...webpackConfig.resolve.fallback,
+                "stream": require.resolve("stream-browserify"),
+            };
+
+            // 添加针对 .mjs 文件的 fullySpecified 配置
+            webpackConfig.module.rules.push({
+                test: /\.m?js$/,
+                resolve: {
+                    fullySpecified: false,
+                },
+            });
+
+            return webpackConfig;
+        },
+        plugins: {
+            add: [
+                new webpack.ProvidePlugin({
+                    Buffer: ['buffer', 'Buffer'],
+                }),
+            ],
+        },
+    },
+};
+
+
+================================================
+File: app-templates/react-js/package.json
+================================================
+{
+  "name": "react-js-template",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@ckb-ccc/connector-react": "^0.0.17-alpha.9",
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-scripts": "5.0.1",
+    "web-vitals": "^2.1.4"
+  },
+  "scripts": {
+    "start": "craco start",
+    "build": "craco build",
+    "test": "craco test",
+    "eject": "craco eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@craco/craco": "^7.1.0",
+    "buffer": "^6.0.3",
+    "stream-browserify": "^3.0.0",
+    "tailwindcss": "^3.4.14"
+  }
+}
+
+
+================================================
+File: app-templates/react-js/tailwind.config.js
+================================================
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./src/**/*.{js,jsx,ts,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+      },
+    },
+  },
+  plugins: [],
+}
+
+
+
+================================================
+File: app-templates/react-js/public/index.html
+================================================
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Web site created using create-react-app"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <!--
+      manifest.json provides metadata used when your web app is installed on a
+      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
+    -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <!--
+      Notice the use of %PUBLIC_URL% in the tags above.
+      It will be replaced with the URL of the `public` folder during the build.
+      Only files inside the `public` folder can be referenced from the HTML.
+
+      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
+      work correctly both with client-side routing and a non-root public URL.
+      Learn how to configure a non-root public URL by running `npm run build`.
+    -->
+    <title>React App</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
+
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
+
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
+  </body>
+</html>
+
+
+================================================
+File: app-templates/react-js/public/manifest.json
+================================================
+{
+  "short_name": "React App",
+  "name": "Create React App Sample",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}
+
+
+================================================
+File: app-templates/react-js/public/robots.txt
+================================================
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Disallow:
+
+
+================================================
+File: app-templates/react-js/src/App.css
+================================================
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+================================================
+File: app-templates/react-js/src/App.js
+================================================
+import ConnectWallet from './components/ConnectWallet';
+
+const App = () => {
+  
+  return (
+    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
+      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start max-w-2xl">
+        <p className="text-2xl font-bold animate-bounce">Well done! You can now cook up CKB dApp with <span className="text-cyan-600">CCC</span>!</p>
+        <img
+          className="dark:invert place-self-center spin-slow"
+          src="/images/ccc-logo.svg"
+          alt="CCC logo"
+          width={150}
+          height={150}
+        />
+
+        <div className="flex flex-col gap-3 items-center w-full">
+          <span className="text-2xl font-semibold">Why CCC?</span>
+          <div className='flex flex-col gap-2 items-start'>
+            <li>One-stop solution for your <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
+            CKB JS/TS</code>
+            ecosystem development.</li>
+            <li>Empower yourself with CCC to discover the unlimited potential of CKB.</li>
+            <li>Interoperate with wallets from different chain ecosystems.</li>
+            <li>Fully enabling CKB's Turing completeness and cryptographic freedom power.</li>
+          </div>
+          
+        </div>
+        <div className="flex gap-4 items-center place-self-center">
+          
+          <ConnectWallet></ConnectWallet>
+          <a
+            className="rounded-full border border-solid border-black/[1] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
+            href="https://docs.ckbccc.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Read our docs
+          </a>
+        </div>
+      </main>
+      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
+        <a
+          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+          href="https://github.com/ckb-devrel/ccc"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <img
+            aria-hidden
+            src="/images/github.svg"
+            alt="github icon"
+            width={16}
+            height={16}
+          />
+          GitHub
+        </a>
+        <a
+          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+          href="https://app.ckbccc.com"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <img
+            aria-hidden
+            src="/images/window.svg"
+            alt="Window icon"
+            width={16}
+            height={16}
+          />
+          Examples
+        </a>
+        <a
+          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+          href="https://x.com/CKBDevrel"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <img
+            aria-hidden
+            src="/images/x-logo.svg"
+            alt="x icon"
+            width={16}
+            height={16}
+          />
+          Follow us →
+        </a>
+      </footer>
+    </div>
+  );
+}
+
+export default App;
+
+
+================================================
+File: app-templates/react-js/src/App.test.js
+================================================
+import { render, screen } from '@testing-library/react';
+import App from './App';
+
+test('renders learn react link', () => {
+  render(<App />);
+  const linkElement = screen.getByText(/learn react/i);
+  expect(linkElement).toBeInTheDocument();
+});
+
+
+================================================
+File: app-templates/react-js/src/index.css
+================================================
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  margin: 0;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+
+@media (prefers-reduced-motion: no-preference) {
+  .spin-slow {
+    animation: ani-spin-slow infinite 20s linear;
+  }
+}
+
+@keyframes ani-spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+================================================
+File: app-templates/react-js/src/index.js
+================================================
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+import { LayoutProvider } from './layoutProvider';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <LayoutProvider>
+      <App />
+    </LayoutProvider>
+
+  </React.StrictMode>
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
+
+
+================================================
+File: app-templates/react-js/src/layoutProvider.js
+================================================
+import React, { useMemo } from "react";
+import { ccc } from "@ckb-ccc/connector-react";
+
+export function LayoutProvider({ children }) {
+    
+    const defaultClient = useMemo(() => {
+        return process.env.REACT_APP_IS_MAINNET === "true"
+            ? new ccc.ClientPublicMainnet()
+            : new ccc.ClientPublicTestnet();
+    }, []);
+
+    return (
+        <ccc.Provider
+            connectorProps={{
+                style: {
+                    "--background": "#232323 !important",
+                    "--divider": "rgba(255, 255, 255, 0.1) !important",
+                    "--btn-primary": "#2D2F2F !important",
+                    "--btn-primary-hover": "#515151 !important",
+                    "--btn-secondary": "#2D2F2F !important",
+                    "--btn-secondary-hover": "#515151 !important",
+                    "--icon-primary": "#FFFFFF !important",
+                    "--icon-secondary": "rgba(255, 255, 255, 0.6) !important",
+                    color: "#ffffff !important",
+                    "--tip-color": "#666 !important",
+                },
+            }}
+            defaultClient={defaultClient}
+            clientOptions={[
+                {
+                    name: "CKB Testnet",
+                    client: new ccc.ClientPublicTestnet(),
+                },
+                {
+                    name: "CKB Mainnet",
+                    client: new ccc.ClientPublicMainnet(),
+                },
+            ]}
+        >
+            {children}
+        </ccc.Provider>
+    );
+}
+
+================================================
+File: app-templates/react-js/src/reportWebVitals.js
+================================================
+const reportWebVitals = onPerfEntry => {
+  if (onPerfEntry && onPerfEntry instanceof Function) {
+    import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+      getCLS(onPerfEntry);
+      getFID(onPerfEntry);
+      getFCP(onPerfEntry);
+      getLCP(onPerfEntry);
+      getTTFB(onPerfEntry);
+    });
+  }
+};
+
+export default reportWebVitals;
+
+
+================================================
+File: app-templates/react-js/src/setupTests.js
+================================================
+// jest-dom adds custom jest matchers for asserting on DOM nodes.
+// allows you to do things like:
+// expect(element).toHaveTextContent(/react/i)
+// learn more: https://github.com/testing-library/jest-dom
+import '@testing-library/jest-dom';
+
+
+================================================
+File: app-templates/react-js/src/components/ConnectWallet.jsx
+================================================
+/* eslint-disable */
+import React, { useEffect, useState } from "react";
+import { ccc } from "@ckb-ccc/connector-react";
+import { truncateAddress } from "../utils/stringUtils";
+
+const ConnectWallet = () => {
+    const { open, wallet } = ccc.useCcc();
+    const [balance, setBalance] = useState("");
+    const [address, setAddress] = useState("");
+    const signer = ccc.useSigner();
+
+    useEffect(() => {
+        if (!signer) {
+            return;
+          }
+      
+          (async () => {
+            const addr = await signer.getRecommendedAddress();
+            setAddress(addr);
+          })();
+
+          (async () => {
+            const capacity = await signer.getBalance();
+            setBalance(ccc.fixedPointToString(capacity));
+          })();
+
+        return () => {
+            
+        };
+    }, [signer]);
+
+    const renderConnectWalletBtn = () => {
+        return <div className="cursor-pointer rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base font-bold h-10 sm:h-12 px-4 sm:px-5"
+            onClick={open} >
+            Connect Wallet
+        </div>
+    }
+
+    const renderConnectedWalletInfo = () => {
+        return <div className="cursor-pointer rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
+        onClick={open} >
+            <div className="rounded-full mr-2">
+          {wallet && <img src={wallet.icon} alt="avatar" className="w-6 h-6" />}
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold">
+            {balance} CKB
+          </h2>
+          <p className="text-xs flex items-center gap-2">
+            {truncateAddress(address, 10, 6)}
+          </p>
+        </div>
+    </div>
+    }
+
+    return (
+        <div className="flex">
+            {wallet ? renderConnectedWalletInfo() : renderConnectWalletBtn()}
+        </div>
+    );
+};
+
+export default ConnectWallet;
+
+================================================
+File: app-templates/react-js/src/utils/stringUtils.js
+================================================
+export function truncateString(str, frontChars, endChars) {
+    if (str.length <= frontChars + endChars) {
+        return str;
+    }
+    return `${str.slice(0, frontChars)}...${str.slice(-endChars)}`;
+}
+
+export function truncateAddress(address, frontChars = 6, endChars = 4) {
+    return truncateString(address, frontChars, endChars);
+}
+
+export function formatBalance(balanceStr) {
+    const number = parseFloat(balanceStr);
+    if (isNaN(number)) {
+        return "0.00";
+    }
+    return number.toFixed(2);
+}
+
+
+================================================
+File: app-templates/react-ts/README.md
+================================================
+# Getting Started with Create React App
+
+This project was created as a [Create React App](https://github.com/facebook/create-react-app) project using the [create-ccc-app](https://github.com/CKBFansDAO/create-ccc-app) CLI tool.
+
+## CCC Resource
+
+To learn more about CCC, take a look at the following resources:
+
+- [CCC Documentation](https://docs.ckbccc.com/) - learn about CCC features and API.
+- [CCC Demo](https://app.ckbccc.com) - Code examples for invoking CCC in various use cases.
+
+You can check out [the CCC GitHub repository](https://github.com/ckb-devrel/ccc) - your feedback and contributions are welcome!
+
+## Available Scripts
+
+In the project directory, you can run:
+
+### `npm start`
+
+Runs the app in the development mode.\
+Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+
+The page will reload if you make edits.\
+You will also see any lint errors in the console.
+
+### `npm test`
+
+Launches the test runner in the interactive watch mode.\
+See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+
+### `npm run build`
+
+Builds the app for production to the `build` folder.\
+It correctly bundles React in production mode and optimizes the build for the best performance.
+
+The build is minified and the filenames include the hashes.\
+Your app is ready to be deployed!
+
+See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+
+### `npm run eject`
+
+**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+
+If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+
+Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+
+You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+
+## Learn More
+
+You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+
+To learn React, check out the [React documentation](https://reactjs.org/).
+
+
+================================================
+File: app-templates/react-ts/craco.config.js
+================================================
+// craco.config.js
+const webpack = require('webpack');
+
+module.exports = {
+    webpack: {
+        configure: (webpackConfig) => {
+            // 添加扩展名解析，以解决没有写完整扩展名的问题
+            webpackConfig.resolve.extensions = [
+                ...(webpackConfig.resolve.extensions || []),
+                ".ts",
+                ".tsx",
+                ".js",
+                ".jsx",
+            ];
+
+            // 针对 'stream' 的 fallback 配置
+            webpackConfig.resolve.fallback = {
+                ...webpackConfig.resolve.fallback,
+                "stream": require.resolve("stream-browserify"),
+            };
+
+            return webpackConfig;
+        },
+        plugins: {
+            add: [
+                new webpack.ProvidePlugin({
+                    Buffer: ['buffer', 'Buffer'],
+                }),
+            ],
+        },
+    },
+};
+
+
+================================================
+File: app-templates/react-ts/package.json
+================================================
+{
+  "name": "react-ts-template",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@ckb-ccc/connector-react": "^0.0.17-alpha.9",
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.18.119",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-scripts": "5.0.1",
+    "typescript": "^4.9.5",
+    "web-vitals": "^2.1.4"
+  },
+  "scripts": {
+    "start": "craco start",
+    "build": "craco build",
+    "test": "craco test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@craco/craco": "^7.1.0",
+    "stream-browserify": "^3.0.0",
+    "tailwindcss": "^3.4.14"
+  }
+}
+
+
+================================================
+File: app-templates/react-ts/tailwind.config.js
+================================================
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./src/**/*.{js,jsx,ts,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+      },
+    },
+  },
+  plugins: [],
+}
+
+
+
+================================================
+File: app-templates/react-ts/tsconfig.json
+================================================
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": ["node_modules"]
+}
+
+
+================================================
+File: app-templates/react-ts/public/index.html
+================================================
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Web site created using create-react-app"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <!--
+      manifest.json provides metadata used when your web app is installed on a
+      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
+    -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <!--
+      Notice the use of %PUBLIC_URL% in the tags above.
+      It will be replaced with the URL of the `public` folder during the build.
+      Only files inside the `public` folder can be referenced from the HTML.
+
+      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
+      work correctly both with client-side routing and a non-root public URL.
+      Learn how to configure a non-root public URL by running `npm run build`.
+    -->
+    <title>React App</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
+
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
+
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
+  </body>
+</html>
+
+
+================================================
+File: app-templates/react-ts/public/manifest.json
+================================================
+{
+  "short_name": "React App",
+  "name": "Create React App Sample",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}
+
+
+================================================
+File: app-templates/react-ts/public/robots.txt
+================================================
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Disallow:
+
+
+================================================
+File: app-templates/react-ts/src/App.css
+================================================
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+================================================
+File: app-templates/react-ts/src/App.test.tsx
+================================================
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import App from './App';
+
+test('renders learn react link', () => {
+  render(<App />);
+  const linkElement = screen.getByText(/learn react/i);
+  expect(linkElement).toBeInTheDocument();
+});
+
+
+================================================
+File: app-templates/react-ts/src/App.tsx
+================================================
+import React from 'react';
+import ConnectWallet from './components/ConnectWallet';
+
+function App() {
+  
+  return (
+    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
+      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start max-w-2xl">
+        <p className="text-2xl font-bold animate-bounce">Well done! You can now cook up CKB dApp with <span className="text-cyan-600">CCC</span>!</p>
+        <img
+          className="dark:invert place-self-center spin-slow"
+          src="/images/ccc-logo.svg"
+          alt="CCC logo"
+          width={150}
+          height={150}
+        />
+
+        <div className="flex flex-col gap-3 items-center w-full">
+          <span className="text-2xl font-semibold">Why CCC?</span>
+          <div className='flex flex-col gap-2 items-start'>
+            <li>One-stop solution for your <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
+            CKB JS/TS</code>
+            ecosystem development.</li>
+            <li>Empower yourself with CCC to discover the unlimited potential of CKB.</li>
+            <li>Interoperate with wallets from different chain ecosystems.</li>
+            <li>Fully enabling CKB's Turing completeness and cryptographic freedom power.</li>
+          </div>
+          
+        </div>
+        <div className="flex gap-4 items-center place-self-center">
+          
+          <ConnectWallet></ConnectWallet>
+          <a
+            className="rounded-full border border-solid border-black/[1] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
+            href="https://docs.ckbccc.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Read our docs
+          </a>
+        </div>
+      </main>
+      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
+        <a
+          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+          href="https://github.com/ckb-devrel/ccc"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <img
+            aria-hidden
+            src="/images/github.svg"
+            alt="github icon"
+            width={16}
+            height={16}
+          />
+          GitHub
+        </a>
+        <a
+          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+          href="https://app.ckbccc.com"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <img
+            aria-hidden
+            src="/images/window.svg"
+            alt="Window icon"
+            width={16}
+            height={16}
+          />
+          Examples
+        </a>
+        <a
+          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+          href="https://x.com/CKBDevrel"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <img
+            aria-hidden
+            src="/images/x-logo.svg"
+            alt="x icon"
+            width={16}
+            height={16}
+          />
+          Follow us →
+        </a>
+      </footer>
+    </div>
+  );
+}
+
+export default App;
+
+
+================================================
+File: app-templates/react-ts/src/index.css
+================================================
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  margin: 0;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+
+@media (prefers-reduced-motion: no-preference) {
+  .spin-slow {
+    animation: ani-spin-slow infinite 20s linear;
+  }
+}
+
+@keyframes ani-spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+================================================
+File: app-templates/react-ts/src/index.tsx
+================================================
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+import { LayoutProvider } from './layoutProvider';
+
+const root = ReactDOM.createRoot(
+  document.getElementById('root') as HTMLElement
+);
+root.render(
+  <React.StrictMode>
+    <LayoutProvider>
+      <App />
+    </LayoutProvider>
+  </React.StrictMode>
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
+
+
+================================================
+File: app-templates/react-ts/src/layoutProvider.tsx
+================================================
+import React from "react";
+import { ccc } from "@ckb-ccc/connector-react";
+import { CSSProperties } from "react";
+
+export function LayoutProvider({ children }: { children: React.ReactNode }) {
+    const defaultClient = React.useMemo(() => {
+        return process.env.REACT_APP_IS_MAINNET === "true"
+            ? new ccc.ClientPublicMainnet()
+            : new ccc.ClientPublicTestnet();
+    }, []);
+    
+    return (
+        <ccc.Provider
+            connectorProps={{
+                style: {
+                    "--background": "#232323",
+                    "--divider": "rgba(255, 255, 255, 0.1)",
+                    "--btn-primary": "#2D2F2F",
+                    "--btn-primary-hover": "#515151",
+                    "--btn-secondary": "#2D2F2F",
+                    "--btn-secondary-hover": "#515151",
+                    "--icon-primary": "#FFFFFF",
+                    "--icon-secondary": "rgba(255, 255, 255, 0.6)",
+                    color: "#ffffff",
+                    "--tip-color": "#666",
+                } as CSSProperties,
+            }}
+            defaultClient={defaultClient}
+            
+            clientOptions={[
+                {
+                    name: "CKB Testnet",
+                    client: new ccc.ClientPublicTestnet(),
+                },
+                {
+                    name: "CKB Mainnet",
+                    client: new ccc.ClientPublicMainnet(),
+                },
+            ]}
+        >
+            {children}
+        </ccc.Provider>
+    );
+}
+
+================================================
+File: app-templates/react-ts/src/react-app-env.d.ts
+================================================
+/// <reference types="react-scripts" />
+
+
+================================================
+File: app-templates/react-ts/src/reportWebVitals.ts
+================================================
+import { ReportHandler } from 'web-vitals';
+
+const reportWebVitals = (onPerfEntry?: ReportHandler) => {
+  if (onPerfEntry && onPerfEntry instanceof Function) {
+    import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+      getCLS(onPerfEntry);
+      getFID(onPerfEntry);
+      getFCP(onPerfEntry);
+      getLCP(onPerfEntry);
+      getTTFB(onPerfEntry);
+    });
+  }
+};
+
+export default reportWebVitals;
+
+
+================================================
+File: app-templates/react-ts/src/setupTests.ts
+================================================
+// jest-dom adds custom jest matchers for asserting on DOM nodes.
+// allows you to do things like:
+// expect(element).toHaveTextContent(/react/i)
+// learn more: https://github.com/testing-library/jest-dom
+import '@testing-library/jest-dom';
+
+
+================================================
+File: app-templates/react-ts/src/components/ConnectWallet.tsx
+================================================
+/* eslint-disable*/
+import React, { useEffect, useState } from "react";
+import { ccc } from "@ckb-ccc/connector-react";
+import { truncateAddress } from "../utils/stringUtils";
+
+const ConnectWallet: React.FC = () => {
+    const { open, wallet } = ccc.useCcc();
+    const [balance, setBalance] = useState<string>("");
+    const [address, setAddress] = useState<string>("");
+    const signer = ccc.useSigner();
+
+    useEffect(() => {
+        if (!signer) {
+            return;
+          }
+      
+          (async () => {
+            const addr = await signer.getRecommendedAddress();
+            setAddress(addr);
+          })();
+
+          (async () => {
+            const capacity = await signer.getBalance();
+            setBalance(ccc.fixedPointToString(capacity));
+          })();
+
+        return () => {
+            
+        };
+    }, [signer]);
+
+    const renderConnectWalletBtn = () => {
+        return <div className="cursor-pointer rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base font-bold h-10 sm:h-12 px-4 sm:px-5"
+            onClick={open} >
+            Connect Wallet
+        </div>
+    }
+
+    const renderConnectedWalletInfo = () => {
+        return <div className="cursor-pointer rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
+        onClick={open} >
+            <div className="rounded-full mr-2">
+          {wallet && <img src={wallet.icon} alt="avatar" className="w-6 h-6" />}
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold">
+            {balance} CKB
+          </h2>
+          <p className="text-xs flex items-center gap-2">
+            {truncateAddress(address, 10, 6)}
+          </p>
+        </div>
+    </div>
+    }
+
+    return (
+        <div className="flex">
+            {wallet ? renderConnectedWalletInfo() : renderConnectWalletBtn()}
+        </div>
+    );
+};
+
+export default ConnectWallet;
+
+================================================
+File: app-templates/react-ts/src/utils/stringUtils.ts
+================================================
+export function truncateString(
+  str: string,
+  frontChars: number,
+  endChars: number
+): string {
+  if (str.length <= frontChars + endChars) {
+    return str;
+  }
+  return `${str.slice(0, frontChars)}...${str.slice(-endChars)}`;
+}
+
+export function truncateAddress(
+  address: string,
+  frontChars: number = 6,
+  endChars: number = 4
+): string {
+  return truncateString(address, frontChars, endChars);
+}
+
+export function formatBalance(balanceStr: string): string {
+  const number = parseFloat(balanceStr);
+  if (isNaN(number)) {
+    return "0.00";
+  }
+  return number.toFixed(2);
+}
+
+
