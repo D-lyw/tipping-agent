@@ -6,7 +6,7 @@
 
 import { Client, Events, GatewayIntentBits, Message, TextChannel } from 'discord.js';
 import { ckbDocAgent, askCkbQuestion, streamCkbQuestion } from '../mastra/agents/ckbDocAgent';
-import { fetchAllDocuments } from './ckbDocuments';
+import { createDocumentManager } from '../documents';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -83,7 +83,12 @@ export class CkbDiscordBot {
     this.commands.set('refresh', async (message, args) => {
       const refreshMessage = await message.reply('正在刷新文档缓存，请稍候...');
       try {
-        await fetchAllDocuments(true);
+        const docManager = createDocumentManager();
+        await docManager.initialize();
+        // 先清空缓存
+        await docManager.clearCache();
+        // 然后重新获取所有文档
+        await docManager.fetchAllSources();
         await refreshMessage.edit('文档缓存已刷新。');
       } catch (error) {
         console.error('刷新文档缓存失败:', error);

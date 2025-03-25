@@ -5,7 +5,8 @@
  */
 
 import { z } from 'zod';
-import { fetchAllDocuments, DocumentChunk } from '../../lib/ckbDocuments.js';
+import { createDocumentManager } from '../../documents';
+import type { DocumentChunk } from '../../documents/core/types';
 
 /**
  * 文档检索工具
@@ -18,8 +19,12 @@ export const ckbDocumentRetrievalTool = {
     limit: z.number().optional().describe("返回结果数量限制")
   }),
   execute: async (context: any) => {
+    // 初始化文档管理器
+    const docManager = createDocumentManager();
+    await docManager.initialize();
+    
     // 获取文档数据
-    const documents = await fetchAllDocuments();
+    const documents = docManager.getAllDocumentChunks();
     console.log(`工具执行: 加载了 ${documents.length} 个CKB文档片段`);
     
     const query = context.input?.query || "";

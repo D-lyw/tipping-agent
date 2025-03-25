@@ -3,7 +3,8 @@
  */
 
 import { CkbDiscordBot } from '../lib/discordBot';
-import { fetchAllDocuments } from '../lib/ckbDocuments';
+// 从新模块导入
+import { createDocumentManager } from '../documents';
 // 导入Mastra实例，但我们目前不直接调用它的方法
 import '../mastra';
 import dotenv from 'dotenv';
@@ -35,7 +36,9 @@ async function main() {
     
     // 预加载文档数据
     console.log('预加载CKB文档数据...');
-    await fetchAllDocuments();
+    const docManager = createDocumentManager();
+    await docManager.initialize();
+    await docManager.fetchAllSources();
     
     // 注意：通过导入，Mastra框架会自动初始化，不需要显式调用初始化方法
     console.log('Mastra框架已加载');

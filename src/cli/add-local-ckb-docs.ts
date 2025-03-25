@@ -7,7 +7,7 @@
  *   添加整个目录: node add-local-ckb-docs.ts dir <目录路径> [文档名称前缀] [是否递归]
  */
 
-import { addLocalFileSource, addLocalDirectorySource, fetchAllDocuments } from '../lib/ckbDocuments';
+import { createDocumentManager } from '../documents';
 import * as path from 'path';
 
 async function showHelp() {
@@ -45,6 +45,10 @@ async function main() {
   const command = args[0];
   
   try {
+    // 创建文档管理器
+    const documentManager = createDocumentManager();
+    await documentManager.initialize();
+    
     if (command === 'file') {
       // 添加单个文件
       if (args.length < 3) {
@@ -57,13 +61,27 @@ async function main() {
       const docName = args[2];
       const fileType = args[3] as 'text' | 'markdown' | 'pdf' || undefined;
       
-      if (addLocalFileSource(docName, filePath, fileType)) {
+      // 创建文件源配置
+      const source = {
+        name: docName,
+        type: 'file' as const,
+        url: `file://${filePath}`,
+        filePath: filePath,
+        fileType: fileType,
+        enabled: true
+      };
+      
+      // 添加文档源
+      documentManager.addDocumentSource(source);
+      
+      // 抓取该文档源
+      const result = await documentManager.fetchSingleSource(source);
+      
+      if (result.success) {
         console.log(`成功添加文件: ${docName}`);
-        
-        // 重新获取所有文档
-        console.log('刷新文档索引...');
-        const allDocs = await fetchAllDocuments(true);
-        console.log(`更新后共有 ${allDocs.length} 个文档片段`);
+        console.log(`文档已分割为 ${result.chunks.length} 个片段`);
+      } else {
+        console.error(`添加文件失败: ${result.message}`);
       }
     } else if (command === 'dir') {
       // 添加整个目录
@@ -77,15 +95,13 @@ async function main() {
       const namePrefix = args[2] || 'CKB本地文档';
       const recursive = args[3] !== 'false';
       
-      const addedCount = addLocalDirectorySource(dirPath, namePrefix, recursive);
+      // 使用文档管理器处理本地目录
+      const chunks = await documentManager.addLocalDirectory(dirPath, namePrefix);
       
-      if (addedCount > 0) {
-        console.log(`成功添加 ${addedCount} 个文件`);
-        
-        // 重新获取所有文档
-        console.log('刷新文档索引...');
-        const allDocs = await fetchAllDocuments(true);
-        console.log(`更新后共有 ${allDocs.length} 个文档片段`);
+      if (chunks.length > 0) {
+        console.log(`成功添加 ${chunks.length} 个文档片段`);
+      } else {
+        console.error(`未能从目录 ${dirPath} 提取任何文档`);
       }
     } else {
       console.error(`未知命令: ${command}`);

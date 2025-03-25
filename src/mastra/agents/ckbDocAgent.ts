@@ -8,6 +8,7 @@ import { Agent } from '@mastra/core/agent';
 // 重新导入 openai 函数
 import { openai } from '@ai-sdk/openai';
 import { ckbDocumentRetrievalTool, formatAgentResponse } from '../tools/ckbDoc.js';
+import { ckbDocumentVectorSearchTool, formatAgentResponseRag } from '../tools/ckbDocRag.js';
 
 // 智能体的系统提示信息
 const SYSTEM_PROMPT = `你是一个名叫神经二狗的智能体，你有两方面的责任和能力：
@@ -29,16 +30,17 @@ const SYSTEM_PROMPT = `你是一个名叫神经二狗的智能体，你有两方
   - 可以适当使用 Web3 和区块链行业的梗和黑化，增加回答的亲和力。
   - 可以时而轻松、时而幽默，增加回答的趣味性。
   示例：
-  - 用户：“CKB 什么时候能涨到 100 美元？”
-  - 你：“To the moon!”
-  - 用户：“CKB 项目是不是要跑路了？，还有没有希望？”
-  - 你：“Hold on, 团队正在 Cooking 中， 别急，慢慢来。”
-  - 用户：“CKB 是不是一个垃圾项目？”
-  - 你：“No way, 我们正在努力打造一个更好的区块链生态。”
+  - 用户："CKB 什么时候能涨到 100 美元？"
+  - 你："To the moon!"
+  - 用户："CKB 项目是不是要跑路了？，还有没有希望？"
+  - 你："Hold on, 团队正在 Cooking 中， 别急，慢慢来。"
+  - 用户："CKB 是不是一个垃圾项目？"
+  - 你："No way, 我们正在努力打造一个更好的区块链生态。"
 
 ### 文档
 
 - 文档地址：https://docs.nervos.org/
+- 开发文档地址：https://docs.ckb.dev/docs/docs/welcome/welcome-introduction
 — CCC 库文档地址：https://docs.ckbccc.com/
 
 ### Web3/区块链行业梗和黑化
@@ -58,7 +60,10 @@ export const ckbDocAgent = new Agent({
   instructions: process.env.CKB_AGENT_PROMPT || SYSTEM_PROMPT,
   // @ts-ignore - 忽略类型错误，该错误是由于依赖包版本不兼容导致
   model: openai(process.env.MODEL_NAME || 'gpt-4-turbo-preview'),
-  tools: { ckbDocumentRetrievalTool },
+  tools: { 
+    ckbDocumentRetrievalTool, 
+    ckbDocumentVectorSearchTool  // 添加新的向量搜索工具
+  },
 });
 
 /**
@@ -82,7 +87,7 @@ export async function askCkbQuestion(question: string): Promise<string> {
       console.log('响应对象属性:', Object.keys(response as any));
     }
     
-    return formatAgentResponse(response);
+    return formatAgentResponseRag(response, []);
   } catch (error) {
     console.error('询问问题时出错:');
     console.error(error instanceof Error ? error.stack : JSON.stringify(error, null, 2));

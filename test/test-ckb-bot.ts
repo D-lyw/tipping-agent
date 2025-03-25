@@ -5,7 +5,7 @@
  */
 
 import { askCkbQuestion } from '../src/mastra/agents/ckbDocAgent.js';
-import { fetchAllDocuments } from '../src/lib/ckbDocuments.js';
+import { createDocumentManager } from '../src/documents';
 import dotenv from 'dotenv';
 import { createInterface } from 'readline';
 
@@ -32,15 +32,25 @@ const readline = createInterface({
 async function main() {
   console.log('正在初始化 CKB 文档智能体...');
   
+  // 初始化文档管理器
+  const docManager = createDocumentManager();
+  await docManager.initialize();
+  
   // 如果需要，强制刷新文档缓存
   if (forceRefreshDocs) {
     console.log('强制刷新文档缓存...');
     try {
-      await fetchAllDocuments(true);
+      // 清空缓存
+      await docManager.clearCache();
+      // 重新获取所有文档
+      await docManager.fetchAllSources();
     } catch (error) {
       console.error('刷新文档失败:', error);
       process.exit(1);
     }
+  } else {
+    // 正常加载文档
+    await docManager.fetchAllSources();
   }
   
   console.log('CKB 文档智能体初始化完成');

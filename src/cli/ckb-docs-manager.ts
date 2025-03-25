@@ -5,14 +5,7 @@
  * 用于管理CKB文档源、获取文档、诊断文档状况等
  */
 
-import { 
-  fetchAllDocuments, 
-  addLocalFileSource, 
-  addLocalDirectorySource, 
-  getDocumentStats, 
-  runDocumentDiagnostics,
-  cleanAndRefetchDocuments
-} from '../lib/ckbDocuments';
+import { createDocumentManager } from '../documents';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as dotenv from 'dotenv';
@@ -133,42 +126,81 @@ async function setupDocSystem() {
   
   // 诊断文档状况
   console.log('\n运行文档诊断...');
-  const diagnostic = runDocumentDiagnostics();
-  console.log(`诊断状态: ${diagnostic.status}`);
-  console.log(`诊断消息: ${diagnostic.message}`);
+  const docManager = createDocumentManager();
+  await docManager.initialize();
+  const allChunks = docManager.getAllDocumentChunks();
+  
+  if (allChunks.length === 0) {
+    console.log('诊断结果: 错误 - 没有找到任何文档，请尝试获取文档');
+  } else {
+    const bySource = {};
+    allChunks.forEach(chunk => {
+      if (!bySource[chunk.source]) {
+        bySource[chunk.source] = 0;
+      }
+      bySource[chunk.source]++;
+    });
+    
+    const sourcesCount = Object.keys(bySource).length;
+    console.log(`诊断结果: 正常 - 找到 ${allChunks.length} 个文档片段，来自 ${sourcesCount} 个不同来源`);
+  }
   
   return true;
 }
 
 // 显示文档统计信息
 function showStats() {
-  const stats = getDocumentStats();
-  console.log('CKB文档统计信息:');
-  console.log(`总文档片段数: ${stats.total}`);
+  const docManager = createDocumentManager();
   
-  console.log('\n按来源统计:');
-  const sourcesEntries = Object.entries(stats.bySource);
-  if (sourcesEntries.length === 0) {
-    console.log('  无文档来源');
-  } else {
-    sourcesEntries.sort((a, b) => b[1] - a[1]); // 按数量降序排序
-    sourcesEntries.forEach(([source, count]) => {
-      console.log(`  - ${source}: ${count} 个片段`);
+  // 初始化文档管理器
+  docManager.initialize().then(() => {
+    const allChunks = docManager.getAllDocumentChunks();
+    const stats = {
+      total: allChunks.length,
+      bySource: {} as Record<string, number>,
+      byCategory: {} as Record<string, number>
+    };
+    
+    // 统计按来源的文档数量
+    allChunks.forEach(chunk => {
+      if (!stats.bySource[chunk.source]) {
+        stats.bySource[chunk.source] = 0;
+      }
+      stats.bySource[chunk.source]++;
+      
+      if (!stats.byCategory[chunk.category]) {
+        stats.byCategory[chunk.category] = 0;
+      }
+      stats.byCategory[chunk.category]++;
     });
-  }
-  
-  console.log('\n按类别统计:');
-  const categoriesEntries = Object.entries(stats.byCategory);
-  if (categoriesEntries.length === 0) {
-    console.log('  无文档类别');
-  } else {
-    categoriesEntries.sort((a, b) => b[1] - a[1]); // 按数量降序排序
-    categoriesEntries.forEach(([category, count]) => {
-      console.log(`  - ${category}: ${count} 个片段`);
-    });
-  }
-  
-  return stats;
+    
+    console.log('CKB文档统计信息:');
+    console.log(`总文档片段数: ${stats.total}`);
+    
+    console.log('\n按来源统计:');
+    const sourcesEntries = Object.entries(stats.bySource);
+    if (sourcesEntries.length === 0) {
+      console.log('  无文档来源');
+    } else {
+      sourcesEntries.sort((a, b) => b[1] - a[1]); // 按数量降序排序
+      sourcesEntries.forEach(([source, count]) => {
+        console.log(`  - ${source}: ${count} 个片段`);
+      });
+    }
+    
+    console.log('\n按类别统计:');
+    const categoriesEntries = Object.entries(stats.byCategory);
+    if (categoriesEntries.length === 0) {
+      console.log('  无文档类别');
+    } else {
+      categoriesEntries.sort((a, b) => b[1] - a[1]); // 按数量降序排序
+      categoriesEntries.forEach(([category, count]) => {
+        console.log(`  - ${category}: ${count} 个片段`);
+      });
+    }
+    
+    return stats;
+  });
 }
 
 // 主函数
@@ -183,26 +215,45 @@ async function main() {
   const command = args[0];
   
   try {
+    // 创建文档管理器
+    const docManager = createDocumentManager();
+    await docManager.initialize();
+    
     switch (command) {
       case 'fetch':
         console.log('获取所有文档...');
-        const docs = await fetchAllDocuments(true);
+        await docManager.fetchAllSources();
+        const docs = docManager.getAllDocumentChunks();
         console.log(`文档获取完成，共 ${docs.length} 个文档片段`);
         break;
         
       case 'clean':
         console.log('清理并重新获取所有文档...');
-        const newDocs = await cleanAndRefetchDocuments();
+        await docManager.clearCache();
+        await docManager.fetchAllSources();
+        const newDocs = docManager.getAllDocumentChunks();
         console.log(`文档清理和重新获取完成，共 ${newDocs.length} 个文档片段`);
         break;
         
       case 'diagnose':
         console.log('诊断文档状况...');
-        const diagnostic = runDocumentDiagnostics();
-        console.log(`诊断状态: ${diagnostic.status}`);
-        console.log(`诊断消息: ${diagnostic.message}`);
-        console.log('\n详细统计:');
-        showStats();
+        // TODO: 实现文档诊断功能
+        const allChunks = docManager.getAllDocumentChunks();
+        
+        if (allChunks.length === 0) {
+          console.log('诊断结果: 错误 - 没有找到任何文档，请尝试获取文档');
+        } else {
+          const bySource = {};
+          allChunks.forEach(chunk => {
+            if (!bySource[chunk.source]) {
+              bySource[chunk.source] = 0;
+            }
+            bySource[chunk.source]++;
+          });
+          
+          const sourcesCount = Object.keys(bySource).length;
+          console.log(`诊断结果: 正常 - 找到 ${allChunks.length} 个文档片段，来自 ${sourcesCount} 个不同来源`);
+        }
         break;
         
       case 'stats':
@@ -220,13 +271,32 @@ async function main() {
         const docName = args[2];
         const fileType = args[3] as 'text' | 'markdown' | 'pdf' || undefined;
         
-        if (addLocalFileSource(docName, filePath, fileType)) {
+        // 创建文件源配置
+        const source = {
+          name: docName,
+          type: 'file' as const,
+          url: `file://${filePath}`,
+          filePath: filePath,
+          fileType: fileType,
+          enabled: true
+        };
+        
+        // 添加文档源
+        docManager.addDocumentSource(source);
+        
+        // 获取该文档源
+        console.log(`添加文件源: ${docName} (${filePath})`);
+        const result = await docManager.fetchSingleSource(source);
+        
+        if (result.success) {
           console.log(`成功添加文件: ${docName} (${filePath})`);
+          console.log(`文档已分割为 ${result.chunks.length} 个片段`);
           
-          // 重新获取所有文档
-          console.log('正在更新文档索引...');
-          const docsAfterAdd = await fetchAllDocuments(true);
-          console.log(`文档索引更新完成，现有 ${docsAfterAdd.length} 个文档片段`);
+          // 获取所有文档
+          const docsAfterAdd = docManager.getAllDocumentChunks();
+          console.log(`现有 ${docsAfterAdd.length} 个文档片段`);
+        } else {
+          console.error(`添加文件失败: ${result.message}`);
         }
         break;
         
@@ -241,17 +311,17 @@ async function main() {
         const namePrefix = args[2] || 'CKB本地文档';
         const recursive = args[3] !== 'false';
         
-        const addedCount = addLocalDirectorySource(dirPath, namePrefix, recursive);
+        console.log(`处理目录: ${dirPath}`);
+        const dirChunks = await docManager.addLocalDirectory(dirPath, namePrefix);
         
-        if (addedCount > 0) {
-          console.log(`成功添加 ${addedCount} 个文件`);
+        if (dirChunks.length > 0) {
+          console.log(`成功添加目录，获取了 ${dirChunks.length} 个文档片段`);
           
-          // 重新获取所有文档
-          console.log('正在更新文档索引...');
-          const docsAfterDir = await fetchAllDocuments(true);
-          console.log(`文档索引更新完成，现有 ${docsAfterDir.length} 个文档片段`);
+          // 获取所有文档
+          const docsAfterDir = docManager.getAllDocumentChunks();
+          console.log(`现有 ${docsAfterDir.length} 个文档片段`);
         } else {
-          console.log(`未能从 ${dirPath} 添加任何文件`);
+          console.error(`未能从目录 ${dirPath} 提取任何文档`);
         }
         break;
         

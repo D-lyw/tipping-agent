@@ -8,7 +8,7 @@
  */
 
 import { CkbDiscordBot } from './lib/discordBot';
-import { fetchAllDocuments } from './lib/ckbDocuments';
+import { createDocumentManager } from './documents';
 import { nostrEcosystemMonitor } from './lib/nostrEcosystemMonitor';
 import dotenv from 'dotenv';
 import express from 'express';
@@ -95,11 +95,21 @@ async function startCkbBot() {
     const args = process.argv.slice(2);
     const forceRefreshDocs = args.includes('--refresh') || process.env.FORCE_REFRESH_DOCS === 'true';
     
+    // 初始化文档管理器
+    const docManager = createDocumentManager();
+    await docManager.initialize();
+    
     // 如果需要，强制刷新文档缓存
     if (forceRefreshDocs) {
       console.log('强制刷新文档缓存...');
-      await fetchAllDocuments(true);
+      // 先清空缓存
+      await docManager.clearCache();
+      // 然后重新获取所有文档
+      await docManager.fetchAllSources();
       console.log('文档缓存已刷新');
+    } else {
+      // 正常加载文档
+      await docManager.fetchAllSources();
     }
     
     // 创建 Discord Bot 实例
@@ -278,4 +288,12 @@ if (isMainModule) {
     console.error('启动过程中出现未捕获的错误:', error);
     process.exit(1);
   });
-} 
+}
+
+/**
+ * tapping-agent 主入口文件
+ * 
+ * 导出所有模块的公共API
+ */
+
+// 其他模块的导出将在以后添加 
