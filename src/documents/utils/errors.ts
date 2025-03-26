@@ -4,7 +4,7 @@
  * 提供统一的错误类型和错误处理函数
  */
 
-import { createLogger } from './logger';
+import { createLogger } from './logger.js';
 
 const logger = createLogger('ErrorHandler');
 

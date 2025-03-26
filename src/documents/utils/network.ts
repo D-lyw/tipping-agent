@@ -1,9 +1,11 @@
 /**
- * CKB生态文档处理模块 - 网络工具
+ * CKB生态文档处理模块 - 网络请求工具
+ * 
+ * 提供网络请求相关的工具函数
  */
 
 import axios, { AxiosRequestConfig, AxiosError, AxiosResponse } from 'axios';
-import { createLogger } from './logger';
+import { createLogger } from './logger.js';
 import { delay } from './helpers';
 import { 
   createNetworkError, 
@@ -11,7 +13,8 @@ import {
   handleError, 
   safeExecute,
   wrapError 
-} from './errors';
+} from './errors.js';
+import { DEFAULT_HTTP_HEADERS, DEFAULT_REQUEST_TIMEOUT, MAX_REDIRECTS } from '../core/config.js';
 
 // 初始化日志记录器
 const logger = createLogger('Network');

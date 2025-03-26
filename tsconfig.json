@@ -3,6 +3,7 @@
     "target": "ES2022",
     "module": "ES2022",
     "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": false,
@@ -11,8 +12,9 @@
     "outDir": "dist"
   },
   "include": [
-    "src/**/*"
-, "test/test-ckb-bot.ts"  ],
+    "src/**/*",
+    "test/test-ckb-bot.ts"
+  ],
   "exclude": [
     "node_modules",
     "dist"

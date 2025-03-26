@@ -10,16 +10,57 @@ import { DocumentSource } from './types';
 // 加载环境变量
 dotenv.config();
 
+// -----------------------------
+// 向量存储配置
+// -----------------------------
+
+// OpenAI配置
+export const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+export const OPENAI_EMBEDDING_MODEL = process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small';
+
+// PostgreSQL向量数据库配置
+export const PG_CONNECTION_STRING = process.env.POSTGRES_CONNECTION_STRING || '';
+export const PG_VECTOR_TABLE = process.env.VECTOR_INDEX_NAME || 'document_embeddings';
+
+// 批处理通用配置
+export const DEFAULT_BATCH_SIZE = parseInt(process.env.DEFAULT_BATCH_SIZE || '20', 10);
+export const DEFAULT_PROCESSING_INTERVAL = parseInt(process.env.DEFAULT_PROCESSING_INTERVAL || '100', 10);
+
+// -----------------------------
+// 抓取器配置
+// -----------------------------
+
 // GitHub API配置
 export const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
 export const USE_GITHUB_AUTH = GITHUB_TOKEN.length > 0;
 export const GITHUB_MAX_RETRIES = 3;
 export const GITHUB_RETRY_DELAY = 1000; // 毫秒
 
+// GitHub抓取器配置
+export const GITHUB_MAX_DEPTH = parseInt(process.env.GITHUB_MAX_DEPTH || '3', 10);
+export const GITHUB_CHUNK_BATCH_SIZE = parseInt(process.env.GITHUB_CHUNK_BATCH_SIZE || '50', 10);
+export const GITHUB_LIMIT_FILES = process.env.GITHUB_LIMIT_FILES === 'true'; 
+export const GITHUB_SKIP_CODE = process.env.GITHUB_SKIP_CODE === 'true';
+export const GITHUB_ONLY_DIRS = process.env.GITHUB_ONLY_DIRS ? process.env.GITHUB_ONLY_DIRS.split(',') : [];
+
+// 本地文件抓取器配置
+export const FILE_CHUNK_BATCH_SIZE = parseInt(process.env.FILE_CHUNK_BATCH_SIZE || '20', 10);
+export const FILE_MAX_FILES_PER_BATCH = parseInt(process.env.FILE_MAX_FILES_PER_BATCH || '10', 10);
+export const FILE_MAX_FILES_PER_DIR = parseInt(process.env.FILE_MAX_FILES_PER_DIR || '200', 10);
+export const FILE_MAX_SIZE_KB = parseInt(process.env.FILE_MAX_SIZE_KB || '500', 10);
+export const FILE_MAX_DIRS = parseInt(process.env.FILE_MAX_DIRS || '20', 10);
+
+// 网站抓取器配置
+export const WEBSITE_CHUNK_BATCH_SIZE = parseInt(process.env.WEBSITE_CHUNK_BATCH_SIZE || '10', 10);
+
 // Firecrawl API配置
 export const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY || '';
 export const USE_FIRECRAWL = FIRECRAWL_API_KEY.length > 0;
 export const FIRECRAWL_API_URL = 'https://api.firecrawl.dev/v1';
+
+// 文档处理器配置
+export const PROCESSOR_BATCH_SIZE = parseInt(process.env.PROCESSOR_BATCH_SIZE || '20', 10);
+export const PROCESSOR_INTERVAL = parseInt(process.env.PROCESSOR_INTERVAL || '50', 10);
 
 // 网络请求配置
 export const DEFAULT_REQUEST_TIMEOUT = 20000; // 毫秒

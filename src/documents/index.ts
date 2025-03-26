@@ -12,7 +12,7 @@ export * from './core/manager';
 // 抓取器
 export { scrapeWebsite, scrapeWebsiteOriginal, scrapeWebsiteWithFirecrawl } from './scrapers/website';
 export { scrapeGitHubRepo } from './scrapers/github';
-export { processLocalFile, processLocalDirectory } from './scrapers/file';
+export { processLocalFile } from './scrapers/file';
 
 // 处理器
 export { chunkDocument, optimizeChunks } from './processors/chunker';

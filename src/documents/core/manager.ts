@@ -4,6 +4,8 @@
  * 整合所有文档处理功能，提供统一的API接口
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
 import { DocumentChunk, DocumentSource, ScrapingResult, DiagnosticResult } from './types';
 import { CKB_DOCUMENT_SOURCES } from './config';
 import { createLogger } from '../utils/logger';
@@ -17,16 +19,17 @@ import {
 import { generateId } from '../utils/helpers';
 import { scrapeWebsite } from '../scrapers/website';
 import { scrapeGitHubRepo } from '../scrapers/github';
-import { processLocalFile, processLocalDirectory } from '../scrapers/file';
+import { processLocalFile } from '../scrapers/file';
 import { chunkDocument, optimizeChunks } from '../processors/chunker';
-import * as fs from 'fs';
-import * as path from 'path';
 import * as util from 'util';
+import { MastraVectorStore } from '../storage/mastra-vector-store';
+import { 
+  OPENAI_API_KEY, 
+  PG_CONNECTION_STRING, 
+  PG_VECTOR_TABLE 
+} from './config';
 
 // Promise版本的文件系统API
-const mkdirAsync = util.promisify(fs.mkdir);
-const writeFileAsync = util.promisify(fs.writeFile);
-const readFileAsync = util.promisify(fs.readFile);
 const existsAsync = util.promisify(fs.exists);
 
 // 初始化日志记录器
@@ -36,27 +39,28 @@ const logger = createLogger('DocumentManager');
  * 文档管理器选项
  */
 export interface DocumentManagerOptions {
-  /** 是否启用缓存 */
-  enableCache?: boolean;
-  /** 缓存目录 */
-  cacheDir?: string;
+  /** 是否强制刷新文档（重新抓取） */
+  forceRefreshDocs?: boolean;
   /** 自定义文档源 */
   customSources?: DocumentSource[];
   /** 是否自动优化文档块 */
   autoOptimizeChunks?: boolean;
-  /** 是否在抓取完成后自动保存到缓存 */
-  autoSaveToCache?: boolean;
+  /** 自定义向量存储配置 */
+  vectorStoreConfig?: {
+    apiKey?: string;
+    pgConnectionString?: string;
+    tablePrefix?: string;
+    batchSize?: number;
+  };
 }
 
 /**
  * 默认文档管理器选项
  */
 const DEFAULT_OPTIONS: DocumentManagerOptions = {
-  enableCache: true,
-  cacheDir: './cache/documents',
+  forceRefreshDocs: false,
   customSources: [],
-  autoOptimizeChunks: true,
-  autoSaveToCache: true
+  autoOptimizeChunks: true
 };
 
 /**
@@ -67,8 +71,10 @@ const DEFAULT_OPTIONS: DocumentManagerOptions = {
 export class DocumentManager {
   private options: DocumentManagerOptions;
   private documentSources: DocumentSource[];
-  private cachedChunks: Record<string, DocumentChunk[]> = {};
+  private vectorStore: MastraVectorStore;
+  private tempChunks: Record<string, DocumentChunk[]> = {};
   private initialized: boolean = false;
+  private processedSources: Set<string> = new Set();
   
   /**
    * 构造函数
@@ -80,7 +86,15 @@ export class DocumentManager {
       ...(this.options.customSources || [])
     ];
     
-    logger.info(`文档管理器已创建，配置了 ${this.documentSources.length} 个文档源`);
+    // 初始化向量存储
+    this.vectorStore = new MastraVectorStore({
+      apiKey: this.options.vectorStoreConfig?.apiKey || OPENAI_API_KEY,
+      pgConnectionString: this.options.vectorStoreConfig?.pgConnectionString || PG_CONNECTION_STRING,
+      tablePrefix: this.options.vectorStoreConfig?.tablePrefix || PG_VECTOR_TABLE,
+      batchSize: this.options.vectorStoreConfig?.batchSize || 10
+    });
+    
+    logger.info(`文档管理器已创建，配置了 ${this.documentSources.length} 个文档源，强制刷新模式: ${this.options.forceRefreshDocs}`);
   }
   
   /**
@@ -93,19 +107,10 @@ export class DocumentManager {
     
     logger.info('初始化文档管理器...');
     
-    // 创建缓存目录（如果需要）
-    if (this.options.enableCache) {
-      try {
-        if (!await existsAsync(this.options.cacheDir)) {
-          await mkdirAsync(this.options.cacheDir, { recursive: true });
-          logger.info(`创建缓存目录: ${this.options.cacheDir}`);
-        }
-      } catch (error) {
-        logger.warn(`无法创建缓存目录: ${error.message}`);
-      }
-      
-      // 尝试加载缓存
-      await this.loadFromCache();
+    // 初始化向量存储
+    const success = await this.vectorStore.initialize();
+    if (!success) {
+      throw new Error('初始化向量存储失败');
     }
     
     this.initialized = true;
@@ -128,51 +133,107 @@ export class DocumentManager {
   }
   
   /**
+   * 获取特定来源的文档块
+   * 注意：此方法仅返回内存中的临时文档块，不会查询向量数据库
+   */
+  getDocumentChunksBySource(sourceName: string): DocumentChunk[] {
+    return this.tempChunks[sourceName] || [];
+  }
+  
+  /**
    * 获取所有文档块
+   * 注意：此方法仅返回内存中的临时文档块，不会查询向量数据库
    */
   getAllDocumentChunks(): DocumentChunk[] {
-    const allChunks: DocumentChunk[] = [];
-    
-    for (const sourceChunks of Object.values(this.cachedChunks)) {
-      allChunks.push(...sourceChunks);
-    }
-    
+    let allChunks: DocumentChunk[] = [];
+    Object.values(this.tempChunks).forEach(chunks => {
+      allChunks = allChunks.concat(chunks);
+    });
     return allChunks;
   }
   
   /**
-   * 获取特定来源的文档块
+   * 清除文档缓存
+   * 清除内存中的临时文档块和向量存储中的所有文档
    */
-  getDocumentChunksBySource(sourceName: string): DocumentChunk[] {
-    return this.cachedChunks[sourceName] || [];
-  }
-  
-  /**
-   * 根据文档源类型获取文档块
-   */
-  getDocumentChunksBySourceType(sourceType: 'website' | 'github' | 'file'): DocumentChunk[] {
-    const result: DocumentChunk[] = [];
-    
-    // 找到指定类型的文档源
-    const sourceNames = this.documentSources
-      .filter(source => source.type === sourceType)
-      .map(source => source.name);
-    
-    // 收集对应的文档块
-    for (const name of sourceNames) {
-      if (this.cachedChunks[name]) {
-        result.push(...this.cachedChunks[name]);
-      }
+  async clearCache(): Promise<boolean> {
+    if (!this.initialized) {
+      await this.initialize();
     }
     
-    return result;
+    logger.info('开始清除所有文档缓存...');
+    
+    // 先清除内存中的临时缓存
+    this.tempChunks = {};
+    this.processedSources.clear();
+    logger.info('成功清除内存缓存');
+    
+    // 尝试清除向量存储中的所有文档
+    try {
+      // 清除向量存储中的所有文档
+      const deleteResult = await this.vectorStore.deleteDocuments(['*']);
+      
+      if (deleteResult > 0) {
+        logger.info('成功清除向量存储中的所有文档');
+        return true;
+      } else {
+        logger.warn('向量存储清除操作完成，但无法确认是否成功删除所有文档');
+        
+        // 尝试重新初始化向量存储
+        try {
+          // 关闭现有连接
+          await this.vectorStore.close();
+          
+          // 重新初始化
+          const success = await this.vectorStore.initialize();
+          if (success) {
+            logger.info('成功重新初始化向量存储');
+            return true;
+          }
+        } catch (reinitError) {
+          logger.error('重新初始化向量存储失败:', reinitError);
+        }
+        
+        return false;
+      }
+    } catch (error) {
+      logger.error('清除向量存储中的文档时出错:', error);
+      
+      // 即使清除向量存储失败，我们也已经清除了内存缓存
+      logger.warn('注意：虽然向量存储清除失败，但内存缓存已经清除');
+      
+      return false;
+    }
   }
   
   /**
    * 抓取单个文档源
+   * @param source 文档源
+   * @param options 抓取选项
+   * @returns 抓取结果
    */
-  async fetchSingleSource(source: DocumentSource): Promise<ScrapingResult> {
-    logger.info(`开始抓取文档源: ${source.name} (${source.type})`);
+  async fetchSingleSource(
+    source: DocumentSource, 
+    options: { forceRefresh?: boolean } = {}
+  ): Promise<ScrapingResult> {
+    const forceRefresh = options.forceRefresh ?? this.options.forceRefreshDocs;
+    
+    logger.info(`开始抓取文档源: ${source.name} (${source.type}), 强制刷新: ${forceRefresh}`);
+    
+    // 如果已处理过且不需要强制刷新，则跳过
+    if (this.processedSources.has(source.name) && !forceRefresh) {
+      logger.info(`文档源 ${source.name} 已处理过，跳过抓取`);
+      return {
+        success: true,
+        chunks: this.tempChunks[source.name] || [],
+        message: `文档源 ${source.name} 已处理过，使用现有数据`,
+        stats: {
+          totalChunks: this.tempChunks[source.name]?.length || 0,
+          storedChunks: this.tempChunks[source.name]?.length || 0,
+          timeMs: 0
+        }
+      };
+    }
     
     return await safeExecute(async () => {
       let result: ScrapingResult;
@@ -193,214 +254,106 @@ export class DocumentManager {
       }
       
       // 处理抓取结果
-      if (result.success && result.chunks.length > 0) {
+      if (result.success && result.chunks && result.chunks.length > 0) {
         // 优化文档块
         if (this.options.autoOptimizeChunks) {
           result.chunks = optimizeChunks(result.chunks);
         }
         
-        // 更新缓存
-        this.cachedChunks[source.name] = result.chunks;
+        // 临时保存文档块
+        this.tempChunks[source.name] = result.chunks;
         
-        // 保存到缓存
-        if (this.options.enableCache && this.options.autoSaveToCache) {
-          await this.saveToCache(source.name);
+        // 向量化并存储到数据库
+        const startTime = Date.now();
+        logger.info(`开始向量化并存储 ${result.chunks.length} 个文档块...`);
+        const storedCount = await this.vectorStore.storeDocuments(result.chunks);
+        const endTime = Date.now();
+        
+        logger.info(`向量化完成，成功存储 ${storedCount}/${result.chunks.length} 个文档块，耗时: ${(endTime - startTime)/1000}秒`);
+        
+        // 更新统计信息
+        if (result.stats) {
+          result.stats.storedChunks = storedCount;
         }
         
-        logger.info(`成功抓取文档源: ${source.name}，获取了 ${result.chunks.length} 个文档块`);
+        // 记录已处理的源
+        this.processedSources.add(source.name);
+        
+        logger.info(`成功抓取 ${source.name}，获取 ${result.chunks.length} 个文档块`);
       } else {
         logger.warn(`抓取文档源: ${source.name} 未返回有效内容`);
       }
       
       return result;
-    }, (error: DocumentProcessingError) => {
-      logger.error(`抓取文档源 ${source.name} 时出错:`, error);
-      return {
-        success: false,
-        chunks: [],
-        error,
-        message: `抓取文档源 ${source.name} 失败: ${error.message}`,
-        stats: {
-          totalChunks: 0,
-          timeMs: 0
-        }
-      };
     });
   }
   
   /**
-   * 抓取所有启用的文档源
+   * 抓取所有文档源
+   * @param options 抓取选项
+   * @returns 抓取结果数组
    */
-  async fetchAllSources(): Promise<ScrapingResult[]> {
-    logger.info('开始抓取所有启用的文档源');
+  async fetchAllSources(
+    options: { forceRefresh?: boolean } = {}
+  ): Promise<ScrapingResult[]> {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+    
+    const forceRefresh = options.forceRefresh ?? this.options.forceRefreshDocs;
+    logger.info(`开始抓取所有文档源，共 ${this.documentSources.length} 个，强制刷新: ${forceRefresh}`);
     
     const results: ScrapingResult[] = [];
-    const enabledSources = this.documentSources.filter(source => source.enabled !== false);
     
-    logger.info(`找到 ${enabledSources.length} 个启用的文档源`);
-    
-    for (const source of enabledSources) {
+    // 逐个抓取文档源
+    for (const source of this.documentSources) {
       try {
-        const result = await this.fetchSingleSource(source);
+        const result = await this.fetchSingleSource(source, { forceRefresh });
         results.push(result);
       } catch (error) {
-        logger.error(`抓取 ${source.name} 时发生错误:`, error);
+        logger.error(`抓取 ${source.name} 失败:`, error);
+        
+        // 构造失败结果
         results.push({
           success: false,
           chunks: [],
-          error: error instanceof Error ? error : new Error(String(error)),
-          message: `抓取 ${source.name} 失败`,
-          stats: {
-            totalChunks: 0,
-            timeMs: 0
-          }
+          error: error instanceof DocumentProcessingError ? error : 
+            new DocumentProcessingError(`抓取 ${source.name} 失败: ${error.message}`, {
+              type: ErrorType.INTERNAL_ERROR,
+              cause: error
+            }),
+          message: `抓取 ${source.name} 失败: ${error.message}`
         });
       }
     }
     
+    logger.info(`完成抓取所有文档源，成功率: ${results.filter(r => r.success).length}/${results.length}`);
+    
     return results;
   }
-  
+
   /**
-   * 添加本地文档目录
+   * 查询文档
+   * @param query 查询文本
+   * @param options 查询选项
    */
-  async addLocalDirectory(directoryPath: string, sourceName: string): Promise<DocumentChunk[]> {
-    logger.info(`添加本地文档目录: ${directoryPath}`);
+  async queryDocuments(
+    query: string,
+    options: {
+      maxResults?: number;
+      similarityThreshold?: number;
+      filter?: Record<string, any>;
+    } = {}
+  ): Promise<Array<{document: DocumentChunk, score: number}>> {
+    if (!this.initialized) {
+      await this.initialize();
+    }
     
-    return await safeExecute(async () => {
-      const chunks = await processLocalDirectory(directoryPath, sourceName);
-      
-      if (chunks.length > 0) {
-        // 优化文档块
-        if (this.options.autoOptimizeChunks) {
-          const optimized = optimizeChunks(chunks);
-          this.cachedChunks[sourceName] = optimized;
-          
-          // 保存到缓存
-          if (this.options.enableCache && this.options.autoSaveToCache) {
-            await this.saveToCache(sourceName);
-          }
-          
-          return optimized;
-        } else {
-          this.cachedChunks[sourceName] = chunks;
-          
-          // 保存到缓存
-          if (this.options.enableCache && this.options.autoSaveToCache) {
-            await this.saveToCache(sourceName);
-          }
-          
-          return chunks;
-        }
-      }
-      
-      return [];
-    }, (error) => {
-      logger.error(`处理本地目录 ${directoryPath} 时出错:`, error);
-      return [];
+    return this.vectorStore.queryByText(query, {
+      maxResults: options.maxResults,
+      similarityThreshold: options.similarityThreshold,
+      filter: options.filter
     });
-  }
-  
-  /**
-   * 清空缓存
-   */
-  async clearCache(): Promise<void> {
-    logger.info('清空文档缓存');
-    this.cachedChunks = {};
-    
-    if (this.options.enableCache) {
-      try {
-        // 删除缓存目录内的所有文件
-        if (await existsAsync(this.options.cacheDir)) {
-          const files = fs.readdirSync(this.options.cacheDir);
-          for (const file of files) {
-            if (file.endsWith('.json')) {
-              fs.unlinkSync(path.join(this.options.cacheDir, file));
-            }
-          }
-        }
-        
-        logger.info('缓存目录已清空');
-      } catch (error) {
-        logger.warn(`清空缓存目录时出错: ${error.message}`);
-      }
-    }
-  }
-  
-  /**
-   * 从缓存加载文档
-   */
-  private async loadFromCache(): Promise<void> {
-    if (!this.options.enableCache) {
-      return;
-    }
-    
-    logger.info('尝试从缓存加载文档...');
-    
-    try {
-      if (!await existsAsync(this.options.cacheDir)) {
-        logger.info('缓存目录不存在，跳过加载');
-        return;
-      }
-      
-      const files = fs.readdirSync(this.options.cacheDir);
-      const cacheFiles = files.filter(file => file.endsWith('.json'));
-      
-      if (cacheFiles.length === 0) {
-        logger.info('未找到缓存文件');
-        return;
-      }
-      
-      logger.info(`找到 ${cacheFiles.length} 个缓存文件`);
-      
-      for (const file of cacheFiles) {
-        try {
-          const filePath = path.join(this.options.cacheDir, file);
-          const content = await readFileAsync(filePath, 'utf8');
-          const data = JSON.parse(content);
-          
-          if (Array.isArray(data)) {
-            const sourceName = file.replace('.json', '');
-            this.cachedChunks[sourceName] = data;
-            logger.info(`从缓存加载了 ${data.length} 个文档块 (来源: ${sourceName})`);
-          }
-        } catch (error) {
-          logger.warn(`加载缓存文件 ${file} 失败: ${error.message}`);
-        }
-      }
-    } catch (error) {
-      logger.warn(`从缓存加载文档时出错: ${error.message}`);
-    }
-  }
-  
-  /**
-   * 保存文档到缓存
-   */
-  private async saveToCache(sourceName: string): Promise<void> {
-    if (!this.options.enableCache) {
-      return;
-    }
-    
-    logger.info(`将文档源 ${sourceName} 保存到缓存`);
-    
-    try {
-      if (!await existsAsync(this.options.cacheDir)) {
-        await mkdirAsync(this.options.cacheDir, { recursive: true });
-      }
-      
-      const chunks = this.cachedChunks[sourceName];
-      if (!chunks || chunks.length === 0) {
-        logger.warn(`文档源 ${sourceName} 没有文档块可保存`);
-        return;
-      }
-      
-      const filePath = path.join(this.options.cacheDir, `${sourceName}.json`);
-      await writeFileAsync(filePath, JSON.stringify(chunks, null, 2), 'utf8');
-      
-      logger.info(`成功将 ${chunks.length} 个文档块保存到 ${filePath}`);
-    } catch (error) {
-      logger.warn(`保存文档到缓存时出错: ${error.message}`);
-    }
   }
   
   /**
@@ -409,7 +362,12 @@ export class DocumentManager {
   async runDiagnostics(): Promise<DiagnosticResult> {
     logger.info('运行文档系统诊断...');
     
-    const allChunks = this.getAllDocumentChunks();
+    // 收集所有临时文档块
+    const allChunks: DocumentChunk[] = [];
+    for (const chunks of Object.values(this.tempChunks)) {
+      allChunks.push(...chunks);
+    }
+    
     const bySource: Record<string, number> = {};
     const byCategory: Record<string, number> = {};
     
@@ -458,5 +416,108 @@ export class DocumentManager {
         byCategory
       }
     };
+  }
+  
+  /**
+   * 添加本地目录
+   * @param dirPath 本地目录路径
+   * @param namePrefix 文档名称前缀
+   * @param recursive 是否递归处理子目录
+   * @returns 处理的文档块数组
+   */
+  async addLocalDirectory(
+    dirPath: string,
+    namePrefix: string = '本地文档',
+    recursive: boolean = true
+  ): Promise<DocumentChunk[]> {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+    
+    logger.info(`添加本地目录: ${dirPath}`);
+    
+    // 检查目录是否存在
+    if (!fs.existsSync(dirPath)) {
+      logger.error(`目录不存在: ${dirPath}`);
+      return [];
+    }
+    
+    // 处理的文档块
+    let processedChunks: DocumentChunk[] = [];
+    
+    // 读取目录内容
+    const files = fs.readdirSync(dirPath);
+    
+    for (const file of files) {
+      const filePath = path.join(dirPath, file);
+      const stat = fs.statSync(filePath);
+      
+      // 如果是目录且允许递归
+      if (stat.isDirectory() && recursive) {
+        // 递归处理子目录
+        const subDirChunks = await this.addLocalDirectory(
+          filePath,
+          `${namePrefix}/${file}`,
+          recursive
+        );
+        processedChunks.push(...subDirChunks);
+      }
+      // 如果是文件
+      else if (stat.isFile()) {
+        // 创建文档源
+        const fileExt = path.extname(file).toLowerCase();
+        let fileType: 'text' | 'markdown' | 'pdf' | undefined;
+        
+        // 根据文件扩展名确定类型
+        if (['.md', '.markdown'].includes(fileExt)) {
+          fileType = 'markdown';
+        } else if (fileExt === '.pdf') {
+          fileType = 'pdf';
+        } else if (['.txt', '.js', '.py', '.ts', '.html', '.css', '.json', '.yml', '.yaml'].includes(fileExt)) {
+          fileType = 'text';
+        } else {
+          // 跳过不支持的文件类型
+          logger.warn(`跳过不支持的文件类型: ${filePath}`);
+          continue;
+        }
+        
+        const source: DocumentSource = {
+          name: `${namePrefix}/${file}`,
+          type: 'file',
+          url: `file://${filePath}`,
+          filePath: filePath,
+          fileType: fileType,
+          enabled: true
+        };
+        
+        // 添加文档源
+        this.addDocumentSource(source);
+        
+        try {
+          // 处理文件
+          const result = await this.fetchSingleSource(source);
+          
+          if (result.success && result.chunks) {
+            logger.info(`成功处理文件 ${filePath}, 获取了 ${result.chunks.length} 个文档块`);
+            processedChunks.push(...result.chunks);
+          } else {
+            logger.warn(`处理文件 ${filePath} 失败: ${result.message}`);
+          }
+        } catch (error) {
+          logger.error(`处理文件 ${filePath} 时出错:`, error);
+        }
+      }
+    }
+    
+    logger.info(`本地目录处理完成: ${dirPath}, 获取了 ${processedChunks.length} 个文档块`);
+    return processedChunks;
+  }
+  
+  /**
+   * 关闭资源
+   */
+  async close(): Promise<void> {
+    await this.vectorStore.close();
+    logger.info('向量存储连接已关闭');
   }
 } 

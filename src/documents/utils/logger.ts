@@ -4,7 +4,7 @@
  * 提供结构化的日志记录功能
  */
 
-import { LogLevel } from '../core/types';
+import { LogLevel } from '../core/types.js';
 
 /**
  * 日志条目接口
@@ -130,6 +130,34 @@ export function createLogger(moduleName: string) {
     debug: (message: string, data?: any) => log(LogLevel.DEBUG, moduleName, message, data),
     info: (message: string, data?: any) => log(LogLevel.INFO, moduleName, message, data),
     warn: (message: string, data?: any) => log(LogLevel.WARN, moduleName, message, data),
-    error: (message: string, data?: any) => log(LogLevel.ERROR, moduleName, message, data)
+    error: (message: string, data?: any) => log(LogLevel.ERROR, moduleName, message, data),
+    
+    // 判断某个日志级别是否启用
+    isLevelEnabled: (level: LogLevel): boolean => {
+      const levelOrder = {
+        [LogLevel.DEBUG]: 0,
+        [LogLevel.INFO]: 1,
+        [LogLevel.WARN]: 2,
+        [LogLevel.ERROR]: 3
+      };
+      return levelOrder[level] >= levelOrder[logOptions.minLevel];
+    },
+    
+    // 判断Debug级别日志是否启用
+    isDebugEnabled: (): boolean => {
+      return logOptions.minLevel === LogLevel.DEBUG;
+    },
+    
+    // 获取当前日志级别
+    getLogLevel: (): LogLevel => {
+      return logOptions.minLevel;
+    }
   };
+}
+
+/**
+ * 设置最低日志级别
+ */
+export function setLogLevel(level: LogLevel): void {
+  logOptions.minLevel = level;
 } 

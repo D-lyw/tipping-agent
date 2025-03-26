@@ -134,7 +134,7 @@ export function chunkDocument(
     }
   } else {
     // 简单地按最大大小分割
-    chunks = splitIntoChunks(processedContent, maxChunkSize);
+    chunks = splitIntoChunks(processedContent, { maxChunkSize });
   }
   
   // 后处理：恢复代码块

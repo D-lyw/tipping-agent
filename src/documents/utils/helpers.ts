@@ -1,7 +1,12 @@
 /**
- * CKB生态文档处理模块 - 通用工具函数
+ * CKB生态文档处理模块 - 辅助函数
+ * 
+ * 提供各种通用辅助函数
  */
 
+import { v4 as uuidv4 } from 'uuid';
+import { DocumentChunk } from '../core/types.js';
+import { createLogger } from './logger.js';
 import * as crypto from 'crypto';
 
 /**

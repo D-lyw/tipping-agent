@@ -1,5 +1,6 @@
 /**
  * CKB生态文档处理模块 - 网站抓取器
+ * 实现真正的流式处理架构
  */
 
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
@@ -12,11 +13,15 @@ import {
   FIRECRAWL_API_KEY,
   FIRECRAWL_API_URL,
   USE_FIRECRAWL,
-  MIN_CHUNK_LENGTH
-} from '../core/config';
-import { DocumentChunk, DocumentSource, ScrapingResult } from '../core/types';
-import { createLogger } from '../utils/logger';
-import { splitIntoChunks, createDocumentId } from '../utils/helpers';
+  MIN_CHUNK_LENGTH,
+  WEBSITE_CHUNK_BATCH_SIZE,
+  OPENAI_API_KEY,
+  PG_CONNECTION_STRING,
+  PG_VECTOR_TABLE
+} from '../core/config.js';
+import { DocumentChunk, DocumentSource, ScrapingResult } from '../core/types.js';
+import { createLogger } from '../utils/logger.js';
+import { splitIntoChunks, createDocumentId } from '../utils/helpers.js';
 import {
   createNetworkError,
   createFirecrawlApiError,
@@ -24,7 +29,8 @@ import {
   handleError,
   safeExecute,
   wrapError
-} from '../utils/errors';
+} from '../utils/errors.js';
+import { MastraVectorStore } from '../storage/mastra-vector-store.js';
 
 // 初始化日志记录器
 const logger = createLogger('WebScraper');
@@ -107,17 +113,40 @@ interface FirecrawlScrapeResponse {
 }
 
 /**
- * 使用Firecrawl抓取网站内容
+ * 文档块处理回调函数类型
+ * 用于处理生成的文档块，比如向量化并存储到数据库
  */
-export async function scrapeWebsiteWithFirecrawl(source: DocumentSource): Promise<ScrapingResult> {
-  logger.info(`使用Firecrawl爬取整个网站: ${source.url}`);
+export type DocumentChunkProcessor = (chunks: DocumentChunk[]) => Promise<void>;
+
+/**
+ * 爬取统计信息
+ */
+interface ScrapingStats {
+  totalPages: number;     // 爬取的页面总数
+  processedPages: number; // 成功处理的页面数
+  totalChunks: number;    // 生成的文档块数量
+  storedChunks?: number;  // 成功存储的文档块数量
+  timeMs: number;         // 处理总耗时
+}
+
+/**
+ * 使用Firecrawl流式爬取网站内容
+ * @param source 文档源
+ * @param chunkProcessor 文档块处理器回调函数，用于对生成的文档块执行进一步处理
+ * @returns 爬取结果
+ */
+export async function scrapeWebsiteWithFirecrawl(
+  source: DocumentSource, 
+  chunkProcessor?: DocumentChunkProcessor
+): Promise<ScrapingResult> {
+  logger.info(`使用Firecrawl流式爬取网站: ${source.url}`);
   const startTime = Date.now();
 
   try {
     // 检查API密钥
     if (!FIRECRAWL_API_KEY) {
       logger.warn('未找到Firecrawl API密钥，回退到传统抓取方法');
-      return await scrapeWebsiteOriginal(source);
+      return await scrapeWebsiteOriginalStream(source, chunkProcessor);
     }
 
     // 确保API密钥格式正确（如果不是以fc-开头，则添加前缀）
@@ -125,24 +154,26 @@ export async function scrapeWebsiteWithFirecrawl(source: DocumentSource): Promis
       ? FIRECRAWL_API_KEY 
       : `fc-${FIRECRAWL_API_KEY}`;
     
-    // 使用Firecrawl SDK
-    const app = new FirecrawlApp({
-      apiKey: apiKey,
-      // 确保使用V1 API URL
-      apiUrl: FIRECRAWL_API_URL
-    });
+    // 初始化统计信息
+    const stats: ScrapingStats = {
+      totalPages: 0,
+      processedPages: 0,
+      totalChunks: 0,
+      storedChunks: 0,
+      timeMs: 0
+    };
 
     try {
       // 使用crawlUrl方法，采用正确的V1参数格式
-      logger.info(`使用crawlUrl方法爬取 ${source.url}`);
+      logger.info(`使用crawlUrl方法流式爬取 ${source.url}`);
       
-      // 根据最新API文档，使用正确的参数格式，显著减少爬取页面数量以避免内存溢出
+      // 根据最新API文档，使用正确的参数格式，优化爬取配置
       const crawlParams: FirecrawlCrawlParams = {
         url: source.url,
         excludePaths: ['/blog/.*', '/news/.*', '/tags/.*', '/authors/.*'], // 排除多种非文档路径
         includePaths: ['/docs/.*', '/rfcs/.*', '/guide/.*'],  // 只爬取特定路径下的文档
         maxDepth: 1,     // 极大降低最大路径深度，避免爬取过多内容
-        limit: 15,       // 显著减少爬取URL数量
+        limit: 10,       // 进一步减少爬取URL数量
         ignoreSitemap: false,
         ignoreQueryParameters: true,
         allowBackwardLinks: false,
@@ -150,16 +181,16 @@ export async function scrapeWebsiteWithFirecrawl(source: DocumentSource): Promis
         scrapeOptions: {
           formats: ['markdown'], // 只获取markdown格式，减少数据量
           onlyMainContent: true,
-          waitFor: 500,         // 减少等待时间
+          waitFor: 300,         // 减少等待时间
           blockAds: true,
-          timeout: 10000        // 减少超时时间
+          timeout: 8000         // 减少超时时间
         }
       };
       
       // 调用crawlUrl方法
-      logger.info(`开始使用crawlUrl爬取 ${source.url}，参数: ${JSON.stringify(crawlParams)}`);
+      logger.info(`开始使用crawlUrl流式爬取 ${source.url}，参数: ${JSON.stringify(crawlParams)}`);
 
-      // 直接使用axios调用API，而不是使用SDK
+      // 发起爬取请求
       const crawlResponse = await axios.post(
         `${FIRECRAWL_API_URL}/crawl`,
         crawlParams,
@@ -172,13 +203,12 @@ export async function scrapeWebsiteWithFirecrawl(source: DocumentSource): Promis
       );
       
       const crawlResult = crawlResponse.data;
-      logger.info(`Firecrawl爬取响应: ${JSON.stringify(crawlResult, null, 2)}`);
       
       // 检查爬取是否成功启动
       if (!crawlResult || !crawlResult.success || !crawlResult.id) {
         const errorMsg = crawlResult?.error || "爬取启动失败";
         logger.warn(`Firecrawl爬取启动失败: ${errorMsg}`);
-        return await scrapeWebsiteOriginal(source);
+        return await scrapeWebsiteOriginalStream(source, chunkProcessor);
       }
       
       // 获取爬取任务ID
@@ -188,65 +218,75 @@ export async function scrapeWebsiteWithFirecrawl(source: DocumentSource): Promis
       // 轮询检查爬取状态
       let isCompleted = false;
       let retryCount = 0;
-      const maxRetries = 30; // 减少重试次数，2.5分钟超时 (30 * 5秒)
+      const maxRetries = 30; // 超时设置
       
-      // 避免内存溢出：采用流式处理并返回结果
-      let totalPages = 0;
-      let totalChunks = 0;
-      const resultChunks: DocumentChunk[] = [];
-      
-      // 创建一个文件处理工作队列，对内存友好
-      const processQueue = async (data: FirecrawlPage[]) => {
-        if (!data || data.length === 0) return;
+      // 处理单个页面的流式处理函数
+      const processPage = async (page: FirecrawlPage): Promise<void> => {
+        stats.totalPages++;
         
-        // 由于内存问题，限制每批处理的页面数量
-        const maxPagesToProcessPerBatch = 5;
-        
-        // 分批处理页面
-        for (let i = 0; i < data.length; i += maxPagesToProcessPerBatch) {
-          const batch = data.slice(i, i + maxPagesToProcessPerBatch);
-          const batchChunks = await processPageBatch(batch, source, totalChunks);
+        try {
+          // 处理页面内容
+          const pageChunks = await extractPageContent(page, source, stats.totalChunks);
           
-          // 限制每个网站的文档片段总数，防止内存溢出
-          const remainingCapacity = 1000 - resultChunks.length;
-          if (remainingCapacity <= 0) {
-            logger.warn(`已达到最大允许的文档片段数量 (1000)，停止处理更多页面`);
-            break;
+          // 更新统计信息
+          stats.totalChunks += pageChunks.length;
+          stats.processedPages++;
+          
+          // 如果提供了处理器回调，则调用它处理文档块
+          if (chunkProcessor && pageChunks.length > 0) {
+            await chunkProcessor(pageChunks);
+            // 避免在内存中保留文档块
+            pageChunks.length = 0;
           }
           
-          // 只添加能容纳的数量
-          const chunksToAdd = batchChunks.slice(0, remainingCapacity);
-          resultChunks.push(...chunksToAdd);
-          totalChunks += chunksToAdd.length;
-          
-          // 尝试手动释放内存
-          batch.length = 0;
-          if (global.gc) {
-            try {
-              global.gc();
-              logger.info("批处理后手动触发垃圾回收");
-            } catch (e) {
-              logger.debug("手动垃圾回收调用失败");
-            }
-          } else {
-            // 如果没有手动GC，强制另一种内存释放方式
-            setTimeout(() => {}, 100); // 小延迟，让GC有机会运行
-          }
-          
-          // 如果已达到限制，停止处理
-          if (resultChunks.length >= 1000) {
-            break;
+          // 记录处理状态
+          logger.debug(`已处理页面 ${stats.processedPages}/${stats.totalPages}, ` +
+            `文档块: ${pageChunks.length}, 总文档块: ${stats.totalChunks}`);
+        } catch (error) {
+          logger.error(`处理页面失败:`, error);
+        } finally {
+          // 手动清理页面数据，帮助垃圾回收
+          if (page) {
+            Object.keys(page).forEach(key => {
+              // @ts-ignore
+              page[key] = null;
+            });
           }
         }
       };
       
+      // 批量处理页面的函数
+      const processPages = async (pages: FirecrawlPage[]): Promise<void> => {
+        if (!pages || pages.length === 0) return;
+        
+        // 为了避免并行处理过多页面导致内存峰值，使用序列处理
+        for (const page of pages) {
+          await processPage(page);
+          
+          // 每处理5个页面尝试手动触发垃圾回收
+          if (stats.processedPages % 5 === 0 && global.gc) {
+            try {
+              global.gc();
+              logger.debug("手动触发垃圾回收");
+            } catch (e) {
+              // 忽略错误
+            }
+          }
+        }
+        
+        // 清除页面数组引用
+        pages.length = 0;
+      };
+      
+      // 开始轮询
       while (!isCompleted && retryCount < maxRetries) {
         // 休眠5秒再检查，增加进度日志
         await new Promise(resolve => setTimeout(resolve, 5000));
         retryCount++;
         
         if (retryCount % 5 === 0) {
-          logger.info(`等待爬取完成...已尝试 ${retryCount}/${maxRetries} 次`);
+          logger.info(`等待爬取完成...已尝试 ${retryCount}/${maxRetries} 次, ` + 
+            `已处理 ${stats.processedPages} 个页面，生成 ${stats.totalChunks} 个文档块`);
         }
         
         try {
@@ -263,22 +303,20 @@ export async function scrapeWebsiteWithFirecrawl(source: DocumentSource): Promis
           const statusResult = statusResponse.data;
           logger.info(`爬取状态: ${statusResult.status}, 进度: ${statusResult.completed || 0}/${statusResult.total || '未知'}`);
           
-          // 立即处理所有可用数据，减少内存使用
+          // 流式处理已爬取的页面
           if (statusResult.data && statusResult.data.length > 0) {
-            totalPages += statusResult.data.length;
+            // 流式处理这批数据
+            await processPages(statusResult.data);
             
-            // 处理当前页面批次
-            await processQueue(statusResult.data);
-            
-            // 清除引用，帮助垃圾回收
+            // 清除数据引用，帮助垃圾回收
             statusResult.data = null;
           }
           
           if (statusResult.status === 'completed') {
             isCompleted = true;
             
-            // 处理分页数据（最多1页，避免过多数据）
-            if (statusResult.next && resultChunks.length < 1000) {
+            // 处理分页数据（最多只处理第一个分页，避免过多数据）
+            if (statusResult.next) {
               try {
                 const nextResponse = await axios.get(statusResult.next, {
                   headers: {
@@ -287,18 +325,15 @@ export async function scrapeWebsiteWithFirecrawl(source: DocumentSource): Promis
                 });
                 
                 if (nextResponse.data && nextResponse.data.data) {
-                  totalPages += nextResponse.data.data.length;
-                  await processQueue(nextResponse.data.data);
-                  
-                  // 清除引用
-                  nextResponse.data.data = null;
+                  // 流式处理分页数据
+                  await processPages(nextResponse.data.data);
                 }
               } catch (error) {
                 logger.error(`获取分页数据失败:`, error);
               }
             }
             
-            logger.info(`爬取任务已完成，获取到 ${totalPages} 个页面`);
+            logger.info(`爬取任务已完成，处理了 ${stats.processedPages} 个页面，生成 ${stats.totalChunks} 个文档块`);
           } else if (statusResult.status === 'failed') {
             const errorMsg = statusResult.error || "爬取失败";
             logger.warn(`Firecrawl爬取任务失败: ${errorMsg}`);
@@ -310,45 +345,48 @@ export async function scrapeWebsiteWithFirecrawl(source: DocumentSource): Promis
       }
       
       if (retryCount >= maxRetries && !isCompleted) {
-        logger.warn(`Firecrawl爬取超时，但将返回已处理的 ${resultChunks.length} 个片段`);
+        logger.warn(`Firecrawl爬取超时，已处理 ${stats.processedPages} 个页面`);
       }
       
-      // 如果没有获取到任何文档片段，回退到传统方法
-      if (resultChunks.length === 0) {
+      // 如果没有处理任何页面，回退到传统方法
+      if (stats.processedPages === 0) {
         logger.warn('Firecrawl未返回有效内容，回退到传统抓取方法');
-        return await scrapeWebsiteOriginal(source);
+        return await scrapeWebsiteOriginalStream(source, chunkProcessor);
       }
       
-      const endTime = Date.now();
-      logger.info(`从网站 ${source.url} 提取了 ${resultChunks.length} 个文档片段，涵盖 ${totalPages} 个页面，耗时 ${endTime - startTime}ms`);
+      // 计算处理耗时
+      stats.timeMs = Date.now() - startTime;
+      logger.info(`完成流式爬取网站 ${source.url}，处理了 ${stats.processedPages} 个页面，` +
+        `生成 ${stats.totalChunks} 个文档块，耗时 ${stats.timeMs}ms`);
       
       return {
         success: true,
-        chunks: resultChunks,
-        message: `成功使用Firecrawl爬取网站 ${source.url}，共 ${totalPages} 个页面`,
+        chunks: [], // 在流式处理模式下，所有文档块都已通过回调处理，不再返回
+        message: `成功使用Firecrawl流式爬取网站 ${source.url}，共处理 ${stats.processedPages} 个页面，生成 ${stats.totalChunks} 个文档块`,
         stats: {
-          totalChunks: resultChunks.length,
-          totalPages: totalPages,
-          timeMs: endTime - startTime
+          totalChunks: stats.totalChunks,
+          storedChunks: stats.storedChunks,
+          totalPages: stats.processedPages,
+          timeMs: stats.timeMs
         }
       };
     } catch (error) {
       logger.error(`使用crawlUrl方法爬取 ${source.url} 失败:`, error);
       logger.info(`回退到传统抓取方法...`);
-      return await scrapeWebsiteOriginal(source);
+      return await scrapeWebsiteOriginalStream(source, chunkProcessor);
     }
   } catch (error) {
     logger.error(`使用Firecrawl爬取 ${source.url} 失败:`, error);
     logger.info(`回退到传统抓取方法...`);
-    return await scrapeWebsiteOriginal(source);
+    return await scrapeWebsiteOriginalStream(source, chunkProcessor);
   }
 }
 
 /**
- * 处理单页内容，返回文档片段
- * 极度优化的内存使用版本
+ * 从页面提取内容并生成文档块
+ * 优化的内存使用版本
  */
-async function processPageContent(
+async function extractPageContent(
   page: FirecrawlPage, 
   source: DocumentSource, 
   startCounter: number
@@ -369,7 +407,7 @@ async function processPageContent(
     const paragraphs = splitIntoChunks(page.markdown);
     
     // 限制每页处理的段落数，避免过度处理
-    const maxParagraphsPerPage = 25; // 大幅降低每页处理的段落数
+    const maxParagraphsPerPage = 20; // 限制段落处理数量
     const limitedParagraphs = paragraphs.slice(0, maxParagraphsPerPage);
     
     logger.info(`处理页面 ${pageUrl} 中的 ${limitedParagraphs.length}/${paragraphs.length} 个段落`);
@@ -389,11 +427,14 @@ async function processPageContent(
         category: 'documentation',
         createdAt: Date.now(),
         metadata: {
-          scraper: 'firecrawl',
+          scraper: 'firecrawl-stream',
           selector: source.selector
         }
       });
     }
+    
+    // 释放内存
+    page.markdown = '';
   } catch (error) {
     logger.error(`处理页面 ${pageUrl} 内容时出错:`, error);
   }
@@ -402,47 +443,90 @@ async function processPageContent(
 }
 
 /**
- * 批量处理页面并创建文档片段
- * 优化的内存管理版本
+ * 使用传统方法流式抓取网站内容
  */
-async function processPageBatch(
-  pages: FirecrawlPage[], 
+export async function scrapeWebsiteOriginalStream(
   source: DocumentSource,
-  startCounter: number
-): Promise<DocumentChunk[]> {
-  const allChunks: DocumentChunk[] = [];
-  let currentCounter = startCounter;
-  
-  // 逐个处理页面，避免并行处理导致的内存峰值
-  for (const page of pages) {
-    // 处理页面内容并获取文档片段
-    const pageChunks = await processPageContent(page, source, currentCounter);
-    
-    // 更新计数器
-    currentCounter += pageChunks.length;
-    
-    // 将本页文档片段添加到总集合中
-    allChunks.push(...pageChunks);
-    
-    // 释放当前页面的引用，帮助垃圾回收
-    Object.keys(page).forEach(key => {
-      // @ts-ignore
-      page[key] = null;
-    });
-  }
-  
-  return allChunks;
-}
-
-/**
- * 使用传统方法抓取网站内容，但采用分页处理以减少内存使用
- */
-export async function scrapeWebsiteOriginalWithPagination(source: DocumentSource): Promise<ScrapingResult> {
-  logger.info(`使用优化的传统方法抓取网站: ${source.url}`);
+  chunkProcessor?: DocumentChunkProcessor
+): Promise<ScrapingResult> {
+  logger.info(`使用优化的传统方法流式抓取网站: ${source.url}`);
   const startTime = Date.now();
-  const resultChunks: DocumentChunk[] = [];
+  
+  // 初始化统计信息
+  const stats: ScrapingStats = {
+    totalPages: 1, // 传统方法只处理一个页面
+    processedPages: 0,
+    totalChunks: 0,
+    storedChunks: 0,
+    timeMs: 0
+  };
+  
+  // 初始化向量存储
+  let vectorStore: MastraVectorStore | null = null;
   
   try {
+    // 如果没有提供回调函数，初始化向量存储
+    if (!chunkProcessor) {
+      if (!OPENAI_API_KEY) {
+        logger.warn('未设置OpenAI API密钥，向量化将无法正常工作');
+      }
+      
+      if (!PG_CONNECTION_STRING) {
+        logger.warn('未设置PG_CONNECTION_STRING，向量存储将无法正常工作');
+      }
+      
+      vectorStore = new MastraVectorStore({
+        apiKey: OPENAI_API_KEY,
+        pgConnectionString: PG_CONNECTION_STRING,
+        tablePrefix: PG_VECTOR_TABLE,
+        batchSize: 10  // 使用较小的批次大小，避免内存压力
+      });
+      
+      const initialized = await vectorStore.initialize();
+      if (!initialized) {
+        logger.error('向量存储初始化失败');
+        throw new Error('向量存储初始化失败');
+      }
+      
+      logger.info('向量存储初始化成功，开始爬取网站');
+    }
+    
+    // 内部处理文档块的函数
+    const handleChunks = async (chunks: DocumentChunk[]): Promise<void> => {
+      if (!chunks || chunks.length === 0) return;
+      
+      // 更新统计信息
+      stats.totalChunks += chunks.length;
+      
+      // 如果外部提供了处理器，使用外部处理器
+      if (chunkProcessor) {
+        await chunkProcessor(chunks);
+      } 
+      // 否则使用向量存储
+      else if (vectorStore) {
+        try {
+          const startStoreTime = Date.now();
+          const storedCount = await vectorStore.storeDocuments(chunks);
+          const endStoreTime = Date.now();
+          
+          stats.storedChunks = (stats.storedChunks || 0) + storedCount;
+          logger.info(`成功向量化并存储 ${storedCount}/${chunks.length} 个文档块，耗时 ${endStoreTime - startStoreTime}ms`);
+        } catch (error) {
+          logger.error('向量化和存储文档时出错:', error);
+        }
+      }
+      
+      // 尝试手动垃圾回收
+      if (global.gc) {
+        try {
+          global.gc();
+          logger.debug("手动触发垃圾回收");
+        } catch (e) {
+          // 忽略错误
+        }
+      }
+    };
+  
     // 配置请求
     const config: AxiosRequestConfig = {
       timeout: DEFAULT_REQUEST_TIMEOUT,
@@ -493,82 +577,118 @@ export async function scrapeWebsiteOriginalWithPagination(source: DocumentSource
       throw new Error('无法提取有效内容');
     }
 
-    // 分段处理，在内存中分块处理内容
-    const paragraphs = content
-      .split('\n')
-      .filter(p => p.trim().length > 0)
-      .map(p => p.trim());
-    
-    // 分批处理段落以减少内存使用
-    const batchSize = 50; // 每批处理的段落数
-    const totalParagraphs = paragraphs.length;
-    
-    logger.info(`从 ${source.url} 提取了 ${totalParagraphs} 个原始段落，开始分批处理`);
-    
-    // 分批处理段落
-    for (let i = 0; i < totalParagraphs; i += batchSize) {
-      const batchEnd = Math.min(i + batchSize, totalParagraphs);
-      const currentBatch = paragraphs.slice(i, batchEnd);
-      
-      // 将当前批次的段落转化为文档块
-      const batchText = currentBatch.join('\n');
-      const processedChunks = splitIntoChunks(batchText);
-      
-      logger.info(`处理第 ${i/batchSize + 1} 批段落，生成了 ${processedChunks.length} 个文档块`);
-      
-      // 为每个段落创建文档片段
-      for (let j = 0; j < processedChunks.length; j++) {
-        if (processedChunks[j].length < MIN_CHUNK_LENGTH) continue; // 跳过过短的段落
-        
-        // 限制最大文档片段数
-        if (resultChunks.length >= 1000) {
-          logger.warn(`已达到最大允许的文档片段数量 (1000)，停止处理更多内容`);
-          break;
-        }
+    // 清理HTML结构，防止内存占用过高
+    // 不要尝试设置$为null（它是const），而是删除对它的引用
+    // @ts-ignore 允许将response.data设置为null以释放内存
+    response.data = null;
 
-        resultChunks.push({
-          id: createDocumentId(source.name, resultChunks.length),
-          content: processedChunks[j],
-          title: source.name,
-          url: source.url,
-          source: source.name,
-          category: 'documentation',
-          createdAt: Date.now(),
-          metadata: {
-            scraper: 'cheerio-optimized',
-            selector: source.selector
-          }
-        });
+    // 预处理内容，提高质量：清理空白和特殊字符
+    content = content
+      .replace(/\s+/g, ' ')        // 替换连续空白字符为单个空格
+      .replace(/[\r\n]+/g, '\n')   // 规范化换行符
+      .trim();                     // 移除首尾空白
+
+    // 分割内容为段落
+    const paragraphs = content
+      .split(/\n\s*\n/)           // 按空行分割
+      .map(p => p.trim())         // 修剪每个段落
+      .filter(p => p.length > MIN_CHUNK_LENGTH); // 过滤太短的段落
+
+    // 减小内存压力：将原始内容设为null，帮助垃圾回收
+    // @ts-ignore 允许将content设为null以释放内存
+    content = null;
+
+    // 批量处理段落，使用小批次减少内存使用
+    const batchSize = 5;  // 更小的批次大小，进一步优化内存使用
+    const tempChunks: DocumentChunk[] = [];
+
+    logger.info(`开始处理 ${paragraphs.length} 个段落，批次大小 ${batchSize}`);
+
+    for (let i = 0; i < paragraphs.length; i++) {
+      const paragraph = paragraphs[i].trim();
+      
+      if (paragraph.length < MIN_CHUNK_LENGTH) continue;
+      
+      // 使用段落索引作为区分，避免重复ID生成算法问题
+      const id = createDocumentId(`${source.name}-${i}`, Date.now());
+      
+      // 创建文档块
+      tempChunks.push({
+        id,
+        content: paragraph,
+        title: source.name || '网站文档',
+        url: source.url,
+        source: source.name,
+        category: 'documentation',
+        createdAt: Date.now(),
+        metadata: {
+          scraper: 'website',
+          index: i
+        }
+      });
+      
+      // 当达到批次大小或是最后一个段落时处理
+      if (tempChunks.length >= WEBSITE_CHUNK_BATCH_SIZE || i === paragraphs.length - 1) {
+        // 处理并向量化当前批次
+        await handleChunks([...tempChunks]);
+        
+        // 清空临时数组
+        tempChunks.length = 0;
+        
+        // 在大批次之间添加短暂延迟，让事件循环有空处理其他任务
+        if (i < paragraphs.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
       }
       
       // 尝试手动垃圾回收
-      if (global.gc) {
+      if (i > 0 && i % (batchSize * 3) === 0 && global.gc) {
         try {
           global.gc();
+          logger.debug("手动触发垃圾回收");
         } catch (e) {
           // 忽略错误
         }
       }
-      
-      // 如果已达到限制，停止处理
-      if (resultChunks.length >= 1000) {
-        break;
+    }
+    
+    // 处理完成，更新统计信息
+    stats.processedPages = 1;
+    stats.timeMs = Date.now() - startTime;
+
+    // 关闭向量存储
+    if (vectorStore) {
+      try {
+        await vectorStore.close();
+      } catch (error) {
+        logger.warn('关闭向量存储时出错:', error);
       }
     }
 
-    const endTime = Date.now();
-    logger.info(`从 ${source.url} 提取了 ${resultChunks.length} 个文档片段，耗时 ${endTime - startTime}ms`);
+    logger.info(`从 ${source.url} 流式处理了 ${stats.totalChunks} 个文档片段，` +
+                `成功存储了 ${stats.storedChunks || 0} 个文档片段，耗时 ${stats.timeMs}ms`);
 
     return {
       success: true,
-      chunks: resultChunks,
-      message: `成功使用优化的传统方法抓取 ${source.url}`,
+      chunks: [], // 在流式处理模式下，所有文档块都已通过回调处理，不再返回
+      message: `成功使用流式处理方法抓取 ${source.url}`,
       stats: {
-        totalChunks: resultChunks.length,
-        timeMs: endTime - startTime
+        totalChunks: stats.totalChunks,
+        storedChunks: stats.storedChunks || 0,
+        totalPages: stats.processedPages,
+        timeMs: stats.timeMs
       }
     };
   } catch (error) {
+    // 确保关闭向量存储
+    if (vectorStore) {
+      try {
+        await vectorStore.close();
+      } catch (closeError) {
+        logger.warn('关闭向量存储时出错:', closeError);
+      }
+    }
+    
     const processedError = error instanceof DocumentProcessingError ? error : wrapError(error);
     logger.error(`抓取 ${source.url} 失败:`, processedError);
 
@@ -578,7 +698,9 @@ export async function scrapeWebsiteOriginalWithPagination(source: DocumentSource
       error: processedError,
       message: `抓取 ${source.url} 失败: ${processedError.message}`,
       stats: {
-        totalChunks: 0,
+        totalChunks: stats.totalChunks,
+        storedChunks: stats.storedChunks || 0,
+        totalPages: stats.processedPages,
         timeMs: Date.now() - startTime
       }
     };
@@ -586,21 +708,26 @@ export async function scrapeWebsiteOriginalWithPagination(source: DocumentSource
 }
 
 /**
- * 原始方法，仅作为兼容保留
+ * 原始方法，现在已更新为流式处理模式
  */
-export async function scrapeWebsiteOriginal(source: DocumentSource): Promise<ScrapingResult> {
-  // 调用新的分页处理方法
-  return await scrapeWebsiteOriginalWithPagination(source);
+export async function scrapeWebsiteOriginal(source: DocumentSource, chunkProcessor?: DocumentChunkProcessor): Promise<ScrapingResult> {
+  return await scrapeWebsiteOriginalStream(source, chunkProcessor);
 }
 
 /**
- * 抓取网站，根据配置选择最佳抓取方法
+ * 流式抓取网站，根据配置选择最佳抓取方法
+ * @param source 文档源
+ * @param chunkProcessor 文档块处理回调，用于对生成的文档块进行进一步处理（比如向量化和存储）
+ * @returns 抓取结果
  */
-export async function scrapeWebsite(source: DocumentSource): Promise<ScrapingResult> {
+export async function scrapeWebsite(
+  source: DocumentSource,
+  chunkProcessor?: DocumentChunkProcessor
+): Promise<ScrapingResult> {
   // 根据是否启用Firecrawl决定使用哪种抓取方法
   if (USE_FIRECRAWL) {
-    return await scrapeWebsiteWithFirecrawl(source);
+    return await scrapeWebsiteWithFirecrawl(source, chunkProcessor);
   } else {
-    return await scrapeWebsiteOriginalWithPagination(source);
+    return await scrapeWebsiteOriginalStream(source, chunkProcessor);
   }
 } 

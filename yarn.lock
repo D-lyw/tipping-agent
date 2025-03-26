@@ -15,16 +15,6 @@
     "@ai-sdk/provider" "1.0.12"
     "@ai-sdk/provider-utils" "2.1.15"
 
-"@ai-sdk/provider-utils@2.1.13":
-  version "2.1.13"
-  resolved "https://registry.npmjs.org/@ai-sdk/provider-utils/-/provider-utils-2.1.13.tgz"
-  integrity sha512-kLjqsfOdONr6DGcGEntFYM1niXz1H05vyZNf9OAzK+KKKc64izyP4/q/9HX7W4+6g8hm6BnmKxu8vkr6FSOqDg==
-  dependencies:
-    "@ai-sdk/provider" "1.0.11"
-    eventsource-parser "^3.0.0"
-    nanoid "^3.3.8"
-    secure-json-parse "^2.7.0"
-
 "@ai-sdk/provider-utils@2.1.15":
   version "2.1.15"
   resolved "https://registry.npmjs.org/@ai-sdk/provider-utils/-/provider-utils-2.1.15.tgz"
@@ -35,12 +25,14 @@
     nanoid "^3.3.8"
     secure-json-parse "^2.7.0"
 
-"@ai-sdk/provider@1.0.11":
-  version "1.0.11"
-  resolved "https://registry.npmjs.org/@ai-sdk/provider/-/provider-1.0.11.tgz"
-  integrity sha512-CPyImHGiT3svyfmvPvAFTianZzWFtm0qK82XjwlQIA1C3IQ2iku/PMQXi7aFyrX0TyMh3VTkJPB03tjU2VXVrw==
+"@ai-sdk/provider-utils@2.2.1":
+  version "2.2.1"
+  resolved "https://registry.npmjs.org/@ai-sdk/provider-utils/-/provider-utils-2.2.1.tgz"
+  integrity sha512-BuExLp+NcpwsAVj1F4bgJuQkSqO/+roV9wM7RdIO+NVrcT8RBUTdXzf5arHt5T58VpK7bZyB2V9qigjaPHE+Dg==
   dependencies:
-    json-schema "^0.4.0"
+    "@ai-sdk/provider" "1.1.0"
+    nanoid "^3.3.8"
+    secure-json-parse "^2.7.0"
 
 "@ai-sdk/provider@1.0.12":
   version "1.0.12"
@@ -49,23 +41,30 @@
   dependencies:
     json-schema "^0.4.0"
 
-"@ai-sdk/react@1.1.23":
-  version "1.1.23"
-  resolved "https://registry.npmjs.org/@ai-sdk/react/-/react-1.1.23.tgz"
-  integrity sha512-R+PG9ya0GLs6orzt+1MxmjrWFuZM0gVs+l8ihBr1u+42wwkVeojY4CAtQjW4nrfGTVbdJYkl5y+r/VKfjr42aQ==
+"@ai-sdk/provider@1.1.0":
+  version "1.1.0"
+  resolved "https://registry.npmjs.org/@ai-sdk/provider/-/provider-1.1.0.tgz"
+  integrity sha512-0M+qjp+clUD0R1E5eWQFhxEvWLNaOtGQRUaBn8CUABnSKredagq92hUS9VjOzGsTm37xLfpaxl97AVtbeOsHew==
   dependencies:
-    "@ai-sdk/provider-utils" "2.1.13"
-    "@ai-sdk/ui-utils" "1.1.19"
+    json-schema "^0.4.0"
+
+"@ai-sdk/react@1.2.2":
+  version "1.2.2"
+  resolved "https://registry.npmjs.org/@ai-sdk/react/-/react-1.2.2.tgz"
+  integrity sha512-rxyNTFjUd3IilVOJFuUJV5ytZBYAIyRi50kFS2gNmSEiG4NHMBBm31ddrxI/i86VpY8gzZVp1/igtljnWBihUA==
+  dependencies:
+    "@ai-sdk/provider-utils" "2.2.1"
+    "@ai-sdk/ui-utils" "1.2.1"
     swr "^2.2.5"
     throttleit "2.1.0"
 
-"@ai-sdk/ui-utils@1.1.19":
-  version "1.1.19"
-  resolved "https://registry.npmjs.org/@ai-sdk/ui-utils/-/ui-utils-1.1.19.tgz"
-  integrity sha512-rDHy2uxlPMt3jjS9L6mBrsfhEInZ5BVoWevmD13fsAt2s/XWy2OwwKmgmUQkdLlY4mn/eyeYAfDGK8+5CbOAgg==
+"@ai-sdk/ui-utils@1.2.1":
+  version "1.2.1"
+  resolved "https://registry.npmjs.org/@ai-sdk/ui-utils/-/ui-utils-1.2.1.tgz"
+  integrity sha512-BzvMbYm7LHBlbWuLlcG1jQh4eu14MGpz7L+wrGO1+F4oQ+O0fAjgUSNwPWGlZpKmg4NrcVq/QLmxiVJrx2R4Ew==
   dependencies:
-    "@ai-sdk/provider" "1.0.11"
-    "@ai-sdk/provider-utils" "2.1.13"
+    "@ai-sdk/provider" "1.1.0"
+    "@ai-sdk/provider-utils" "2.2.1"
     zod-to-json-schema "^3.24.1"
 
 "@ampproject/remapping@^2.2.0":
@@ -3522,6 +3521,13 @@
   dependencies:
     "@types/node" "*"
 
+"@types/commander@^2.12.0":
+  version "2.12.0"
+  resolved "https://registry.npmjs.org/@types/commander/-/commander-2.12.0.tgz"
+  integrity sha512-DDmRkovH7jPjnx7HcbSnqKg2JeNANyxNZeUvB0iE+qKBLN+vzN5iSIwt+J2PFSmBuYEut4mgQvI/fTX9YQH/vw==
+  dependencies:
+    commander "*"
+
 "@types/connect@*", "@types/connect@3.4.38":
   version "3.4.38"
   resolved "https://registry.npmjs.org/@types/connect/-/connect-3.4.38.tgz"
@@ -3957,17 +3963,16 @@ agentkeepalive@^4.2.1, agentkeepalive@^4.5.0:
   dependencies:
     humanize-ms "^1.2.1"
 
-ai@^4.0.0, ai@^4.1.54:
-  version "4.1.61"
-  resolved "https://registry.npmjs.org/ai/-/ai-4.1.61.tgz"
-  integrity sha512-Y9SAyGJEeW23F6C7PSHZXYNEvbH2cqJm0rVW2AoeFaXFT13ttx8rAqs8wz2w466C1UB329yl5PXayFcHqofSEA==
+ai@^4.0.0, ai@^4.1.54, ai@^4.2.5:
+  version "4.2.5"
+  resolved "https://registry.npmjs.org/ai/-/ai-4.2.5.tgz"
+  integrity sha512-URJEslI3cgF/atdTJHtz+Sj0W1JTmiGmD3znw9KensL3qV605odktDim+GTazNJFPR4QaIu1lUio5b8RymvOjA==
   dependencies:
-    "@ai-sdk/provider" "1.0.11"
-    "@ai-sdk/provider-utils" "2.1.13"
-    "@ai-sdk/react" "1.1.23"
-    "@ai-sdk/ui-utils" "1.1.19"
+    "@ai-sdk/provider" "1.1.0"
+    "@ai-sdk/provider-utils" "2.2.1"
+    "@ai-sdk/react" "1.2.2"
+    "@ai-sdk/ui-utils" "1.2.1"
     "@opentelemetry/api" "1.9.0"
-    eventsource-parser "^3.0.0"
     jsondiffpatch "0.6.0"
 
 ajv@^8.17.1:
@@ -4634,6 +4639,11 @@ combined-stream@^1.0.8:
   integrity sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==
   dependencies:
     delayed-stream "~1.0.0"
+
+commander@*, commander@^13.1.0:
+  version "13.1.0"
+  resolved "https://registry.npmjs.org/commander/-/commander-13.1.0.tgz"
+  integrity sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw==
 
 commondir@^1.0.1:
   version "1.0.1"

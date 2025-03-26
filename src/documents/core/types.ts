@@ -63,6 +63,8 @@ export interface ScrapingResult {
   stats?: {
     /** 抓取的文档数量 */
     totalChunks: number;
+    /** 存储的文档数量 */
+    storedChunks?: number;
     /** 抓取的页面数量 */
     totalPages?: number;
     /** 抓取耗时(毫秒) */

@@ -87,7 +87,7 @@ export async function askCkbQuestion(question: string): Promise<string> {
       console.log('响应对象属性:', Object.keys(response as any));
     }
     
-    return formatAgentResponseRag(response, []);
+    return String(response);
   } catch (error) {
     console.error('询问问题时出错:');
     console.error(error instanceof Error ? error.stack : JSON.stringify(error, null, 2));
