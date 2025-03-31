@@ -87,9 +87,11 @@ async function startCkbBot() {
     console.log('正在启动 CKB 文档问答 Discord Bot...');
 
     // 获取允许的频道列表（如果有）
-    const allowedChannels = process.env.ALLOWED_CHANNEL_IDS
-      ? process.env.ALLOWED_CHANNEL_IDS.split(',')
-      : [];
+    const allowedChannels = process.env.ALLOWED_CHANNEL_IDS === '*' 
+      ? []  // 如果配置为 * 则表示监听所有频道
+      : process.env.ALLOWED_CHANNEL_IDS
+        ? process.env.ALLOWED_CHANNEL_IDS.split(',')
+        : [];
 
     // 检查命令行参数
     const args = process.argv.slice(2);

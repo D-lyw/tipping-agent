@@ -4,11 +4,63 @@
  * 基于Mastra框架实现的CKB文档RAG智能体，用于回答与CKB生态相关的技术问题
  */
 
-import { Agent } from '@mastra/core/agent';
-// 重新导入 openai 函数
 import { openai } from '@ai-sdk/openai';
+import { Agent } from '@mastra/core/agent';
+import { MastraMemory } from '@mastra/core';
+import { Memory } from "@mastra/memory";
+import { PostgresStore } from "@mastra/pg";
 import { ckbDocumentRetrievalTool, formatAgentResponse } from '../tools/ckbDoc.js';
 import { ckbDocumentVectorSearchTool, formatAgentResponseRag } from '../tools/ckbDocRag.js';
+
+// 数据库配置
+const AGENT_DATABASE_URL = process.env.AGENT_MEMORY_DATABASE_URL || "postgresql://user:pass@localhost:5432/agent_memory";
+const AGENT_MEMORY_SCHEMA = process.env.AGENT_MEMORY_SCHEMA || "agent_memory";
+
+// Memory 配置
+const MEMORY_CONFIG = {
+  lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES || "20"),
+  semanticRecallTopK: parseInt(process.env.MEMORY_SEMANTIC_RECALL_TOP_K || "10"),
+  messageRange: parseInt(process.env.MEMORY_MESSAGE_RANGE || "10"),
+  cleanupDays: parseInt(process.env.MEMORY_CLEANUP_DAYS || "30"),
+};
+
+/**
+ * Memory 实例
+ * 使用 PostgreSQL 作为存储后端，支持 schema 隔离
+ */
+const memory = new Memory({
+  storage: new PostgresStore({
+    connectionString: AGENT_DATABASE_URL,
+  }),
+  embedder: openai.embedding("text-embedding-3-small"),
+  options: {
+    lastMessages: MEMORY_CONFIG.lastMessages,
+    semanticRecall: {
+      topK: MEMORY_CONFIG.semanticRecallTopK,
+      messageRange: {
+        before: MEMORY_CONFIG.messageRange,
+        after: MEMORY_CONFIG.messageRange,
+      },
+    },
+    workingMemory: {
+      enabled: true,
+      template: `<user_context>
+        <preferences>
+          <language></language>
+          <notification_preference></notification_preference>
+        </preferences>
+        <ckb_context>
+          <favorite_topics></favorite_topics>
+          <known_concepts></known_concepts>
+          <interaction_history>
+            <question_history></question_history>
+            <document_history></document_history>
+          </interaction_history>
+        </ckb_context>
+      </user_context>`
+    },
+  },
+}) as any;
 
 // 智能体的系统提示信息
 const SYSTEM_PROMPT = `你是一个名叫神经二狗的智能体， 英文名：Nerve Puppy，你有两方面的责任和能力：
@@ -68,6 +120,7 @@ export const ckbDocAgent = new Agent({
     ckbDocumentRetrievalTool, 
     ckbDocumentVectorSearchTool  // 添加新的向量搜索工具
   },
+  memory, // 添加 memory 支持
 });
 
 /**
