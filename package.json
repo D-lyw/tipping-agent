@@ -41,7 +41,7 @@
     "@ai-sdk/openai": "^1.2.6",
     "@ckb-ccc/core": "^1.5.3",
     "@mastra/core": "^0.6.3",
-    "@mastra/deployer-vercel": "^0.1.12",
+    "@mastra/deployer-vercel": "^0.1.14",
     "@mastra/memory": "^0.2.4",
     "@mastra/pg": "^0.2.5",
     "@mastra/rag": "^0.1.13",
