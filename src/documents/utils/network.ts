@@ -105,7 +105,8 @@ export async function fetchWithRetry<T = any>(
   while (true) {
     try {
       logger.debug(`请求 ${url}, 重试次数: ${retryCount}`);
-      return await axios(url, options);
+      const axiosInstance = axios.default;
+      return await axiosInstance({ url, ...options });
     } catch (error) {
       // 如果是可重试错误，并且还有重试次数
       if (isRetryableError(error, config) && retryCount < config.maxRetries) {
