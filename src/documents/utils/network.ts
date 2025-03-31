@@ -4,7 +4,7 @@
  * 提供网络请求相关的工具函数
  */
 
-import axios, { AxiosRequestConfig, AxiosError, AxiosResponse } from 'axios';
+import * as axios from 'axios';
 import { createLogger } from './logger.js';
 import { delay } from './helpers';
 import { 
@@ -46,7 +46,7 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
 /**
  * 判断是否为API速率限制错误
  */
-function isRateLimitError(error: AxiosError): boolean {
+function isRateLimitError(error: axios.AxiosError): boolean {
   return !!(
     error.response && 
     error.response.status === 429 || 
@@ -63,7 +63,7 @@ function isRetryableError(error: unknown, config: RetryConfig): boolean {
     return false;
   }
   
-  const axiosError = error as AxiosError;
+  const axiosError = error as axios.AxiosError;
   
   // 网络错误或特定HTTP状态码可以重试
   if (axiosError.code === 'ECONNABORTED' || axiosError.code === 'ETIMEDOUT' || !axiosError.response) {
@@ -88,9 +88,9 @@ function isRetryableError(error: unknown, config: RetryConfig): boolean {
  */
 export async function fetchWithRetry<T = any>(
   url: string, 
-  options: AxiosRequestConfig,
+  options: axios.AxiosRequestConfig,
   retryConfig: Partial<RetryConfig> = {}
-): Promise<AxiosResponse<T>> {
+): Promise<axios.AxiosResponse<T>> {
   // 合并重试配置
   const config: RetryConfig = {
     ...DEFAULT_RETRY_CONFIG,
@@ -112,7 +112,7 @@ export async function fetchWithRetry<T = any>(
         retryCount++;
         
         // 是否为速率限制错误
-        const isRateLimit = axios.isAxiosError(error) && isRateLimitError(error as AxiosError);
+        const isRateLimit = axios.isAxiosError(error) && isRateLimitError(error as axios.AxiosError);
         
         // 对于速率限制错误，使用更长的延迟
         const delayTime = isRateLimit ? currentDelay * 2 : currentDelay;
@@ -130,7 +130,7 @@ export async function fetchWithRetry<T = any>(
       } else {
         // 无法重试，抛出错误
         if (axios.isAxiosError(error)) {
-          const axiosError = error as AxiosError;
+          const axiosError = error as axios.AxiosError;
           if (isRateLimitError(axiosError)) {
             throw createNetworkError(`API速率限制错误: ${axiosError.message}`, axiosError as any);
           } else if (axiosError.code === 'ECONNABORTED' || axiosError.code === 'ETIMEDOUT') {
@@ -150,7 +150,7 @@ export async function fetchWithRetry<T = any>(
 /**
  * 安全的HTTP GET请求
  */
-export async function safeGet<T = any>(url: string, options: AxiosRequestConfig = {}): Promise<T> {
+export async function safeGet<T = any>(url: string, options: axios.AxiosRequestConfig = {}): Promise<T> {
   return await safeExecute(async () => {
     const response = await fetchWithRetry<T>(url, {
       method: 'GET',
@@ -163,7 +163,7 @@ export async function safeGet<T = any>(url: string, options: AxiosRequestConfig 
 /**
  * 安全的HTTP POST请求
  */
-export async function safePost<T = any, D = any>(url: string, data?: D, options: AxiosRequestConfig = {}): Promise<T> {
+export async function safePost<T = any, D = any>(url: string, data?: D, options: axios.AxiosRequestConfig = {}): Promise<T> {
   return await safeExecute(async () => {
     const response = await fetchWithRetry<T>(url, {
       method: 'POST',

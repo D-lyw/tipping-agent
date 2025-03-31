@@ -134,6 +134,7 @@ export class CkbDiscordBot {
         if (
           this.config.channelIds && 
           this.config.channelIds.length > 0 && 
+          this.config.channelIds[0] !== '*' &&  // 添加对 * 的特殊处理
           message.channelId && 
           !this.config.channelIds.includes(message.channelId)
         ) {

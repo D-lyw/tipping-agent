@@ -11,7 +11,7 @@ import * as dotenv from 'dotenv';
 // 加载环境变量
 dotenv.config();
 
-const deployer = new VercelDeployer({
+const vercelDeployer = new VercelDeployer({
   teamSlug: process.env.VERCEL_TEAM_SLUG ?? "",
   projectName: process.env.MASTRA_PROJECT_NAME ?? "",
   token: process.env.MASTRA_VERCEL_TOKEN ?? "",
@@ -19,12 +19,12 @@ const deployer = new VercelDeployer({
 
 // 使用最简单的配置
 export const mastra = new Mastra({
-  deployer,
+  deployer: vercelDeployer as any,
   workflows: {
-    ckbWorkflow,
+    ckbWorkflow: ckbWorkflow as any,
     // tappingWorkflow, 
     // xWorkflow, 
-    nostrContentTappingWorkflow
+    nostrContentTappingWorkflow: nostrContentTappingWorkflow as any
   },
   agents: {
     tappingAgent,

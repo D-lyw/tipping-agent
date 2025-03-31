@@ -42,5 +42,5 @@ export const xAgent = new Agent({
     likeTweetTool,
     getTweetRepliesTools
   },
-  memory: new Memory()
+  // memory: new Memory()
 }); 

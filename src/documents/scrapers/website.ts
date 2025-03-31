@@ -3,7 +3,7 @@
  * 实现真正的流式处理架构
  */
 
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import type { AxiosRequestConfig, AxiosResponse, AxiosInstance } from 'axios';
 import * as cheerio from 'cheerio';
 import FirecrawlApp from '@mendable/firecrawl-js';
 import {
@@ -34,6 +34,16 @@ import { MastraVectorStore } from '../storage/mastra-vector-store.js';
 
 // 初始化日志记录器
 const logger = createLogger('WebScraper');
+
+// 动态导入 axios 并创建实例
+let axiosInstance: AxiosInstance | null = null;
+const getAxios = async () => {
+  if (!axiosInstance) {
+    const module = await import('axios');
+    axiosInstance = module.default;
+  }
+  return axiosInstance;
+};
 
 // 为Firecrawl V1 API的接口定义类型
 interface FirecrawlCrawlParams {
@@ -143,6 +153,7 @@ export async function scrapeWebsiteWithFirecrawl(
   const startTime = Date.now();
 
   try {
+    const axios = await getAxios();
     // 检查API密钥
     if (!FIRECRAWL_API_KEY) {
       logger.warn('未找到Firecrawl API密钥，回退到传统抓取方法');
@@ -465,6 +476,7 @@ export async function scrapeWebsiteOriginalStream(
   let vectorStore: MastraVectorStore | null = null;
   
   try {
+    const axios = await getAxios();
     // 如果没有提供回调函数，初始化向量存储
     if (!chunkProcessor) {
       if (!OPENAI_API_KEY) {
