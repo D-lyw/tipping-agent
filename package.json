@@ -3,10 +3,16 @@
   "version": "0.1.0",
   "type": "module",
   "main": "index.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.4",
   "mastra": {
     "entry": "src/mastra/index.ts"
   },
   "scripts": {
+    "preinstall": "node scripts/preinstall.js",
     "build": "tsc",
     "start": "tsx src/index.ts",
     "dev": "NODE_OPTIONS='--max-old-space-size=8192 --expose-gc' tsx src/index.ts",
@@ -45,8 +51,8 @@
     "@ckb-ccc/core": "^1.5.3",
     "@libsql/client": "^0.15.1",
     "@mastra/core": "0.7.0",
-    "@mastra/deployer": "0.2.5-alpha.3",
-    "@mastra/deployer-vercel": "0.1.14-alpha.3",
+    "@mastra/deployer": "0.2.5",
+    "@mastra/deployer-vercel": "0.1.14",
     "@mastra/memory": "0.2.6",
     "@mastra/pg": "0.2.6",
     "@mastra/rag": "^0.1.13",

@@ -116,9 +116,6 @@ async function startCkbBot() {
       token: process.env.DISCORD_BOT_TOKEN!,
       prefix: process.env.BOT_PREFIX || '!ckb',
       channelIds: allowedChannels.length > 0 ? allowedChannels : undefined,
-      openaiApiKey: process.env.OPENAI_API_KEY,
-      modelName: process.env.MODEL_NAME,
-      memorySize: process.env.MEMORY_SIZE ? parseInt(process.env.MEMORY_SIZE) : undefined
     });
 
     // 启动 Bot

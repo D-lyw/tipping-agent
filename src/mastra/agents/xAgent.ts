@@ -2,6 +2,18 @@ import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
 import { searchTweetsTool, postTweetTool, replyToTweetTool, getUserTimelineTool, likeTweetTool, getTweetRepliesTools } from '../tools/x';
 import { Memory } from '@mastra/memory';
+import { PgVector, PostgresStore } from '@mastra/pg';
+
+// 数据库配置
+const AGENT_DATABASE_URL = process.env.AGENT_MEMORY_DATABASE_URL || "postgresql://user:pass@localhost:5432/agent_memory";
+
+const memory = new Memory({
+  storage: new PostgresStore({
+    connectionString: AGENT_DATABASE_URL,
+  }),
+  vector: new PgVector(AGENT_DATABASE_URL),
+  embedder: openai.embedding("text-embedding-3-small"),
+});
 
 /**
  * Twitter/X 助手 Agent
@@ -42,5 +54,5 @@ export const xAgent = new Agent({
     likeTweetTool,
     getTweetRepliesTools
   },
-  // memory: new Memory()
+  memory
 }); 

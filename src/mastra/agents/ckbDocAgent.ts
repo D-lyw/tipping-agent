@@ -6,15 +6,13 @@
 
 import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
-import { MastraMemory } from '@mastra/core';
 import { Memory } from "@mastra/memory";
-import { PostgresStore } from "@mastra/pg";
-import { ckbDocumentRetrievalTool, formatAgentResponse } from '../tools/ckbDoc.js';
-import { ckbDocumentVectorSearchTool, formatAgentResponseRag } from '../tools/ckbDocRag.js';
+import { PostgresStore, PgVector } from "@mastra/pg";
+import { ckbDocumentRetrievalTool } from '../tools/ckbDoc.js';
+import { ckbDocumentVectorSearchTool } from '../tools/ckbDocRag.js';
 
 // 数据库配置
 const AGENT_DATABASE_URL = process.env.AGENT_MEMORY_DATABASE_URL || "postgresql://user:pass@localhost:5432/agent_memory";
-const AGENT_MEMORY_SCHEMA = process.env.AGENT_MEMORY_SCHEMA || "agent_memory";
 
 // Memory 配置
 const MEMORY_CONFIG = {
@@ -23,44 +21,6 @@ const MEMORY_CONFIG = {
   messageRange: parseInt(process.env.MEMORY_MESSAGE_RANGE || "10"),
   cleanupDays: parseInt(process.env.MEMORY_CLEANUP_DAYS || "30"),
 };
-
-/**
- * Memory 实例
- * 使用 PostgreSQL 作为存储后端，支持 schema 隔离
- */
-const memory = new Memory({
-  storage: new PostgresStore({
-    connectionString: AGENT_DATABASE_URL,
-  }),
-  embedder: openai.embedding("text-embedding-3-small"),
-  options: {
-    lastMessages: MEMORY_CONFIG.lastMessages,
-    semanticRecall: {
-      topK: MEMORY_CONFIG.semanticRecallTopK,
-      messageRange: {
-        before: MEMORY_CONFIG.messageRange,
-        after: MEMORY_CONFIG.messageRange,
-      },
-    },
-    workingMemory: {
-      enabled: true,
-      template: `<user_context>
-        <preferences>
-          <language></language>
-          <notification_preference></notification_preference>
-        </preferences>
-        <ckb_context>
-          <favorite_topics></favorite_topics>
-          <known_concepts></known_concepts>
-          <interaction_history>
-            <question_history></question_history>
-            <document_history></document_history>
-          </interaction_history>
-        </ckb_context>
-      </user_context>`
-    },
-  },
-}) as any;
 
 // 智能体的系统提示信息
 const SYSTEM_PROMPT = `你是一个名叫神经二狗的智能体， 英文名：Nerve Puppy，你有两方面的责任和能力：
@@ -112,15 +72,34 @@ const SYSTEM_PROMPT = `你是一个名叫神经二狗的智能体， 英文名�
  * CKB 文档问答智能体
  */
 export const ckbDocAgent = new Agent({
-  name: 'CKB docs agent',
-  instructions: process.env.CKB_AGENT_PROMPT || SYSTEM_PROMPT,
+  name: "CKB Doc Agent",
+  memory: new Memory({
+    storage: new PostgresStore({
+      connectionString: AGENT_DATABASE_URL,
+    }),
+    vector: new PgVector(AGENT_DATABASE_URL),
+    embedder: openai.embedding("text-embedding-3-small"),
+    options: {
+      lastMessages: MEMORY_CONFIG.lastMessages,
+      semanticRecall: {
+        topK: MEMORY_CONFIG.semanticRecallTopK,
+        messageRange: {
+          before: MEMORY_CONFIG.messageRange,
+          after: MEMORY_CONFIG.messageRange,
+        },
+      },
+      workingMemory: {
+        enabled: true,
+      },
+    },
+  }),
+  instructions: SYSTEM_PROMPT,
   // @ts-ignore - 忽略类型错误，该错误是由于依赖包版本不兼容导致
   model: openai(process.env.MODEL_NAME || 'gpt-4-turbo-preview'),
-  tools: { 
-    ckbDocumentRetrievalTool, 
+  tools: {
+    ckbDocumentRetrievalTool,
     ckbDocumentVectorSearchTool  // 添加新的向量搜索工具
   },
-  memory, // 添加 memory 支持
 });
 
 /**
@@ -129,21 +108,21 @@ export const ckbDocAgent = new Agent({
 export async function askCkbQuestion(question: string): Promise<string> {
   try {
     console.log(`尝试向智能体发送问题: "${question}"`);
-    
+
     // 使用 agent.generate 与 agent 交互，直接传递问题字符串
     const response = await ckbDocAgent.generate(question);
-    
+
     // 调试输出响应对象的结构
     console.log('收到智能体响应:');
     console.log('响应类型:', typeof response);
-    
+
     try {
       console.log('响应结构:', JSON.stringify(response, null, 2));
     } catch (error) {
       console.log('无法序列化响应对象');
       console.log('响应对象属性:', Object.keys(response as any));
     }
-    
+
     return String(response);
   } catch (error) {
     console.error('询问问题时出错:');
@@ -160,16 +139,16 @@ export async function askCkbQuestion(question: string): Promise<string> {
 export async function streamCkbQuestion(question: string) {
   try {
     console.log(`尝试向智能体发送流式问题: "${question}"`);
-    
+
     // 使用 agent.stream 与 agent 交互，获取流式响应
     const streamResponse = await ckbDocAgent.stream(question);
-    
+
     // 返回流式响应对象
     return streamResponse;
   } catch (error) {
     console.error('流式询问问题时出错:');
     console.error(error instanceof Error ? error.stack : JSON.stringify(error, null, 2));
-    
+
     // 创建一个特殊的异步生成器，表示错误情况
     const errorMessage = error instanceof Error ? error.message : '未知错误';
     const errorStream = {
@@ -177,7 +156,7 @@ export async function streamCkbQuestion(question: string) {
         yield `抱歉，处理您的问题时遇到了错误: ${errorMessage}`;
       })()
     };
-    
+
     return errorStream;
   }
 } 

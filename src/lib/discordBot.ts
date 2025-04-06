@@ -5,8 +5,8 @@
  */
 
 import { Client, Events, GatewayIntentBits, Message, TextChannel } from 'discord.js';
-import { ckbDocAgent, askCkbQuestion, streamCkbQuestion } from '../mastra/agents/ckbDocAgent';
-import { createDocumentManager } from '../documents';
+import { streamCkbQuestion } from '../mastra/agents/ckbDocAgent';
+// import { createDocumentManager } from '../documents';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -16,9 +16,6 @@ export interface DiscordBotConfig {
   token: string;
   prefix: string;
   channelIds?: string[];
-  openaiApiKey?: string; // 保留以兼容现有代码
-  modelName?: string;    // 保留以兼容现有代码
-  memorySize?: number;   // 保留以兼容现有代码
 }
 
 // 命令类型
@@ -60,16 +57,15 @@ export class CkbDiscordBot {
     // 帮助命令
     this.commands.set('help', async (message, args) => {
       const helpText = `
-**CKB文档问答机器人使用帮助**
+**神经二狗使用帮助**
 
 直接提问：
   ${this.config.prefix} 你的问题
-  或者直接提及机器人 @CKB文档助手 你的问题
+  或者直接提及 @神经二狗 你的问题
   或者通过私信发送问题
 
 可用命令：
   ${this.config.prefix} help - 显示此帮助信息
-  ${this.config.prefix} refresh - 刷新文档缓存
   ${this.config.prefix} info - 显示Bot信息
   ${this.config.prefix} clear - 清除对话历史
 
@@ -80,31 +76,30 @@ export class CkbDiscordBot {
     });
     
     // 刷新文档缓存命令
-    this.commands.set('refresh', async (message, args) => {
-      const refreshMessage = await message.reply('正在刷新文档缓存，请稍候...');
-      try {
-        const docManager = createDocumentManager();
-        await docManager.initialize();
-        // 先清空缓存
-        await docManager.clearCache();
-        // 然后重新获取所有文档
-        await docManager.fetchAllSources();
-        await refreshMessage.edit('文档缓存已刷新。');
-      } catch (error) {
-        console.error('刷新文档缓存失败:', error);
-        await refreshMessage.edit('刷新文档缓存失败，请查看日志。');
-      }
-    });
+    // this.commands.set('refresh', async (message, args) => {
+    //   const refreshMessage = await message.reply('正在刷新文档缓存，请稍候...');
+    //   try {
+    //     const docManager = createDocumentManager();
+    //     await docManager.initialize();
+    //     // 先清空缓存
+    //     await docManager.clearCache();
+    //     // 然后重新获取所有文档
+    //     await docManager.fetchAllSources();
+    //     await refreshMessage.edit('文档缓存已刷新。');
+    //   } catch (error) {
+    //     console.error('刷新文档缓存失败:', error);
+    //     await refreshMessage.edit('刷新文档缓存失败，请查看日志。');
+    //   }
+    // });
     
     // 显示Bot信息命令
     this.commands.set('info', async (message, args) => {
       const infoText = `
-**CKB文档问答机器人信息**
+**神经二狗信息**
 
 状态：${this.isRunning() ? '✅ 运行中' : '❌ 未运行'}
 命令前缀：${this.config.prefix}
 使用的模型：${process.env.CKB_AGENT_MODEL || process.env.MODEL_NAME || 'gpt-4-turbo-preview'}
-记忆大小：${process.env.CKB_AGENT_MEMORY_SIZE || process.env.MEMORY_SIZE || '10'} 条消息
 启动时间：${new Date(this.client.readyTimestamp || Date.now()).toLocaleString()}
 `;
       await message.reply(infoText);
@@ -205,7 +200,7 @@ export class CkbDiscordBot {
           // 上次更新消息的时间戳，用于控制更新频率
           let lastUpdateTime = Date.now();
           // 更新间隔 (毫秒)
-          const UPDATE_INTERVAL = 500;
+          const UPDATE_INTERVAL = 200;
           
           // 首次更新消息内容
           await thinkingMessage.edit('正在生成回答: ');
@@ -357,8 +352,7 @@ export class CkbDiscordBot {
       console.log(`使用配置:
 - 命令前缀: ${this.config.prefix}
 - 允许的频道: ${this.config.channelIds?.join(', ') || '所有频道'}
-- 模型: ${process.env.CKB_AGENT_MODEL || process.env.MODEL_NAME || 'gpt-4-turbo-preview'}
-- 记忆大小: ${process.env.CKB_AGENT_MEMORY_SIZE || process.env.MEMORY_SIZE || '10'} 条消息`);
+- 模型: ${process.env.CKB_AGENT_MODEL || process.env.MODEL_NAME || 'gpt-4-turbo-preview'}`);
       
       // 登录Discord
       await this.client.login(this.config.token);
@@ -449,7 +443,7 @@ export class CkbDiscordBot {
       // 上次更新消息的时间戳
       let lastUpdateTime = Date.now();
       // 更新间隔 (毫秒)
-      const UPDATE_INTERVAL = 500;
+      const UPDATE_INTERVAL = 200;
       
       // 处理流式响应
       const contentStream = getContentStream();
@@ -526,7 +520,7 @@ export class CkbDiscordBot {
       // 上次更新消息的时间戳
       let lastUpdateTime = Date.now();
       // 更新间隔 (毫秒)
-      const UPDATE_INTERVAL = 500;
+      const UPDATE_INTERVAL = 200;
       
       // 首次更新消息内容
       await initialMessage.edit('正在生成回答: ');
