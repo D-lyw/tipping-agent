@@ -2,26 +2,13 @@ import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
 import { MastraMemory } from '@mastra/core';
 import { Memory } from "@mastra/memory";
-import { PostgresStore } from "@mastra/pg";
+import { PostgresStore, PgVector } from "@mastra/pg";
+import { ckbDocumentRetrievalTool } from '../tools/ckbDoc.js';
+import { ckbDocumentVectorSearchTool } from '../tools/ckbDocRag.js';
 
 import { generateCKBAddressTool, getCKBBalanceTool, transferCKBTool } from '../tools';
 import { convertNostrPubkeyToCkbAddressTool } from '../tools/nostr';
 import { xAgent } from './xAgent';
-
-/**
- * TODO(@mastra): 类型兼容性问题
- * 当前存在的问题：
- * 1. @mastra/core (0.7.0-alpha.3) 与 @mastra/memory (0.2.6-alpha.4) 和 @mastra/pg (0.2.6-alpha.4) 版本不匹配
- * 2. 这导致了 Memory、MastraMemory 和 PostgresStore 之间的类型定义不兼容
- * 
- * 临时解决方案：
- * - 使用 `as any` 类型断言暂时绕过类型检查
- * 
- * 未来优化方向：
- * 1. 等待 @mastra/memory 和 @mastra/pg 发布与 @mastra/core@0.7.0 兼容的版本
- * 2. 或者降级 @mastra/core 到与其他包兼容的版本
- * 3. 或者提交 issue 到 Mastra 项目，报告这个类型兼容性问题
- */
 
 /**
  * Agent Memory 数据库配置
@@ -52,10 +39,11 @@ const MEMORY_CONFIG = {
  * Memory 实例
  * 使用 PostgreSQL 作为存储后端，支持 schema 隔离
  */
-const memory = new Memory({
+export const memory = new Memory({
   storage: new PostgresStore({
     connectionString: AGENT_DATABASE_URL,
   }),
+  vector: new PgVector(AGENT_DATABASE_URL),
   embedder: openai.embedding("text-embedding-3-small"),
   options: {
     lastMessages: MEMORY_CONFIG.lastMessages,
@@ -68,23 +56,9 @@ const memory = new Memory({
     },
     workingMemory: {
       enabled: true,
-      template: `<user_context>
-        <preferences>
-          <language></language>
-          <notification_preference></notification_preference>
-        </preferences>
-        <ckb_context>
-          <favorite_topics></favorite_topics>
-          <known_concepts></known_concepts>
-          <interaction_history>
-            <tipping_history></tipping_history>
-            <question_history></question_history>
-          </interaction_history>
-        </ckb_context>
-      </user_context>`
     },
   },
-}) as any;
+});
 
 /**
  * CKB 生态内容激励打赏 Agent
