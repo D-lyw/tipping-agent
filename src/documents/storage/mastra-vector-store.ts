@@ -15,24 +15,20 @@ import { openai } from '@ai-sdk/openai';
 import { MDocument } from '@mastra/rag';
 import { embedMany } from 'ai';
 import { MemoryManager } from '../../utils/memory.js';
+// 导入配置和Mastra实例
+import { 
+  OPENAI_API_KEY, 
+  OPENAI_EMBEDDING_MODEL, 
+  PG_CONNECTION_STRING, 
+  PG_VECTOR_TABLE 
+} from '../core/config.js';
+import { mastra } from '../../mastra/index.js';
 
 // 加载环境变量
 dotenv.config();
 
 // 初始化日志记录器
 const logger = createLogger('MastraVectorStore');
-
-/**
- * OpenAI API配置
- */
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
-const OPENAI_EMBEDDING_MODEL = process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small';
-
-/**
- * 向量数据库配置
- */
-const PG_CONNECTION_STRING = process.env.POSTGRES_CONNECTION_STRING || '';
-const PG_VECTOR_TABLE = process.env.VECTOR_INDEX_NAME || 'document_embeddings';
 
 /**
  * 向量存储配置
@@ -86,12 +82,17 @@ interface EmbeddingResult {
 
 interface MastraVectorStoreOptions {
   apiKey: string;
-  pgConnectionString: string;
+  pgConnectionString?: string; // 保留作为备选
   tablePrefix?: string;
   batchSize?: number;
   embedModel?: string;
 }
 
+/**
+ * Mastra向量存储类
+ * 
+ * 基于Mastra框架的PgVector实现向量存储功能
+ */
 export class MastraVectorStore {
   private apiKey: string;
   private pgConnectionString: string;
@@ -104,9 +105,10 @@ export class MastraVectorStore {
   
   constructor(options: MastraVectorStoreOptions) {
     this.apiKey = options.apiKey;
-    this.pgConnectionString = options.pgConnectionString;
+    this.pgConnectionString = options.pgConnectionString || '';
     this.tablePrefix = options.tablePrefix || 'document_embeddings';
     this.embedModel = options.embedModel || 'text-embedding-3-small';
+    
     if (options.batchSize) {
       this.batchSize = options.batchSize;
     }
@@ -125,14 +127,23 @@ export class MastraVectorStore {
     
     logger.info('初始化Mastra向量存储...');
     
-    if (!this.pgConnectionString) {
-      logger.error('无法初始化向量存储：未提供PostgreSQL连接字符串');
-      return false;
-    }
-    
     try {
-      // 初始化PgVector
-      this.pgPool = new PgVector(this.pgConnectionString);
+      // 尝试从Mastra实例获取pgVector
+      const pgVectorFromMastra = mastra.getVector('pgVector');
+      
+      if (pgVectorFromMastra) {
+        this.pgPool = pgVectorFromMastra;
+        logger.info('从Mastra实例获取到pgVector');
+      } else {
+        // 回退到使用连接字符串创建新实例
+        if (!this.pgConnectionString) {
+          logger.error('无法初始化向量存储：未在Mastra实例中找到pgVector，也未提供PostgreSQL连接字符串');
+          return false;
+        }
+        
+        logger.info('Mastra实例中未找到pgVector，使用连接字符串创建新实例');
+        this.pgPool = new PgVector(this.pgConnectionString);
+      }
       
       // 设置OpenAI API密钥
       if (this.apiKey) {
