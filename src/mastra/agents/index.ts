@@ -1,10 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
-import { MastraMemory } from '@mastra/core';
 import { Memory } from "@mastra/memory";
 import { PostgresStore, PgVector } from "@mastra/pg";
-import { ckbDocumentRetrievalTool } from '../tools/ckbDoc.js';
-import { ckbDocumentVectorSearchTool } from '../tools/ckbDocRag.js';
 
 import { generateCKBAddressTool, getCKBBalanceTool, transferCKBTool } from '../tools';
 import { convertNostrPubkeyToCkbAddressTool } from '../tools/nostr';
@@ -25,7 +22,6 @@ import { xAgent } from './xAgent';
 
 // 数据库配置
 const AGENT_DATABASE_URL = process.env.AGENT_MEMORY_DATABASE_URL || "postgresql://user:pass@localhost:5432/agent_memory";
-const AGENT_MEMORY_SCHEMA = process.env.AGENT_MEMORY_SCHEMA || "agent_memory";
 
 // Memory 配置
 const MEMORY_CONFIG = {

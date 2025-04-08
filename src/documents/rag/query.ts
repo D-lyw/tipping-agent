@@ -11,6 +11,14 @@ import { createLogger } from '../utils/logger';
 import { safeExecute } from '../utils/errors';
 import { createDocumentManager } from '../index';
 import * as dotenv from 'dotenv';
+// 导入 Mastra 实例以获取 pgVector
+import { mastra } from '../../mastra/index.js';
+// 导入配置
+import { 
+  OPENAI_API_KEY, 
+  PG_VECTOR_TABLE,
+  DEFAULT_BATCH_SIZE
+} from '../core/config.js';
 
 // 加载环境变量
 dotenv.config();
@@ -19,9 +27,6 @@ dotenv.config();
 const logger = createLogger('RagQuery');
 
 // 配置
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
-const PG_CONNECTION_STRING = process.env.PG_CONNECTION_STRING || process.env.POSTGRES_CONNECTION_STRING || '';
-const PG_VECTOR_TABLE = process.env.PG_VECTOR_TABLE || process.env.VECTOR_INDEX_NAME || 'document_embeddings';
 const DEFAULT_LIMIT = 5;
 const MAX_DOCS = process.env.MAX_DOCS ? parseInt(process.env.MAX_DOCS, 10) : undefined;
 
@@ -35,17 +40,13 @@ export async function getVectorStore(): Promise<MastraVectorStore> {
   if (!vectorStore) {
     logger.info('初始化向量存储...');
     
-    if (!PG_CONNECTION_STRING) {
-      throw new Error('未配置PostgreSQL连接字符串，请在.env文件中设置PG_CONNECTION_STRING');
-    }
-    
     if (!OPENAI_API_KEY) {
       throw new Error('未配置OpenAI API密钥，请在.env文件中设置OPENAI_API_KEY');
     }
     
+    // 创建向量存储实例 - MastraVectorStore会自动获取Mastra中的pgVector
     vectorStore = new MastraVectorStore({
       apiKey: OPENAI_API_KEY,
-      pgConnectionString: PG_CONNECTION_STRING,
       tablePrefix: PG_VECTOR_TABLE
     });
     

@@ -4,7 +4,7 @@
  * 实现与Discord用户的交互，接收问题并调用CKB文档智能体返回答案
  */
 
-import { Client, Events, GatewayIntentBits, Message, TextChannel } from 'discord.js';
+import { Client, Events, GatewayIntentBits, Message, TextChannel, ChannelType, Partials } from 'discord.js';
 import { streamCkbQuestion } from '../mastra/agents/ckbDocAgent';
 // import { createDocumentManager } from '../documents';
 import dotenv from 'dotenv';
@@ -43,6 +43,10 @@ export class CkbDiscordBot {
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.DirectMessages
+      ],
+      partials: [
+        Partials.Channel,  // 添加对部分 DM 频道的支持
+        Partials.Message   // 添加对部分消息的支持
       ]
     });
     
@@ -137,7 +141,7 @@ export class CkbDiscordBot {
         }
         
         // 检查消息是否以前缀开头或者是私信
-        const isDM = message.channel.isDMBased();
+        const isDM = message.channel.type === ChannelType.DM;
         const mentionedBot = message.mentions.users.has(this.client.user!.id);
         const startsWithPrefix = message.content.startsWith(this.config.prefix);
         

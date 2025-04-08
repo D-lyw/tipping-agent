@@ -6,11 +6,13 @@
 
 import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
+import { vectorQueryTool } from '../tools/vectorQueryTool.js';
 import { Memory } from "@mastra/memory";
 import { PostgresStore, PgVector } from "@mastra/pg";
-import { ckbDocumentRetrievalTool } from '../tools/ckbDoc.js';
-import { ckbDocumentVectorSearchTool } from '../tools/ckbDocRag.js';
 
+/**
+ * Agent Memory 数据库配置
+ */
 // 数据库配置
 const AGENT_DATABASE_URL = process.env.AGENT_MEMORY_DATABASE_URL || "postgresql://user:pass@localhost:5432/agent_memory";
 
@@ -21,6 +23,30 @@ const MEMORY_CONFIG = {
   messageRange: parseInt(process.env.MEMORY_MESSAGE_RANGE || "10"),
   cleanupDays: parseInt(process.env.MEMORY_CLEANUP_DAYS || "30"),
 };
+
+/**
+ * 创建 ckbDocAgent 使用的独立 Memory 实例
+ */
+const ckbDocMemory = new Memory({
+  storage: new PostgresStore({
+    connectionString: AGENT_DATABASE_URL,
+  }),
+  vector: new PgVector(AGENT_DATABASE_URL),
+  embedder: openai.embedding("text-embedding-3-small"),
+  options: {
+    lastMessages: MEMORY_CONFIG.lastMessages,
+    semanticRecall: {
+      topK: MEMORY_CONFIG.semanticRecallTopK,
+      messageRange: {
+        before: MEMORY_CONFIG.messageRange,
+        after: MEMORY_CONFIG.messageRange,
+      },
+    },
+    workingMemory: {
+      enabled: true,
+    },
+  },
+});
 
 // 智能体的系统提示信息
 const SYSTEM_PROMPT = `你是一个名叫神经二狗的智能体， 英文名：Nerve Puppy，你有两方面的责任和能力：
@@ -73,32 +99,11 @@ const SYSTEM_PROMPT = `你是一个名叫神经二狗的智能体， 英文名�
  */
 export const ckbDocAgent = new Agent({
   name: "CKB Doc Agent",
-  memory: new Memory({
-    storage: new PostgresStore({
-      connectionString: AGENT_DATABASE_URL,
-    }),
-    vector: new PgVector(AGENT_DATABASE_URL),
-    embedder: openai.embedding("text-embedding-3-small"),
-    options: {
-      lastMessages: MEMORY_CONFIG.lastMessages,
-      semanticRecall: {
-        topK: MEMORY_CONFIG.semanticRecallTopK,
-        messageRange: {
-          before: MEMORY_CONFIG.messageRange,
-          after: MEMORY_CONFIG.messageRange,
-        },
-      },
-      workingMemory: {
-        enabled: true,
-      },
-    },
-  }),
+  memory: ckbDocMemory, // 使用独立的 memory 实例
   instructions: SYSTEM_PROMPT,
-  // @ts-ignore - 忽略类型错误，该错误是由于依赖包版本不兼容导致
   model: openai(process.env.MODEL_NAME || 'gpt-4-turbo-preview'),
   tools: {
-    ckbDocumentRetrievalTool,
-    ckbDocumentVectorSearchTool  // 添加新的向量搜索工具
+    vectorQueryTool
   },
 });
 
