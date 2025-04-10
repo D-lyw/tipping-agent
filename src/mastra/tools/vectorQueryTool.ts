@@ -22,7 +22,7 @@ export const vectorQueryTool = createVectorQueryTool({
   indexName: process.env.PG_VECTOR_TABLE,
   model: openai.embedding(process.env.OPENAI_EMBEDDING_MODEL),
   id: 'ckb_vector_search',
-  description: '使用向量相似度在CKB生态文档中搜索与查询最相关的内容'
+  description: '在CKB生态文档中搜索与查询最相关的内容, 包括所有文档和代码'
 });
 
 /**

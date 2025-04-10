@@ -17,10 +17,10 @@ import {
  */
 export const ckbDocumentVectorSearchTool = {
   id: "ckb_document_vector_search",
-  description: "使用向量相似度在CKB生态文档中搜索与查询最相关的内容",
+  description: "在CKB生态文档中搜索与查询最相关的内容, 包括所有文档和代码",
   inputSchema: z.object({
     query: z.string().describe("查询内容"),
-    limit: z.number().optional().describe("返回结果数量限制，默认为5")
+    limit: z.number().optional().describe("返回结果数量限制，默认为8")
   }),
   execute: async (context: { 
     input?: {
@@ -29,7 +29,7 @@ export const ckbDocumentVectorSearchTool = {
     } 
   }) => {
     const query = context.input?.query || "";
-    const limit = context.input?.limit || 5;
+    const limit = context.input?.limit || 8;
     
     if (!query) {
       return "请提供查询内容";

@@ -34,11 +34,11 @@ export const mastra = new Mastra({
     name: 'Mastra',
     level: 'info',
   }),
-  telemetry: {
-    serviceName: "nervepuppy",
-    enabled: true,
-    export: {
-      type: "otlp",
-    },
-  },
+  // telemetry: {
+  //   serviceName: "nervepuppy",
+  //   enabled: true,
+  //   export: {
+  //     type: "otlp",
+  //   },
+  // },
 });

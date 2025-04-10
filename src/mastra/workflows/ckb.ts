@@ -18,7 +18,7 @@ const initializeWalletStep = new Step({
 
     return {
       address: address,
-      isTestnet: true 
+      isTestnet: true
     };
   },
 });
@@ -88,7 +88,8 @@ export const ckbWorkflow = new Workflow({
   }),
 })
   .step(getBalanceStep)
-  .step(transferStep);
+  .step(transferStep)
+  .commit();
 
 // // 系统初始化工作流 - 不对外暴露
 // export const ckbInitWorkflow = new Workflow({
@@ -97,5 +98,5 @@ export const ckbWorkflow = new Workflow({
 // })
 //   .step(initializeWalletStep);
 
-ckbWorkflow.commit();
+// ckbWorkflow.commit();
 // ckbInitWorkflow.commit(); 
