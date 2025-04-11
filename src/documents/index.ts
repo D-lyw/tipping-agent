@@ -10,7 +10,7 @@ export * from './core/config';
 export * from './core/manager';
 
 // 抓取器
-export { scrapeWebsite, scrapeWebsiteOriginal, scrapeWebsiteWithFirecrawl } from './scrapers/website';
+export { scrapeWebsite, scrapeWebsiteWithFirecrawl } from './scrapers/website';
 export { scrapeGitHubRepo } from './scrapers/github';
 export { processLocalFile } from './scrapers/file';
 

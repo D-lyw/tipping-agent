@@ -108,7 +108,7 @@ export const CODE_EXTENSIONS = [
 export const CKB_DOCUMENT_SOURCES: DocumentSource[] = [
   {
     name: 'Nervos CKB 文档',
-    url: 'https://docs.nervos.org/docs/getting-started/how-ckb-works',
+    url: 'https://docs.nervos.org',
     type: 'website',
     selector: 'article',
     enabled: true

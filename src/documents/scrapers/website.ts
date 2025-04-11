@@ -4,8 +4,7 @@
  */
 
 import type { AxiosRequestConfig, AxiosResponse, AxiosInstance } from 'axios';
-import * as cheerio from 'cheerio';
-import FirecrawlApp from '@mendable/firecrawl-js';
+import FirecrawlApp, { CrawlParams, CrawlStatusResponse } from '@mendable/firecrawl-js';
 import {
   DEFAULT_HTTP_HEADERS,
   DEFAULT_REQUEST_TIMEOUT,
@@ -31,6 +30,9 @@ import {
   wrapError
 } from '../utils/errors.js';
 import { MastraVectorStore } from '../storage/mastra-vector-store.js';
+import { Parser } from 'htmlparser2';
+import stream from 'stream';
+import { MDocument } from '@mastra/rag';
 
 // 初始化日志记录器
 const logger = createLogger('WebScraper');
@@ -45,40 +47,6 @@ const getAxios = async () => {
   return axiosInstance;
 };
 
-// 为Firecrawl V1 API的接口定义类型
-interface FirecrawlCrawlParams {
-  url: string;
-  excludePaths?: string[];
-  includePaths?: string[];
-  maxDepth?: number;
-  maxDiscoveryDepth?: number;
-  ignoreSitemap?: boolean;
-  ignoreQueryParameters?: boolean;
-  limit?: number;
-  allowBackwardLinks?: boolean;
-  allowExternalLinks?: boolean;
-  webhook?: {
-    url?: string;
-    headers?: Record<string, string>;
-    metadata?: any;
-    events?: Array<'completed'|'page'|'failed'|'started'>;
-  };
-  scrapeOptions?: {
-    formats?: Array<'markdown'|'html'|'rawHtml'|'links'|'screenshot'|'screenshot@fullPage'|'json'>;
-    onlyMainContent?: boolean;
-    includeTags?: string[];
-    excludeTags?: string[];
-    headers?: Record<string, string>;
-    waitFor?: number;
-    mobile?: boolean;
-    skipTlsVerification?: boolean;
-    timeout?: number;
-    removeBase64Images?: boolean;
-    blockAds?: boolean;
-    proxy?: 'basic' | 'stealth';
-  };
-}
-
 interface FirecrawlPage {
   url?: string;
   markdown?: string;
@@ -90,37 +58,6 @@ interface FirecrawlPage {
   [key: string]: any;
 }
 
-interface FirecrawlCrawlResponse {
-  success?: boolean;
-  status?: string;
-  id?: string;
-  url?: string;
-  total?: number;
-  completed?: number;
-  data?: FirecrawlPage[];
-  next?: string;
-  error?: string;
-  [key: string]: any;
-}
-
-interface FirecrawlMapResponse {
-  status?: string;
-  links?: string[];
-  error?: string;
-  [key: string]: any;
-}
-
-interface FirecrawlScrapeResponse {
-  success?: boolean;
-  markdown?: string;
-  html?: string;
-  metadata?: {
-    title?: string;
-    [key: string]: any;
-  };
-  error?: string;
-  [key: string]: any;
-}
 
 /**
  * 文档块处理回调函数类型
@@ -140,317 +77,414 @@ interface ScrapingStats {
 }
 
 /**
- * 使用Firecrawl流式爬取网站内容
- * @param source 文档源
- * @param chunkProcessor 文档块处理器回调函数，用于对生成的文档块执行进一步处理
- * @returns 爬取结果
+ * 流式处理单个页面内容
  */
-export async function scrapeWebsiteWithFirecrawl(
-  source: DocumentSource, 
-  chunkProcessor?: DocumentChunkProcessor
-): Promise<ScrapingResult> {
-  logger.info(`使用Firecrawl流式爬取网站: ${source.url}`);
-  const startTime = Date.now();
+async function* streamPageContent(
+  page: FirecrawlPage,
+  source: DocumentSource,
+  startCounter: number
+): AsyncGenerator<DocumentChunk> {
+  if (!page.markdown || page.markdown.trim().length === 0) {
+    return;
+  }
+
+  const pageUrl = page.metadata?.sourceURL || page.url || source.url;
+  const pageTitle = page.metadata?.title || source.name;
+  let chunkCounter = startCounter;
 
   try {
-    const axios = await getAxios();
-    // 检查API密钥
-    if (!FIRECRAWL_API_KEY) {
-      logger.warn('未找到Firecrawl API密钥，回退到传统抓取方法');
-      return await scrapeWebsiteOriginalStream(source, chunkProcessor);
-    }
-
-    // 确保API密钥格式正确（如果不是以fc-开头，则添加前缀）
-    const apiKey = FIRECRAWL_API_KEY.startsWith('fc-') 
-      ? FIRECRAWL_API_KEY 
-      : `fc-${FIRECRAWL_API_KEY}`;
+    // 1. 首先按照 Markdown 标题进行分段
+    const sections = page.markdown.split(/^#{1,3}\s+/m);
     
-    // 初始化统计信息
-    const stats: ScrapingStats = {
-      totalPages: 0,
-      processedPages: 0,
-      totalChunks: 0,
-      storedChunks: 0,
-      timeMs: 0
-    };
+    for (let i = 0; i < sections.length; i++) {
+      const section = sections[i].trim();
+      if (!section) continue;
 
-    try {
-      // 使用crawlUrl方法，采用正确的V1参数格式
-      logger.info(`使用crawlUrl方法流式爬取 ${source.url}`);
+      // 提取段落标题和内容
+      let sectionTitle = '';
+      let sectionContent = section;
+      const firstLineBreak = section.indexOf('\n');
       
-      // 根据最新API文档，使用正确的参数格式，优化爬取配置
-      const crawlParams: FirecrawlCrawlParams = {
-        url: source.url,
-        excludePaths: ['/blog/.*', '/news/.*', '/tags/.*', '/authors/.*'], // 排除多种非文档路径
-        includePaths: ['/docs/.*', '/rfcs/.*', '/guide/.*'],  // 只爬取特定路径下的文档
-        maxDepth: 1,     // 极大降低最大路径深度，避免爬取过多内容
-        limit: 10,       // 进一步减少爬取URL数量
-        ignoreSitemap: false,
-        ignoreQueryParameters: true,
-        allowBackwardLinks: false,
-        allowExternalLinks: false,
-        scrapeOptions: {
-          formats: ['markdown'], // 只获取markdown格式，减少数据量
-          onlyMainContent: true,
-          waitFor: 300,         // 减少等待时间
-          blockAds: true,
-          timeout: 8000         // 减少超时时间
-        }
-      };
-      
-      // 调用crawlUrl方法
-      logger.info(`开始使用crawlUrl流式爬取 ${source.url}，参数: ${JSON.stringify(crawlParams)}`);
-
-      // 发起爬取请求
-      const crawlResponse = await axios.post(
-        `${FIRECRAWL_API_URL}/crawl`,
-        crawlParams,
-        {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      
-      const crawlResult = crawlResponse.data;
-      
-      // 检查爬取是否成功启动
-      if (!crawlResult || !crawlResult.success || !crawlResult.id) {
-        const errorMsg = crawlResult?.error || "爬取启动失败";
-        logger.warn(`Firecrawl爬取启动失败: ${errorMsg}`);
-        return await scrapeWebsiteOriginalStream(source, chunkProcessor);
+      if (firstLineBreak > 0) {
+        sectionTitle = section.substring(0, firstLineBreak).trim();
+        sectionContent = section.substring(firstLineBreak + 1).trim();
       }
-      
-      // 获取爬取任务ID
-      const crawlId = crawlResult.id;
-      logger.info(`Firecrawl爬取任务已启动，ID: ${crawlId}`);
-      
-      // 轮询检查爬取状态
-      let isCompleted = false;
-      let retryCount = 0;
-      const maxRetries = 30; // 超时设置
-      
-      // 处理单个页面的流式处理函数
-      const processPage = async (page: FirecrawlPage): Promise<void> => {
-        stats.totalPages++;
+
+      // 2. 处理代码块，暂时保存它们
+      const codeBlocks: string[] = [];
+      sectionContent = sectionContent.replace(/```[\s\S]*?```/g, (match) => {
+        codeBlocks.push(match);
+        return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
+      });
+
+      // 3. 按照语义分隔符分割内容
+      const paragraphs = sectionContent
+        .split(/(?:(?:\r?\n){2,}|\.|。|！|\!|\?|？)/)
+        .map(p => p.trim())
+        .filter(p => p.length > 0);
+
+      let currentChunk = '';
+      let currentCodeBlocks: string[] = [];
+      let contextBuffer = ''; // 用于保存上下文
+
+      for (const paragraph of paragraphs) {
+        // 检查是否包含代码块引用
+        const hasCodeBlock = paragraph.includes('__CODE_BLOCK_');
+        let processedParagraph = paragraph;
         
-        try {
-          // 处理页面内容
-          const pageChunks = await extractPageContent(page, source, stats.totalChunks);
-          
-          // 更新统计信息
-          stats.totalChunks += pageChunks.length;
-          stats.processedPages++;
-          
-          // 如果提供了处理器回调，则调用它处理文档块
-          if (chunkProcessor && pageChunks.length > 0) {
-            await chunkProcessor(pageChunks);
-            // 避免在内存中保留文档块
-            pageChunks.length = 0;
-          }
-          
-          // 记录处理状态
-          logger.debug(`已处理页面 ${stats.processedPages}/${stats.totalPages}, ` +
-            `文档块: ${pageChunks.length}, 总文档块: ${stats.totalChunks}`);
-        } catch (error) {
-          logger.error(`处理页面失败:`, error);
-        } finally {
-          // 手动清理页面数据，帮助垃圾回收
-          if (page) {
-            Object.keys(page).forEach(key => {
-              // @ts-ignore
-              page[key] = null;
-            });
-          }
+        // 恢复代码块
+        if (hasCodeBlock) {
+          processedParagraph = processedParagraph.replace(/__CODE_BLOCK_(\d+)__/g, (_, index) => {
+            const codeBlock = codeBlocks[parseInt(index)];
+            currentCodeBlocks.push(codeBlock);
+            return '';
+          });
         }
-      };
-      
-      // 批量处理页面的函数
-      const processPages = async (pages: FirecrawlPage[]): Promise<void> => {
-        if (!pages || pages.length === 0) return;
-        
-        // 为了避免并行处理过多页面导致内存峰值，使用序列处理
-        for (const page of pages) {
-          await processPage(page);
+
+        // 如果当前块加上新段落会超过最大长度，或者遇到代码块，就输出当前块
+        if ((currentChunk.length + processedParagraph.length > 1500) || 
+            (currentChunk.length >= MIN_CHUNK_LENGTH && hasCodeBlock)) {
           
-          // 每处理5个页面尝试手动触发垃圾回收
-          if (stats.processedPages % 5 === 0 && global.gc) {
-            try {
-              global.gc();
-              logger.debug("手动触发垃圾回收");
-            } catch (e) {
-              // 忽略错误
-            }
-          }
-        }
-        
-        // 清除页面数组引用
-        pages.length = 0;
-      };
-      
-      // 开始轮询
-      while (!isCompleted && retryCount < maxRetries) {
-        // 休眠5秒再检查，增加进度日志
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        retryCount++;
-        
-        if (retryCount % 5 === 0) {
-          logger.info(`等待爬取完成...已尝试 ${retryCount}/${maxRetries} 次, ` + 
-            `已处理 ${stats.processedPages} 个页面，生成 ${stats.totalChunks} 个文档块`);
-        }
-        
-        try {
-          // 检查爬取状态
-          const statusResponse = await axios.get(
-            `${FIRECRAWL_API_URL}/crawl/${crawlId}`,
-            {
-              headers: {
-                'Authorization': `Bearer ${apiKey}`
+          if (currentChunk.length >= MIN_CHUNK_LENGTH) {
+            // 添加上下文重叠
+            const chunkWithContext = contextBuffer + currentChunk;
+            
+            yield {
+              id: createDocumentId(source.name, chunkCounter++),
+              content: chunkWithContext.trim(),
+              title: sectionTitle || pageTitle,
+              url: pageUrl,
+              source: source.name,
+              category: 'documentation',
+              createdAt: Date.now(),
+              metadata: {
+                scraper: 'firecrawl-stream',
+                selector: source.selector,
+                sectionTitle: sectionTitle,
+                hasCodeBlock: false
               }
+            };
+
+            // 保存最后一段作为下一个块的上下文
+            const sentences = currentChunk.split(/[.。!！?？]/);
+            if (sentences.length > 2) {
+              contextBuffer = sentences.slice(-2).join('. ') + '. ';
+            } else {
+              contextBuffer = currentChunk;
             }
-          );
-          
-          const statusResult = statusResponse.data;
-          logger.info(`爬取状态: ${statusResult.status}, 进度: ${statusResult.completed || 0}/${statusResult.total || '未知'}`);
-          
-          // 流式处理已爬取的页面
-          if (statusResult.data && statusResult.data.length > 0) {
-            // 流式处理这批数据
-            await processPages(statusResult.data);
-            
-            // 清除数据引用，帮助垃圾回收
-            statusResult.data = null;
           }
           
-          if (statusResult.status === 'completed') {
-            isCompleted = true;
-            
-            // 处理分页数据（最多只处理第一个分页，避免过多数据）
-            if (statusResult.next) {
-              try {
-                const nextResponse = await axios.get(statusResult.next, {
-                  headers: {
-                    'Authorization': `Bearer ${apiKey}`
-                  }
-                });
-                
-                if (nextResponse.data && nextResponse.data.data) {
-                  // 流式处理分页数据
-                  await processPages(nextResponse.data.data);
+          currentChunk = '';
+
+          // 处理累积的代码块
+          for (const codeBlock of currentCodeBlocks) {
+            if (codeBlock.length >= MIN_CHUNK_LENGTH) {
+              yield {
+                id: createDocumentId(source.name, chunkCounter++),
+                content: codeBlock,
+                title: `${sectionTitle || pageTitle} - Code Block`,
+                url: pageUrl,
+                source: source.name,
+                category: 'code',
+                createdAt: Date.now(),
+                metadata: {
+                  scraper: 'firecrawl-stream',
+                  selector: source.selector,
+                  sectionTitle: sectionTitle,
+                  hasCodeBlock: true
                 }
-              } catch (error) {
-                logger.error(`获取分页数据失败:`, error);
-              }
+              };
             }
-            
-            logger.info(`爬取任务已完成，处理了 ${stats.processedPages} 个页面，生成 ${stats.totalChunks} 个文档块`);
-          } else if (statusResult.status === 'failed') {
-            const errorMsg = statusResult.error || "爬取失败";
-            logger.warn(`Firecrawl爬取任务失败: ${errorMsg}`);
-            break;
           }
-        } catch (error) {
-          logger.error(`检查爬取状态失败:`, error);
+          currentCodeBlocks = [];
+
+          // 添加小延迟让事件循环有机会处理其他任务
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+
+        // 添加新段落到当前块
+        if (currentChunk && processedParagraph) {
+          currentChunk += '\n\n';
+        }
+        currentChunk += processedParagraph;
+      }
+
+      // 处理最后一个块
+      if (currentChunk.length >= MIN_CHUNK_LENGTH) {
+        const chunkWithContext = contextBuffer + currentChunk;
+        
+        yield {
+          id: createDocumentId(source.name, chunkCounter++),
+          content: chunkWithContext.trim(),
+          title: sectionTitle || pageTitle,
+          url: pageUrl,
+          source: source.name,
+          category: 'documentation',
+          createdAt: Date.now(),
+          metadata: {
+            scraper: 'firecrawl-stream',
+            selector: source.selector,
+            sectionTitle: sectionTitle,
+            hasCodeBlock: false
+          }
+        };
+      }
+      
+      // 处理最后剩余的代码块
+      for (const codeBlock of currentCodeBlocks) {
+        if (codeBlock.length >= MIN_CHUNK_LENGTH) {
+          yield {
+            id: createDocumentId(source.name, chunkCounter++),
+            content: codeBlock,
+            title: `${sectionTitle || pageTitle} - Code Block`,
+            url: pageUrl,
+            source: source.name,
+            category: 'code',
+            createdAt: Date.now(),
+            metadata: {
+              scraper: 'firecrawl-stream',
+              selector: source.selector,
+              sectionTitle: sectionTitle,
+              hasCodeBlock: true
+            }
+          };
         }
       }
-      
-      if (retryCount >= maxRetries && !isCompleted) {
-        logger.warn(`Firecrawl爬取超时，已处理 ${stats.processedPages} 个页面`);
-      }
-      
-      // 如果没有处理任何页面，回退到传统方法
-      if (stats.processedPages === 0) {
-        logger.warn('Firecrawl未返回有效内容，回退到传统抓取方法');
-        return await scrapeWebsiteOriginalStream(source, chunkProcessor);
-      }
-      
-      // 计算处理耗时
-      stats.timeMs = Date.now() - startTime;
-      logger.info(`完成流式爬取网站 ${source.url}，处理了 ${stats.processedPages} 个页面，` +
-        `生成 ${stats.totalChunks} 个文档块，耗时 ${stats.timeMs}ms`);
-      
-      return {
-        success: true,
-        chunks: [], // 在流式处理模式下，所有文档块都已通过回调处理，不再返回
-        message: `成功使用Firecrawl流式爬取网站 ${source.url}，共处理 ${stats.processedPages} 个页面，生成 ${stats.totalChunks} 个文档块`,
-        stats: {
-          totalChunks: stats.totalChunks,
-          storedChunks: stats.storedChunks,
-          totalPages: stats.processedPages,
-          timeMs: stats.timeMs
-        }
-      };
-    } catch (error) {
-      logger.error(`使用crawlUrl方法爬取 ${source.url} 失败:`, error);
-      logger.info(`回退到传统抓取方法...`);
-      return await scrapeWebsiteOriginalStream(source, chunkProcessor);
+
+      // 每处理完一个章节后添加延迟
+      await new Promise(resolve => setTimeout(resolve, 20));
     }
+
+    // 释放内存
+    page.markdown = '';
   } catch (error) {
-    logger.error(`使用Firecrawl爬取 ${source.url} 失败:`, error);
-    logger.info(`回退到传统抓取方法...`);
-    return await scrapeWebsiteOriginalStream(source, chunkProcessor);
+    logger.error(`流式处理页面 ${pageUrl} 内容时出错:`, error);
   }
 }
 
 /**
- * 从页面提取内容并生成文档块
- * 优化的内存使用版本
+ * 使用Firecrawl流式爬取网站内容 (SDK版本)
  */
-async function extractPageContent(
-  page: FirecrawlPage, 
-  source: DocumentSource, 
-  startCounter: number
-): Promise<DocumentChunk[]> {
-  if (!page.markdown || page.markdown.trim().length === 0) {
-    return [];
+export async function scrapeWebsiteWithFirecrawl(
+  source: DocumentSource,
+  chunkProcessor?: DocumentChunkProcessor
+): Promise<ScrapingResult> {
+  logger.info(`使用Firecrawl SDK流式爬取网站: ${source.url}`);
+  const startTime = Date.now();
+
+  // 检查API密钥
+  if (!FIRECRAWL_API_KEY) {
+    logger.warn('未找到Firecrawl API密钥，回退到传统抓取方法');
+    return await scrapeWebsiteOriginalStream(source, chunkProcessor);
   }
-  
-  const chunks: DocumentChunk[] = [];
-  let chunkCounter = startCounter;
-  
-  // 获取页面信息
-  const pageUrl = page.metadata?.sourceURL || page.url || source.url;
-  const pageTitle = page.metadata?.title || source.name;
-  
+
+  // 确保API密钥格式正确
+  const apiKey = FIRECRAWL_API_KEY.startsWith('fc-')
+    ? FIRECRAWL_API_KEY
+    : `fc-${FIRECRAWL_API_KEY}`;
+
+  // 初始化统计信息
+  const stats: ScrapingStats = {
+    totalPages: 0,
+    processedPages: 0,
+    totalChunks: 0,
+    storedChunks: 0,
+    timeMs: 0
+  };
+
+  let firecrawlApp: FirecrawlApp | null = null;
+  let fallbackNeeded = false;
+  let errorMessage = '';
+
   try {
-    // 分批处理内容，避免大段落
-    const paragraphs = splitIntoChunks(page.markdown);
-    
-    // 限制每页处理的段落数，避免过度处理
-    const maxParagraphsPerPage = 20; // 限制段落处理数量
-    const limitedParagraphs = paragraphs.slice(0, maxParagraphsPerPage);
-    
-    logger.info(`处理页面 ${pageUrl} 中的 ${limitedParagraphs.length}/${paragraphs.length} 个段落`);
-    
-    // 为每个段落创建文档片段
-    for (const paragraph of limitedParagraphs) {
-      // 跳过过短的段落
-      if (paragraph.length < MIN_CHUNK_LENGTH) continue;
-      
-      // 添加文档片段
-      chunks.push({
-        id: createDocumentId(source.name, chunkCounter++),
-        content: paragraph,
-        title: pageTitle,
-        url: pageUrl,
-        source: source.name,
-        category: 'documentation',
-        createdAt: Date.now(),
-        metadata: {
-          scraper: 'firecrawl-stream',
-          selector: source.selector
-        }
-      });
-    }
-    
-    // 释放内存
-    page.markdown = '';
+    // 初始化FirecrawlApp
+    firecrawlApp = new FirecrawlApp({ apiKey: apiKey });
+
+    // 根据SDK调整爬取参数
+    const crawlParams: CrawlParams = {
+      excludePaths: ['/blog/.*', '/news/.*', '/tags/.*', '/authors/.*'],
+      maxDepth: 3,
+      scrapeOptions: {
+        onlyMainContent: true,
+        waitFor: 300,
+        blockAds: true,
+        timeout: 8000,
+      }
+    };
+
+    logger.info(`开始使用 SDK crawlUrlAndWatch 流式爬取 ${source.url}`);
+
+    return new Promise<ScrapingResult>(async (resolve, reject) => {
+      try {
+        const watch = await firecrawlApp!.crawlUrlAndWatch(source.url, crawlParams);
+
+        // 创建一个批处理队列
+        const batchQueue: DocumentChunk[] = [];
+        const BATCH_SIZE = 5;
+        let isProcessing = false;  // 添加处理状态标志
+
+        // 处理批次的函数
+        const processBatch = async (force: boolean = false) => {
+          if (isProcessing) return;  // 如果正在处理，直接返回
+          
+          try {
+            isProcessing = true;
+            
+            // 当 force 为 true 时，循环处理直到队列为空
+            while ((batchQueue.length >= BATCH_SIZE) || (force && batchQueue.length > 0)) {
+              const batchSize = force ? batchQueue.length : BATCH_SIZE;
+              const batch = batchQueue.splice(0, batchSize);
+              
+              if (chunkProcessor) {
+                try {
+                  await chunkProcessor(batch);
+                  stats.storedChunks = (stats.storedChunks || 0) + batch.length;
+                  logger.debug(`成功处理批次，剩余队列长度: ${batchQueue.length}`);
+                } catch (error) {
+                  logger.error('处理文档块批次时出错:', error);
+                  // 处理失败时，将数据放回队列
+                  batchQueue.unshift(...batch);
+                  break;  // 如果处理出错，退出循环
+                }
+              }
+
+              // 手动触发垃圾回收
+              if (global.gc) {
+                try {
+                  global.gc();
+                  logger.debug("手动触发垃圾回收");
+                } catch (e) {
+                  // 忽略错误
+                }
+              }
+
+              // 添加小延迟，让事件循环有机会处理其他任务
+              await new Promise(resolve => setTimeout(resolve, 50));
+            }
+          } finally {
+            isProcessing = false;
+          }
+        };
+
+        watch.addEventListener("document", async (event) => {
+          logger.info(`收到 document 事件，页面 URL: ${(event.detail as FirecrawlPage)?.url || '未知'}`);
+          const page = event.detail as FirecrawlPage;
+          stats.totalPages++;
+
+          // 添加页面内容调试
+          logger.debug(`页面内容长度: ${page.markdown?.length || 0} 字符`);
+          if (!page.markdown) {
+            logger.warn(`页面 ${page.url} 没有 markdown 内容`);
+            return;  // 如果没有内容，直接返回
+          }
+
+          try {
+            // 使用生成器流式处理页面内容
+            for await (const chunk of streamPageContent(page, source, stats.totalChunks)) {
+              logger.debug(`生成新的文档块，长度: ${chunk.content.length} 字符`);
+              stats.totalChunks++;
+              batchQueue.push(chunk);
+              await processBatch(false);
+            }
+
+            stats.processedPages++;
+            logger.info(`已处理页面 ${stats.processedPages}/${stats.totalPages}, ` +
+              `总文档块: ${stats.totalChunks}, 队列中: ${batchQueue.length}`);
+
+            // 清理页面数据
+            if (page) {
+              Object.keys(page).forEach(key => {
+                // @ts-ignore
+                page[key] = null;
+              });
+            }
+          } catch (error) {
+            logger.error(`处理页面 ${page?.url || source.url} 失败:`, error);
+          }
+        });
+
+        watch.addEventListener("error", (event) => {
+          const errorDetail = event.detail;
+          logger.error(`Firecrawl SDK 爬取过程中发生错误:`, errorDetail);
+        });
+
+        let isDone = false;  // 添加完成状态标志
+
+        watch.addEventListener("done", async (event) => {
+          if (isDone) return;  // 防止重复处理
+          isDone = true;
+          
+          const state = event.detail;
+          logger.info(`Firecrawl SDK 爬取完成，最终状态: ${state.status}, 总页面数: ${stats.totalPages}, 已处理页面: ${stats.processedPages}`);
+          stats.timeMs = Date.now() - startTime;
+
+          // 处理最后的批次
+          logger.info(`开始处理最后的批次，队列长度: ${batchQueue.length}`);
+          await processBatch(true);
+          logger.info(`完成处理最后的批次，剩余队列长度: ${batchQueue.length}`);
+
+          if (batchQueue.length > 0) {
+            logger.warn(`警告：队列中还有 ${batchQueue.length} 个未处理的文档块`);
+          }
+
+          if (state.status === 'completed' || (state.status === 'failed' && stats.processedPages > 0)) {
+            logger.info(`完成 SDK 流式爬取网站 ${source.url}，处理了 ${stats.processedPages} 个页面，` +
+              `生成 ${stats.totalChunks} 个文档块，存储 ${stats.storedChunks} 个文档块，耗时 ${stats.timeMs}ms`);
+            resolve({
+              success: true,
+              chunks: [],
+              message: `成功使用Firecrawl SDK流式爬取网站 ${source.url}，共处理 ${stats.processedPages} 个页面，生成 ${stats.totalChunks} 个文档块`,
+              stats: {
+                totalChunks: stats.totalChunks,
+                storedChunks: stats.storedChunks,
+                totalPages: stats.processedPages,
+                timeMs: stats.timeMs
+              }
+            });
+          } else {
+            logger.warn(`Firecrawl SDK 爬取失败或未返回有效内容，状态: ${state.status}。回退到传统抓取方法。`);
+            fallbackNeeded = true;
+            errorMessage = `Firecrawl SDK 爬取失败，状态: ${state.status}`;
+            checkFallbackAndResolve();
+          }
+        });
+
+        // 用于处理回退的函数
+        const checkFallbackAndResolve = async () => {
+          if (fallbackNeeded) {
+            logger.info(`执行回退到传统抓取方法...`);
+            try {
+              const fallbackResult = await scrapeWebsiteOriginalStream(source, chunkProcessor);
+              resolve(fallbackResult);
+            } catch (fallbackError) {
+              logger.error(`回退到传统抓取方法时也发生错误:`, fallbackError);
+              reject(wrapError(fallbackError, `原始方法和回退方法均失败: ${errorMessage}`));
+            }
+          }
+        };
+
+      } catch (initError) {
+        logger.error(`启动 Firecrawl SDK crawlUrlAndWatch 失败:`, initError);
+        fallbackNeeded = true;
+        errorMessage = `启动 Firecrawl SDK crawlUrlAndWatch 失败: ${initError instanceof Error ? initError.message : String(initError)}`;
+        setTimeout(async () => {
+          logger.info(`执行回退到传统抓取方法...`);
+          try {
+            const fallbackResult = await scrapeWebsiteOriginalStream(source, chunkProcessor);
+            resolve(fallbackResult);
+          } catch (fallbackError) {
+            logger.error(`回退到传统抓取方法时也发生错误:`, fallbackError);
+            reject(wrapError(fallbackError, `原始方法和回退方法均失败: ${errorMessage}`));
+          }
+        }, 0);
+      }
+    });
+
   } catch (error) {
-    logger.error(`处理页面 ${pageUrl} 内容时出错:`, error);
+    logger.error(`使用Firecrawl SDK爬取 ${source.url} 失败 (外部捕获):`, error);
+    logger.info(`回退到传统抓取方法...`);
+    return await scrapeWebsiteOriginalStream(source, chunkProcessor);
   }
-  
-  return chunks;
 }
 
 /**
@@ -462,73 +496,71 @@ export async function scrapeWebsiteOriginalStream(
 ): Promise<ScrapingResult> {
   logger.info(`使用优化的传统方法流式抓取网站: ${source.url}`);
   const startTime = Date.now();
-  
+
   // 初始化统计信息
   const stats: ScrapingStats = {
-    totalPages: 1, // 传统方法只处理一个页面
+    totalPages: 1,
     processedPages: 0,
     totalChunks: 0,
     storedChunks: 0,
     timeMs: 0
   };
-  
-  // 初始化向量存储
+
   let vectorStore: MastraVectorStore | null = null;
-  
+  let textBuffer = '';  // 用于累积文本
+  let currentSection = '';  // 用于累积当前段落
+
   try {
     const axios = await getAxios();
+    
     // 如果没有提供回调函数，初始化向量存储
     if (!chunkProcessor) {
       if (!OPENAI_API_KEY) {
         logger.warn('未设置OpenAI API密钥，向量化将无法正常工作');
       }
-      
+
       if (!PG_CONNECTION_STRING) {
         logger.warn('未设置PG_CONNECTION_STRING，向量存储将无法正常工作');
       }
-      
+
       vectorStore = new MastraVectorStore({
         apiKey: OPENAI_API_KEY,
         pgConnectionString: PG_CONNECTION_STRING,
         tablePrefix: PG_VECTOR_TABLE,
-        batchSize: 10  // 使用较小的批次大小，避免内存压力
+        batchSize: 5
       });
-      
+
       const initialized = await vectorStore.initialize();
       if (!initialized) {
         logger.error('向量存储初始化失败');
         throw new Error('向量存储初始化失败');
       }
-      
+
       logger.info('向量存储初始化成功，开始爬取网站');
     }
-    
+
     // 内部处理文档块的函数
     const handleChunks = async (chunks: DocumentChunk[]): Promise<void> => {
       if (!chunks || chunks.length === 0) return;
-      
-      // 更新统计信息
+
       stats.totalChunks += chunks.length;
-      
-      // 如果外部提供了处理器，使用外部处理器
+
       if (chunkProcessor) {
         await chunkProcessor(chunks);
-      } 
-      // 否则使用向量存储
-      else if (vectorStore) {
+      } else if (vectorStore) {
         try {
           const startStoreTime = Date.now();
           const storedCount = await vectorStore.storeDocuments(chunks);
           const endStoreTime = Date.now();
-          
+
           stats.storedChunks = (stats.storedChunks || 0) + storedCount;
           logger.info(`成功向量化并存储 ${storedCount}/${chunks.length} 个文档块，耗时 ${endStoreTime - startStoreTime}ms`);
         } catch (error) {
           logger.error('向量化和存储文档时出错:', error);
         }
       }
-      
-      // 尝试手动垃圾回收
+
+      // 手动触发垃圾回收
       if (global.gc) {
         try {
           global.gc();
@@ -538,12 +570,36 @@ export async function scrapeWebsiteOriginalStream(
         }
       }
     };
-  
+
+    // 处理文本块的函数
+    const processTextBlock = async () => {
+      if (currentSection.length >= MIN_CHUNK_LENGTH) {
+        const chunk: DocumentChunk = {
+          id: createDocumentId(source.name, stats.totalChunks),
+          content: currentSection.trim(),
+          title: source.name || '网站文档',
+          url: source.url,
+          source: source.name,
+          category: 'documentation',
+          createdAt: Date.now(),
+          metadata: {
+            scraper: 'website-stream',
+            index: stats.totalChunks
+          }
+        };
+
+        await handleChunks([chunk]);
+        await new Promise(resolve => setTimeout(resolve, 50));  // 控制处理速度
+      }
+      currentSection = '';  // 重置当前段落
+    };
+
     // 配置请求
     const config: AxiosRequestConfig = {
       timeout: DEFAULT_REQUEST_TIMEOUT,
       headers: DEFAULT_HTTP_HEADERS,
-      maxRedirects: MAX_REDIRECTS
+      maxRedirects: MAX_REDIRECTS,
+      responseType: 'stream'  // 使用流式响应
     };
 
     // 发送请求
@@ -553,117 +609,80 @@ export async function scrapeWebsiteOriginalStream(
       throw createNetworkError(`HTTP错误: ${response.status}`);
     }
 
-    // 使用Cheerio解析HTML
-    const $ = cheerio.load(response.data);
-
-    // 使用指定的选择器，或默认选择主要内容
-    const contentSelector = source.selector || 'body';
-
-    // 尝试多种选择器
-    let content = '';
-    if ($(contentSelector).length > 0) {
-      content = $(contentSelector).text();
-    } else if (source.url.includes('nervos.org')) {
-      // 针对Nervos网站的备选选择器
-      const alternativeSelectors = [
-        'article', '.markdown', '.content',
-        'main', '.main-content', '.document-content',
-        '.docs-content', '.page-content'
-      ];
-
-      for (const selector of alternativeSelectors) {
-        if ($(selector).length > 0) {
-          logger.info(`使用备选选择器 "${selector}" 提取内容`);
-          content = $(selector).text();
-          break;
+    // 创建解析器
+    const parser = new Parser({
+      ontext: (text) => {
+        const cleanText = text.trim();
+        if (cleanText) {
+          currentSection += ' ' + cleanText;
+          
+          // 如果遇到段落结束符，处理当前段落
+          if (/[.。!！?？]\s*$/.test(cleanText)) {
+            textBuffer += currentSection + '\n';
+            if (textBuffer.length > MIN_CHUNK_LENGTH) {
+              processTextBlock();
+              textBuffer = '';
+            }
+          }
+        }
+      },
+      onopentag: (name, attribs) => {
+        // 处理特定标签
+        if (['p', 'div', 'section', 'article'].includes(name)) {
+          if (currentSection.length > 0) {
+            textBuffer += currentSection + '\n';
+            if (textBuffer.length > MIN_CHUNK_LENGTH) {
+              processTextBlock();
+              textBuffer = '';
+            }
+          }
+        }
+      },
+      onclosetag: (tagname) => {
+        // 在段落相关标签结束时处理文本
+        if (['p', 'div', 'section', 'article'].includes(tagname)) {
+          if (currentSection.length > 0) {
+            textBuffer += currentSection + '\n';
+            if (textBuffer.length > MIN_CHUNK_LENGTH) {
+              processTextBlock();
+              textBuffer = '';
+            }
+          }
         }
       }
+    }, {
+      decodeEntities: true
+    });
 
-      // 如果仍然没有内容，尝试获取所有文本
-      if (!content) {
-        content = $('body').text();
-      }
-    }
+    // 使用 Promise 处理流式数据
+    await new Promise((resolve, reject) => {
+      response.data
+        .pipe(new stream.Transform({
+          transform(chunk: Buffer, encoding: string, callback: Function) {
+            try {
+              parser.write(chunk.toString());
+              callback();
+            } catch (error) {
+              callback(error);
+            }
+          }
+        }))
+        .on('end', async () => {
+          try {
+            parser.end();
+            // 处理最后的文本
+            if (currentSection.length > 0 || textBuffer.length > 0) {
+              textBuffer += currentSection;
+              await processTextBlock();
+            }
+            resolve(null);
+          } catch (error) {
+            reject(error);
+          }
+        })
+        .on('error', reject);
+    });
 
-    if (!content || content.trim().length === 0) {
-      throw new Error('无法提取有效内容');
-    }
-
-    // 清理HTML结构，防止内存占用过高
-    // 不要尝试设置$为null（它是const），而是删除对它的引用
-    // @ts-ignore 允许将response.data设置为null以释放内存
-    response.data = null;
-
-    // 预处理内容，提高质量：清理空白和特殊字符
-    content = content
-      .replace(/\s+/g, ' ')        // 替换连续空白字符为单个空格
-      .replace(/[\r\n]+/g, '\n')   // 规范化换行符
-      .trim();                     // 移除首尾空白
-
-    // 分割内容为段落
-    const paragraphs = content
-      .split(/\n\s*\n/)           // 按空行分割
-      .map(p => p.trim())         // 修剪每个段落
-      .filter(p => p.length > MIN_CHUNK_LENGTH); // 过滤太短的段落
-
-    // 减小内存压力：将原始内容设为null，帮助垃圾回收
-    // @ts-ignore 允许将content设为null以释放内存
-    content = null;
-
-    // 批量处理段落，使用小批次减少内存使用
-    const batchSize = 5;  // 更小的批次大小，进一步优化内存使用
-    const tempChunks: DocumentChunk[] = [];
-
-    logger.info(`开始处理 ${paragraphs.length} 个段落，批次大小 ${batchSize}`);
-
-    for (let i = 0; i < paragraphs.length; i++) {
-      const paragraph = paragraphs[i].trim();
-      
-      if (paragraph.length < MIN_CHUNK_LENGTH) continue;
-      
-      // 使用段落索引作为区分，避免重复ID生成算法问题
-      const id = createDocumentId(`${source.name}-${i}`, Date.now());
-      
-      // 创建文档块
-      tempChunks.push({
-        id,
-        content: paragraph,
-        title: source.name || '网站文档',
-        url: source.url,
-        source: source.name,
-        category: 'documentation',
-        createdAt: Date.now(),
-        metadata: {
-          scraper: 'website',
-          index: i
-        }
-      });
-      
-      // 当达到批次大小或是最后一个段落时处理
-      if (tempChunks.length >= WEBSITE_CHUNK_BATCH_SIZE || i === paragraphs.length - 1) {
-        // 处理并向量化当前批次
-        await handleChunks([...tempChunks]);
-        
-        // 清空临时数组
-        tempChunks.length = 0;
-        
-        // 在大批次之间添加短暂延迟，让事件循环有空处理其他任务
-        if (i < paragraphs.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      }
-      
-      // 尝试手动垃圾回收
-      if (i > 0 && i % (batchSize * 3) === 0 && global.gc) {
-        try {
-          global.gc();
-          logger.debug("手动触发垃圾回收");
-        } catch (e) {
-          // 忽略错误
-        }
-      }
-    }
-    
     // 处理完成，更新统计信息
     stats.processedPages = 1;
     stats.timeMs = Date.now() - startTime;
@@ -677,12 +696,12 @@ export async function scrapeWebsiteOriginalStream(
       }
     }
 
-    logger.info(`从 ${source.url} 流式处理了 ${stats.totalChunks} 个文档片段，` +
-                `成功存储了 ${stats.storedChunks || 0} 个文档片段，耗时 ${stats.timeMs}ms`);
+    logger.info(`流式处理完成: 处理了 ${stats.totalChunks} 个文档片段，` +
+      `成功存储了 ${stats.storedChunks || 0} 个文档片段，耗时 ${stats.timeMs}ms`);
 
     return {
       success: true,
-      chunks: [], // 在流式处理模式下，所有文档块都已通过回调处理，不再返回
+      chunks: [],
       message: `成功使用流式处理方法抓取 ${source.url}`,
       stats: {
         totalChunks: stats.totalChunks,
@@ -692,7 +711,6 @@ export async function scrapeWebsiteOriginalStream(
       }
     };
   } catch (error) {
-    // 确保关闭向量存储
     if (vectorStore) {
       try {
         await vectorStore.close();
@@ -700,7 +718,7 @@ export async function scrapeWebsiteOriginalStream(
         logger.warn('关闭向量存储时出错:', closeError);
       }
     }
-    
+
     const processedError = error instanceof DocumentProcessingError ? error : wrapError(error);
     logger.error(`抓取 ${source.url} 失败:`, processedError);
 
@@ -717,13 +735,6 @@ export async function scrapeWebsiteOriginalStream(
       }
     };
   }
-}
-
-/**
- * 原始方法，现在已更新为流式处理模式
- */
-export async function scrapeWebsiteOriginal(source: DocumentSource, chunkProcessor?: DocumentChunkProcessor): Promise<ScrapingResult> {
-  return await scrapeWebsiteOriginalStream(source, chunkProcessor);
 }
 
 /**
