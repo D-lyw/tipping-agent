@@ -6,7 +6,7 @@
  */
 
 import { openai } from '@ai-sdk/openai';
-import { createVectorQueryTool } from '@mastra/rag';
+import { createVectorQueryTool, createGraphRAGTool } from '@mastra/rag';
 import { mastra } from '../index.js';
 import * as dotenv from 'dotenv';
 
@@ -26,6 +26,21 @@ export const vectorQueryTool = createVectorQueryTool({
 });
 
 /**
- * 导出默认配置
+ * 创建标准的图形化RAG工具
+ * 直接使用 Mastra 实例中的 pgVector
  */
-export default vectorQueryTool; 
+export const graphRAGTool = createGraphRAGTool({
+  vectorStoreName: 'pgVector', // 这里的名称要与 mastra 配置中的 vectors 对象中的键名一致
+  indexName: process.env.PG_VECTOR_TABLE,
+  model: openai.embedding(process.env.OPENAI_EMBEDDING_MODEL),
+  graphOptions: {
+    dimension: 1536,
+    threshold: 0.7,
+    randomWalkSteps: 100,
+    restartProb: 0.15
+  },
+  description: '分析CKB生态文档中信息之间的关系，以回答关于连接和模式的复杂问题'
+});
+
+// 导出默认配置
+export default { vectorQueryTool, graphRAGTool }; 
