@@ -102,6 +102,7 @@ export class MastraVectorStore {
   private pgPool: PgVector | null = null;
   private memoryManager: MemoryManager;
   private initialized: boolean = false;
+  private isPgPoolInternal: boolean = false;
   
   constructor(options: MastraVectorStoreOptions) {
     this.apiKey = options.apiKey;
@@ -133,6 +134,7 @@ export class MastraVectorStore {
       
       if (pgVectorFromMastra) {
         this.pgPool = pgVectorFromMastra;
+        this.isPgPoolInternal = false;
         logger.info('从Mastra实例获取到pgVector');
       } else {
         // 回退到使用连接字符串创建新实例
@@ -143,6 +145,7 @@ export class MastraVectorStore {
         
         logger.info('Mastra实例中未找到pgVector，使用连接字符串创建新实例');
         this.pgPool = new PgVector(this.pgConnectionString);
+        this.isPgPoolInternal = true;
       }
       
       // 设置OpenAI API密钥
@@ -635,10 +638,40 @@ export class MastraVectorStore {
   }
   
   /**
+   * 获取向量数据库中存储的文档总数
+   */
+  async getTotalDocuments(): Promise<number> {
+    await this.ensureInitialized();
+
+    try {
+      if (!this.pgPool) {
+        throw createConfigurationError('PgVector未初始化');
+      }
+      
+      // 使用 PgVector 的标准查询方式
+      // 使用一个零向量查询，设置较大的 topK 值来获取所有文档
+      const results = await this.pgPool.query({
+        indexName: this.tablePrefix,
+        queryVector: new Array(1536).fill(0),
+        topK: 10000,  // 设置一个较大的值
+        minScore: 0.0001  // 设置一个很低的相似度阈值以获取所有文档
+      });
+      
+      const totalCount = results.total || results.length || 0;
+      logger.info(`向量数据库中共有 ${totalCount} 个文档`);
+      return totalCount;
+
+    } catch (error) {
+      logger.error('获取文档总数时出错:', error);
+      return 0;
+    }
+  }
+  
+  /**
    * 关闭连接并释放资源
    */
   async close(): Promise<void> {
-    if (this.pgPool) {
+    if (this.pgPool && this.isPgPoolInternal) {
       logger.info('关闭Postgres连接池');
       try {
         // 根据Mastra文档，PgVector使用disconnect()方法关闭连接
@@ -646,24 +679,6 @@ export class MastraVectorStore {
           await this.pgPool.disconnect();
           logger.info('成功关闭PgVector连接池（使用disconnect方法）');
         } 
-        // 尝试其他可能的方法
-        else if (typeof this.pgPool.end === 'function') {
-          await this.pgPool.end();
-          logger.info('成功关闭PgVector连接池（使用end方法）');
-        } else if (typeof this.pgPool.close === 'function') {
-          await this.pgPool.close();
-          logger.info('成功关闭PgVector连接池（使用close方法）');
-        } else if (typeof this.pgPool.destroy === 'function') {
-          await this.pgPool.destroy();
-          logger.info('成功关闭PgVector连接池（使用destroy方法）');
-        } else {
-          // 如果没有找到匹配的方法，记录可用方法用于调试
-          logger.warn('无法找到合适的方法关闭PgVector连接池，可用方法:',
-            Object.getOwnPropertyNames(this.pgPool)
-              .filter(name => typeof this.pgPool[name] === 'function')
-              .join(', ')
-          );
-        }
       } catch (error) {
         logger.warn(`关闭Postgres连接池时出错: ${error.message}`);
       }

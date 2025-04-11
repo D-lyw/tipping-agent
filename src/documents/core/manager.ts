@@ -1,6 +1,6 @@
 /**
  * CKB生态文档处理模块 - 核心管理器
- * 
+ *
  * 整合所有文档处理功能，提供统一的API接口
  */
 
@@ -9,25 +9,22 @@ import * as path from 'path';
 import { DocumentChunk, DocumentSource, ScrapingResult, DiagnosticResult } from './types';
 import { CKB_DOCUMENT_SOURCES } from './config';
 import { createLogger } from '../utils/logger';
-import { 
-  createConfigurationError, 
-  DocumentProcessingError, 
-  ErrorType, 
-  handleError, 
-  safeExecute 
+import {
+  DocumentProcessingError,
+  ErrorType,
+  handleError,
+  safeExecute
 } from '../utils/errors';
-import { generateId } from '../utils/helpers';
-import { scrapeWebsite } from '../scrapers/website';
-import { scrapeGitHubRepo } from '../scrapers/github';
-import { processLocalFile } from '../scrapers/file';
-import { chunkDocument, optimizeChunks } from '../processors/chunker';
 import * as util from 'util';
 import { MastraVectorStore } from '../storage/mastra-vector-store';
-import { 
-  OPENAI_API_KEY, 
-  PG_CONNECTION_STRING, 
-  PG_VECTOR_TABLE 
+import {
+  OPENAI_API_KEY,
+  PG_CONNECTION_STRING,
+  PG_VECTOR_TABLE,
+  PROCESSOR_BATCH_SIZE, // Import processor config if needed for processDocumentSource
+  PROCESSOR_INTERVAL
 } from './config';
+import { processDocumentSource } from './processor.js'; // Corrected import
 
 // Promise版本的文件系统API
 const existsAsync = util.promisify(fs.exists);
@@ -43,15 +40,21 @@ export interface DocumentManagerOptions {
   forceRefreshDocs?: boolean;
   /** 自定义文档源 */
   customSources?: DocumentSource[];
-  /** 是否自动优化文档块 */
-  autoOptimizeChunks?: boolean;
+  // autoOptimizeChunks might be handled by processor now, review if needed
+  // autoOptimizeChunks?: boolean;
   /** 自定义向量存储配置 */
   vectorStoreConfig?: {
     apiKey?: string;
     pgConnectionString?: string;
     tablePrefix?: string;
-    batchSize?: number;
+    batchSize?: number; // Note: Processor might use its own batch size
   };
+  /** Processor 配置 */
+  processorConfig?: {
+    batchSize?: number;
+    processingInterval?: number;
+    maxConcurrent?: number;
+  }
 }
 
 /**
@@ -60,22 +63,21 @@ export interface DocumentManagerOptions {
 const DEFAULT_OPTIONS: DocumentManagerOptions = {
   forceRefreshDocs: false,
   customSources: [],
-  autoOptimizeChunks: true
+  // autoOptimizeChunks: true // Handled by processor
 };
 
 /**
  * 文档管理器类
- * 
+ *
  * 提供统一的接口来获取、处理和管理CKB文档
  */
 export class DocumentManager {
   private options: DocumentManagerOptions;
   private documentSources: DocumentSource[];
   private vectorStore: MastraVectorStore;
-  private tempChunks: Record<string, DocumentChunk[]> = {};
   private initialized: boolean = false;
   private processedSources: Set<string> = new Set();
-  
+
   /**
    * 构造函数
    */
@@ -85,18 +87,18 @@ export class DocumentManager {
       ...CKB_DOCUMENT_SOURCES,
       ...(this.options.customSources || [])
     ];
-    
-    // 初始化向量存储
+
+    // Initialize vector store for querying purposes
     this.vectorStore = new MastraVectorStore({
       apiKey: this.options.vectorStoreConfig?.apiKey || OPENAI_API_KEY,
       pgConnectionString: this.options.vectorStoreConfig?.pgConnectionString || PG_CONNECTION_STRING,
       tablePrefix: this.options.vectorStoreConfig?.tablePrefix || PG_VECTOR_TABLE,
-      batchSize: this.options.vectorStoreConfig?.batchSize || 10
+      batchSize: this.options.vectorStoreConfig?.batchSize || 10 // Used for querying? Or remove if only processor stores
     });
-    
+
     logger.info(`文档管理器已创建，配置了 ${this.documentSources.length} 个文档源，强制刷新模式: ${this.options.forceRefreshDocs}`);
   }
-  
+
   /**
    * 初始化文档管理器
    */
@@ -104,26 +106,25 @@ export class DocumentManager {
     if (this.initialized) {
       return;
     }
-    
+
     logger.info('初始化文档管理器...');
-    
-    // 初始化向量存储
+
     const success = await this.vectorStore.initialize();
     if (!success) {
-      throw new Error('初始化向量存储失败');
+      throw new Error('初始化管理器向量存储失败');
     }
-    
+
     this.initialized = true;
     logger.info('文档管理器初始化完成');
   }
-  
+
   /**
    * 获取所有文档源
    */
   getDocumentSources(): DocumentSource[] {
     return this.documentSources;
   }
-  
+
   /**
    * 添加自定义文档源
    */
@@ -131,27 +132,7 @@ export class DocumentManager {
     this.documentSources.push(source);
     logger.info(`添加了新的文档源: ${source.name}`);
   }
-  
-  /**
-   * 获取特定来源的文档块
-   * 注意：此方法仅返回内存中的临时文档块，不会查询向量数据库
-   */
-  getDocumentChunksBySource(sourceName: string): DocumentChunk[] {
-    return this.tempChunks[sourceName] || [];
-  }
-  
-  /**
-   * 获取所有文档块
-   * 注意：此方法仅返回内存中的临时文档块，不会查询向量数据库
-   */
-  getAllDocumentChunks(): DocumentChunk[] {
-    let allChunks: DocumentChunk[] = [];
-    Object.values(this.tempChunks).forEach(chunks => {
-      allChunks = allChunks.concat(chunks);
-    });
-    return allChunks;
-  }
-  
+
   /**
    * 清除文档缓存
    * 清除内存中的临时文档块和向量存储中的所有文档
@@ -160,134 +141,96 @@ export class DocumentManager {
     if (!this.initialized) {
       await this.initialize();
     }
-    
+
     logger.info('开始清除所有文档缓存...');
-    
-    // 先清除内存中的临时缓存
-    this.tempChunks = {};
+
+    // Clear processed sources flag
     this.processedSources.clear();
-    logger.info('成功清除内存缓存');
-    
-    // 尝试清除向量存储中的所有文档
+    logger.info('成功清除已处理源标记');
+
+    // Attempt to clear the vector store
     try {
-      // 清除向量存储中的所有文档
+      // Assuming '*' deletes all. Adjust if API is different.
       const deleteResult = await this.vectorStore.deleteDocuments(['*']);
-      
-      if (deleteResult > 0) {
-        logger.info('成功清除向量存储中的所有文档');
+
+      if (deleteResult >= 0) { // Check if deletion reported success (count >= 0)
+        logger.info(`成功清除向量存储中的 ${deleteResult} 个文档 (或所有文档)`);
+        // Optionally re-initialize if needed, though deleteDocuments might suffice
+        // await this.vectorStore.initialize();
         return true;
       } else {
-        logger.warn('向量存储清除操作完成，但无法确认是否成功删除所有文档');
-        
-        // 尝试重新初始化向量存储
-        try {
-          // 关闭现有连接
-          await this.vectorStore.close();
-          
-          // 重新初始化
-          const success = await this.vectorStore.initialize();
-          if (success) {
-            logger.info('成功重新初始化向量存储');
-            return true;
-          }
-        } catch (reinitError) {
-          logger.error('重新初始化向量存储失败:', reinitError);
-        }
-        
-        return false;
+        logger.warn('向量存储清除操作完成，但无法确认是否成功删除所有文档 (或无文档删除)');
+        return false; // Indicate potential issue
       }
     } catch (error) {
       logger.error('清除向量存储中的文档时出错:', error);
-      
-      // 即使清除向量存储失败，我们也已经清除了内存缓存
-      logger.warn('注意：虽然向量存储清除失败，但内存缓存已经清除');
-      
       return false;
     }
   }
-  
+
   /**
-   * 抓取单个文档源
-   * @param source 文档源
+   * 获取并处理单个文档源 (Refactored to use processDocumentSource)
+   * @param sourceOrUrl 文档源对象或其URL
    * @param options 抓取选项
    * @returns 抓取结果
    */
   async fetchSingleSource(
-    source: DocumentSource, 
+    sourceOrUrl: DocumentSource | string,
     options: { forceRefresh?: boolean } = {}
   ): Promise<ScrapingResult> {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+
+    // Find the source if URL is provided
+    let source: DocumentSource | undefined;
+    if (typeof sourceOrUrl === 'string') {
+      source = this.documentSources.find(s => s.url === sourceOrUrl);
+      if (!source) {
+        const errorMsg = `找不到具有指定URL的文档源: ${sourceOrUrl}`;
+        logger.error(errorMsg);
+        return { success: false, chunks: [], message: errorMsg, error: new DocumentProcessingError(errorMsg, { type: ErrorType.CONFIGURATION_ERROR }) };
+      }
+    } else {
+      source = sourceOrUrl;
+    }
+
     const forceRefresh = options.forceRefresh ?? this.options.forceRefreshDocs;
-    
-    logger.info(`开始抓取文档源: ${source.name} (${source.type}), 强制刷新: ${forceRefresh}`);
-    
-    // 如果已处理过且不需要强制刷新，则跳过
+
+    // Check if already processed (unless forceRefresh is true)
     if (this.processedSources.has(source.name) && !forceRefresh) {
-      logger.info(`文档源 ${source.name} 已处理过，跳过抓取`);
+      logger.info(`文档源 ${source.name} 已处理过，跳过。`);
+      // Return a success state indicating skip, stats might be unavailable or 0
       return {
         success: true,
-        chunks: this.tempChunks[source.name] || [],
-        message: `文档源 ${source.name} 已处理过，使用现有数据`,
-        stats: {
-          totalChunks: this.tempChunks[source.name]?.length || 0,
-          storedChunks: this.tempChunks[source.name]?.length || 0,
-          timeMs: 0
-        }
+        chunks: [], // No chunks returned directly by manager now
+        message: `文档源 ${source.name} 已处理过，跳过。`,
+        stats: { totalChunks: 0, storedChunks: 0, timeMs: 0 } // Placeholder stats
       };
     }
-    
+
+    logger.info(`开始处理文档源: ${source.name} (${source.type}), 强制刷新: ${forceRefresh}`);
+
+    // Delegate processing to processDocumentSource
     return await safeExecute(async () => {
-      let result: ScrapingResult;
-      
-      // 根据文档源类型调用不同的抓取器
-      switch (source.type) {
-        case 'website':
-          result = await scrapeWebsite(source);
-          break;
-        case 'github':
-          result = await scrapeGitHubRepo(source);
-          break;
-        case 'file':
-          result = await processLocalFile(source);
-          break;
-        default:
-          throw createConfigurationError(`不支持的文档源类型: ${source.type}`);
-      }
-      
-      // 处理抓取结果
-      if (result.success && result.chunks && result.chunks.length > 0) {
-        // 优化文档块
-        if (this.options.autoOptimizeChunks) {
-          result.chunks = optimizeChunks(result.chunks);
-        }
-        
-        // 临时保存文档块
-        this.tempChunks[source.name] = result.chunks;
-        
-        // 向量化并存储到数据库
-        const startTime = Date.now();
-        logger.info(`开始向量化并存储 ${result.chunks.length} 个文档块...`);
-        const storedCount = await this.vectorStore.storeDocuments(result.chunks);
-        const endTime = Date.now();
-        
-        logger.info(`向量化完成，成功存储 ${storedCount}/${result.chunks.length} 个文档块，耗时: ${(endTime - startTime)/1000}秒`);
-        
-        // 更新统计信息
-        if (result.stats) {
-          result.stats.storedChunks = storedCount;
-        }
-        
-        // 记录已处理的源
-        this.processedSources.add(source.name);
-        
-        logger.info(`成功抓取 ${source.name}，获取 ${result.chunks.length} 个文档块`);
+      // Pass processor config from manager options if available
+      const processorConfig = this.options.processorConfig || {};
+
+      // Call the centralized processor function
+      const result = await processDocumentSource(source, processorConfig);
+
+      if (result.success) {
+        this.processedSources.add(source.name); // Mark as processed
+        logger.info(`成功处理文档源: ${source.name}. 块信息: ${JSON.stringify(result.stats)}`);
       } else {
-        logger.warn(`抓取文档源: ${source.name} 未返回有效内容`);
+        logger.error(`处理文档源 ${source.name} 失败: ${result.message}`, result.error);
+        throw result.error || new DocumentProcessingError(result.message || `处理 ${source.name} 失败`, { type: ErrorType.PROCESSING_FAILED });
       }
-      
-      return result;
+      return result; // Return the result from processDocumentSource
     });
   }
-  
+
+
   /**
    * 抓取所有文档源
    * @param options 抓取选项
@@ -299,36 +242,36 @@ export class DocumentManager {
     if (!this.initialized) {
       await this.initialize();
     }
-    
+
     const forceRefresh = options.forceRefresh ?? this.options.forceRefreshDocs;
-    logger.info(`开始抓取所有文档源，共 ${this.documentSources.length} 个，强制刷新: ${forceRefresh}`);
-    
+    logger.info(`开始处理所有文档源，共 ${this.documentSources.length} 个，强制刷新: ${forceRefresh}`);
+
     const results: ScrapingResult[] = [];
-    
-    // 逐个抓取文档源
+
+    // Iterate and call the updated fetchSingleSource
     for (const source of this.documentSources) {
-      try {
-        const result = await this.fetchSingleSource(source, { forceRefresh });
-        results.push(result);
-      } catch (error) {
-        logger.error(`抓取 ${source.name} 失败:`, error);
-        
-        // 构造失败结果
-        results.push({
-          success: false,
-          chunks: [],
-          error: error instanceof DocumentProcessingError ? error : 
-            new DocumentProcessingError(`抓取 ${source.name} 失败: ${error.message}`, {
-              type: ErrorType.INTERNAL_ERROR,
-              cause: error
-            }),
-          message: `抓取 ${source.name} 失败: ${error.message}`
-        });
+      if (!source.enabled) {
+        logger.info(`跳过已禁用的文档源: ${source.name}`);
+        // Optionally add a skipped result
+        results.push({ success: true, chunks: [], message: `Skipped disabled source: ${source.name}` });
+        continue;
       }
+      // No need for try-catch here if fetchSingleSource uses safeExecute
+      const result = await this.fetchSingleSource(source, { forceRefresh });
+      results.push(result);
+
+      // Optional delay between sources
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Shorter delay maybe
     }
-    
-    logger.info(`完成抓取所有文档源，成功率: ${results.filter(r => r.success).length}/${results.length}`);
-    
+
+    logger.info(`完成处理所有文档源，结果数: ${results.length}`);
+    // Log summary stats maybe?
+    const successfulCount = results.filter(r => r.success && !r.message?.includes('跳过')).length;
+    const skippedCount = results.filter(r => r.success && r.message?.includes('跳过')).length;
+    const failedCount = results.filter(r => !r.success).length;
+    logger.info(`处理总结: 成功=${successfulCount}, 失败=${failedCount}, 跳过=${skippedCount}`);
+
+
     return results;
   }
 
@@ -344,180 +287,144 @@ export class DocumentManager {
       similarityThreshold?: number;
       filter?: Record<string, any>;
     } = {}
-  ): Promise<Array<{document: DocumentChunk, score: number}>> {
+  ): Promise<Array<{ document: DocumentChunk, score: number }>> {
     if (!this.initialized) {
+      // Ensure initialized specifically for querying
       await this.initialize();
     }
-    
+    // Uses the manager's vectorStore instance
     return this.vectorStore.queryByText(query, {
       maxResults: options.maxResults,
       similarityThreshold: options.similarityThreshold,
       filter: options.filter
     });
   }
-  
+
   /**
-   * 运行诊断
+   * 运行诊断 (Needs update as manager no longer holds chunks directly)
    */
   async runDiagnostics(): Promise<DiagnosticResult> {
     logger.info('运行文档系统诊断...');
-    
-    // 收集所有临时文档块
-    const allChunks: DocumentChunk[] = [];
-    for (const chunks of Object.values(this.tempChunks)) {
-      allChunks.push(...chunks);
+    if (!this.initialized) {
+      await this.initialize();
     }
-    
-    const bySource: Record<string, number> = {};
-    const byCategory: Record<string, number> = {};
-    
-    // 统计信息
-    allChunks.forEach(chunk => {
-      // 按来源统计
-      bySource[chunk.source] = (bySource[chunk.source] || 0) + 1;
-      
-      // 按分类统计
-      byCategory[chunk.category] = (byCategory[chunk.category] || 0) + 1;
-    });
-    
-    // 检查问题
-    const issues: string[] = [];
-    
-    // 检查空文档源
-    for (const source of this.documentSources) {
-      if (!bySource[source.name] || bySource[source.name] === 0) {
-        issues.push(`文档源 "${source.name}" 没有文档块`);
-      }
+
+    // Diagnostics now needs to potentially query the vector store
+    // or rely on stats returned by the processor, which are not persisted here.
+    // This implementation needs significant rework.
+    // For now, return a basic status check.
+
+    let status: 'ok' | 'warning' | 'error' = 'warning'; // Default to warning as stats are unavailable
+    let message = '诊断功能需要更新以反映处理流程的变化。无法提供详细统计信息。';
+    let issues: string[] = ['诊断统计信息不可用'];
+    let totalChunks = 0;
+    try {
+      // Basic check: Can we connect to the vector store?
+      // Attempt a simple query or check connection status if available
+      const testQuery = await this.vectorStore.queryByText('test query', { maxResults: 1 });
+      status = 'ok';
+      message = '向量存储连接正常。诊断统计需要更新。';
+      issues = [];
+
+      // 获取文档块总数
+      totalChunks = await this.vectorStore.getTotalDocuments();
+
+    } catch (error) {
+      status = 'error';
+      message = `诊断失败：无法连接或查询向量存储。 ${error.message}`;
+      issues.push(`无法访问向量存储: ${error.message}`);
     }
-    
-    // 检查文档块质量
-    const lowQualityChunks = allChunks.filter(chunk => chunk.content.length < 100);
-    if (lowQualityChunks.length > 0) {
-      issues.push(`发现 ${lowQualityChunks.length} 个低质量文档块（内容少于100个字符）`);
-    }
-    
-    // 确定状态
-    let status: 'ok' | 'warning' | 'error' = 'ok';
-    if (issues.length > 0) {
-      status = issues.length > 3 ? 'error' : 'warning';
-    }
-    
-    // 生成诊断消息
-    const message = issues.length > 0
-      ? `发现 ${issues.length} 个问题：${issues.join('; ')}`
-      : `文档系统运行正常，共有 ${allChunks.length} 个文档块，来自 ${Object.keys(bySource).length} 个来源`;
-    
+
+
     return {
       status,
       message,
-      stats: {
-        total: allChunks.length,
-        bySource,
-        byCategory
+      stats: { // Return empty/placeholder stats
+        total: totalChunks,
+        bySource: {},
+        byCategory: {}
       }
     };
   }
-  
+
+
   /**
    * 添加本地目录
    * @param dirPath 本地目录路径
    * @param namePrefix 文档名称前缀
    * @param recursive 是否递归处理子目录
-   * @returns 处理的文档块数组
+   * @returns 处理结果数组
    */
   async addLocalDirectory(
     dirPath: string,
     namePrefix: string = '本地文档',
     recursive: boolean = true
-  ): Promise<DocumentChunk[]> {
+  ): Promise<ScrapingResult[]> {
     if (!this.initialized) {
       await this.initialize();
     }
-    
-    logger.info(`添加本地目录: ${dirPath}`);
-    
-    // 检查目录是否存在
-    if (!fs.existsSync(dirPath)) {
+
+    logger.info(`扫描本地目录: ${dirPath}`);
+
+    if (!await existsAsync(dirPath)) {
       logger.error(`目录不存在: ${dirPath}`);
       return [];
     }
-    
-    // 处理的文档块
-    let processedChunks: DocumentChunk[] = [];
-    
-    // 读取目录内容
+
+    const results: ScrapingResult[] = [];
     const files = fs.readdirSync(dirPath);
-    
+
     for (const file of files) {
       const filePath = path.join(dirPath, file);
       const stat = fs.statSync(filePath);
-      
-      // 如果是目录且允许递归
+
       if (stat.isDirectory() && recursive) {
-        // 递归处理子目录
-        const subDirChunks = await this.addLocalDirectory(
+        const subDirResults = await this.addLocalDirectory(
           filePath,
           `${namePrefix}/${file}`,
           recursive
         );
-        processedChunks.push(...subDirChunks);
-      }
-      // 如果是文件
-      else if (stat.isFile()) {
-        // 创建文档源
+        results.push(...subDirResults);
+      } else if (stat.isFile()) {
         const fileExt = path.extname(file).toLowerCase();
         let fileType: 'text' | 'markdown' | 'pdf' | undefined;
-        
-        // 根据文件扩展名确定类型
-        if (['.md', '.markdown'].includes(fileExt)) {
-          fileType = 'markdown';
-        } else if (fileExt === '.pdf') {
-          fileType = 'pdf';
-        } else if (['.txt', '.js', '.py', '.ts', '.html', '.css', '.json', '.yml', '.yaml'].includes(fileExt)) {
-          fileType = 'text';
-        } else {
-          // 跳过不支持的文件类型
+
+        if (['.md', '.markdown'].includes(fileExt)) fileType = 'markdown';
+        else if (fileExt === '.pdf') fileType = 'pdf';
+        else if (['.txt', '.js', '.py', '.ts', '.html', '.css', '.json', '.yml', '.yaml'].includes(fileExt)) fileType = 'text';
+        else {
           logger.warn(`跳过不支持的文件类型: ${filePath}`);
           continue;
         }
-        
+
         const source: DocumentSource = {
           name: `${namePrefix}/${file}`,
           type: 'file',
-          url: `file://${filePath}`,
+          url: `file://${filePath}`, // Standardize URL representation
           filePath: filePath,
           fileType: fileType,
           enabled: true
         };
-        
-        // 添加文档源
-        this.addDocumentSource(source);
-        
-        try {
-          // 处理文件
-          const result = await this.fetchSingleSource(source);
-          
-          if (result.success && result.chunks) {
-            logger.info(`成功处理文件 ${filePath}, 获取了 ${result.chunks.length} 个文档块`);
-            processedChunks.push(...result.chunks);
-          } else {
-            logger.warn(`处理文件 ${filePath} 失败: ${result.message}`);
-          }
-        } catch (error) {
-          logger.error(`处理文件 ${filePath} 时出错:`, error);
-        }
+
+        // Check if source already exists? Optional.
+        // this.addDocumentSource(source); // Don't add here, let fetchSingleSource handle it if needed? Or add but handle duplicates.
+
+        logger.info(`找到文件源: ${source.name}`);
+        const result = await this.fetchSingleSource(source); // Process the discovered file source
+        results.push(result);
       }
     }
-    
-    logger.info(`本地目录处理完成: ${dirPath}, 获取了 ${processedChunks.length} 个文档块`);
-    return processedChunks;
+    logger.info(`本地目录扫描完成: ${dirPath}, 处理了 ${results.length} 个文件/子目录结果`);
+    return results;
   }
-  
+
+
   /**
    * 关闭资源
    */
   async close(): Promise<void> {
+    // Close the manager's vector store connection
     await this.vectorStore.close();
-    logger.info('向量存储连接已关闭');
+    logger.info('管理器向量存储连接已关闭');
   }
-} 
+}

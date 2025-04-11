@@ -35,7 +35,8 @@ export enum ErrorType {
   DB_ERROR = 'DB_ERROR',
   
   // 其他
-  UNKNOWN_ERROR = 'UNKNOWN_ERROR'
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
+  PROCESSING_FAILED = 'PROCESSING_FAILED'
 }
 
 /**

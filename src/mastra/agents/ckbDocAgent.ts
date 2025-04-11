@@ -6,9 +6,10 @@
 
 import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
-import { vectorQueryTool } from '../tools/vectorQueryTool.js';
+import { vectorQueryTool, graphRAGTool } from '../tools/ckbQueryTools';
 import { Memory } from "@mastra/memory";
 import { PostgresStore, PgVector } from "@mastra/pg";
+import { ToolAction } from '@mastra/core';
 
 /**
  * Agent Memory 数据库配置
@@ -103,7 +104,8 @@ export const ckbDocAgent = new Agent({
   instructions: SYSTEM_PROMPT,
   model: openai(process.env.MODEL_NAME || 'gpt-4-turbo-preview'),
   tools: {
-    vectorQueryTool
+    vectorQueryTool: vectorQueryTool as unknown as ToolAction<any, any, any>,
+    graphRAGTool: graphRAGTool as unknown as ToolAction<any, any, any>
   },
 });
 
