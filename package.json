@@ -51,7 +51,6 @@
     "@ckb-ccc/core": "^1.8.0",
     "@mastra/core": "0.8.2",
     "@mastra/deployer": "0.2.8",
-    "@mastra/deployer-vercel": "0.1.14",
     "@mastra/memory": "0.2.9",
     "@mastra/pg": "0.2.9",
     "@mastra/rag": "^0.1.17",
@@ -70,7 +69,8 @@
     "nostr-tools": "^2.12.0",
     "pg": "^8.14.1",
     "twitter-api-v2": "^1.22.0",
-    "zod": "^3.24.2"
+    "zod": "^3.21.4",
+    "zod-to-json-schema": "^3.21.4"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
