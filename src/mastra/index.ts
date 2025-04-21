@@ -15,7 +15,17 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 // 构建带有连接超时参数的连接字符串
-const connectionString = `${process.env.POSTGRES_CONNECTION_STRING || ''}?connect_timeout=30&statement_timeout=60000&idle_timeout=60000`;
+const baseConnectionString = process.env.POSTGRES_CONNECTION_STRING || '';
+const timeoutParams = new URLSearchParams({
+  connect_timeout: '30',
+  statement_timeout: '60000',
+  idle_timeout: '60000',
+  pool_timeout: '30000'
+});
+
+const connectionString = baseConnectionString.includes('?')
+  ? `${baseConnectionString}&${timeoutParams}`
+  : `${baseConnectionString}?${timeoutParams}`;
 
 // 初始化 PgVector 向量存储
 const pgVector = new PgVector(connectionString);
